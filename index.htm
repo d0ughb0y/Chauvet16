@@ -1,0 +1,1715 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<title></title>
+	<link rel="stylesheet" href="http://code.jquery.com/mobile/1.3.2/jquery.mobile-1.3.2.min.css"/>
+	<script src="http://code.jquery.com/jquery-1.9.1.min.js"></script>
+	<script src="http://omnipotent.net/jquery.sparkline/2.1.2/jquery.sparkline.min.js"></script>
+	<script type="text/javascript">
+		$(document).bind("mobileinit", function () {
+			$.mobile.page.prototype.options.addBackBtn=true;
+			$.mobile.page.prototype.options.backBtnTheme="c";
+			$.mobile.page.prototype.options.headerTheme="a";
+			$.mobile.page.prototype.options.contentTheme="c";
+			$.mobile.page.prototype.options.footerTheme="a";
+			$.mobile.listview.prototype.options.theme="d";
+			$.mobile.collapsible.prototype.options.theme="b";
+			$.mobile.collapsible.prototype.options.contentTheme="c";
+			$.mobile.defaultPageTransition="fade";
+			$.event.special.swipe.horizontalDistanceThreshold=100;
+			if (localStorage.length<=1) {
+				localStorage.setItem('timeout', 8000);
+				localStorage.setItem('httpretries', 1);
+			}
+			$.ajaxSetup({
+				timeout:localStorage.getItem('timeout'),
+				cache:true
+			});
+		});
+	</script>
+	<style type="text/css">
+		#Outlets .ui-li, #Inputs .ui-li, #outloglist .ui-li, #sensorloglist .ui-li, #loglist .ui-li {
+			padding-bottom: 0;
+			padding-top: 0;
+			font-weight: normal;
+		}
+		#sensorloglist .ui-block-a, #outloglist .ui-block-a { width: 55%; }
+		#outloglist .ui-block-b { width: 35%; }
+		#outloglist .ui-block-c { width: 10%; }
+    #loglist .ui-li { font-size: small; }
+    #csetup label.ui-select, #csetup label.ui-input-text {
+       width: 20% !important; display: inline-block !important;
+    }
+    #csetup .ui-select, #csetup .ui-input-text {
+			width: 70% !important; display: inline-block !important;
+		}
+		.tooltip {
+			display: none;
+			font-size: 10pt;
+			position: absolute;
+			border: 1px solid #000000;
+			background-color: #FFFFE0;
+			padding: 2px 6px;
+			color: #990000;
+		}
+		.sensor {
+			width: 70%;
+			min-width: 200px;
+			max-width: 400px;
+			height: 65px;
+			float: left;
+		}
+		.sensor_name {
+			height: 20px;
+			font-size: large;
+		}
+		.sensor_spark {
+			height: 30px;
+		}
+		.sensor_mma {
+			height: 15px;
+			font-size: small;
+		}
+		.sensor2 {
+			width: 80px;
+			height: 65px;
+			float: right;
+		}
+		.sensor_value {
+			height: 50px;
+			font-size: 36px;
+			line-height: 60px;
+			text-align: center;
+		}
+		.sensor_sg {
+			height: 15px;
+			font-size: small;
+			text-align: center;
+		}
+		#perc {
+			width: 120px;
+			height: 20px;
+			border: 1px solid blue;
+			position: relative;
+		}
+		#perc_in {
+			position: absolute;
+			background: #0FF;
+			top: 0;
+			left: 0;
+			height: 100%;
+		}
+		#perc_txt {
+			position: absolute;
+			top: 0;
+			left: 0;
+			width: 100%;
+			height: 100%;
+			font-size: medium;
+			text-align: center;
+			z-index: 100;
+		}
+	</style>
+	<script src="http://code.jquery.com/mobile/1.3.1/jquery.mobile-1.3.1.min.js"></script>
+	<meta content="width=device-width, minimum-scale=1, maximum-scale=1" name="viewport"/>
+	<meta name="apple-mobile-web-app-capable" content="yes"/>
+	<meta name="apple-mobile-web-app-status-bar-style" content="black"/>
+</head>
+<body>
+<div data-role="page" id="page">
+	<div data-role="header" data-position="fixed" data-tap-toggle="false">
+		<a href="#setup" data-role="button" data-icon="gear" data-iconpos="notext" class="ui-btn-left" data-iconshadow="false"></a>
+		<h1 id="hostname"></h1>
+		<a data-role="button" data-icon="refresh" data-iconpos="notext" data-iconshadow="false" class="ui-btn-right" onClick="lastupdatetime=new Date(0);updateStatus(true);"></a>
+	</div>
+	<div data-role="content">
+		<div data-role="collapsible-set" data-inset="false">
+			<div data-role="collapsible" data-collapsed-icon="arrow-r" data-expanded-icon="arrow-d" data-inset="false" id="SensorBar" data-collapsed="false">
+				<h2>Sensors</h2>
+				<ul data-role="listview" id="Sensors"></ul>
+			</div>
+			<div data-role="collapsible" data-collapsed-icon="arrow-r" data-expanded-icon="arrow-d" data-inset="false" id="OutletsBar">
+				<h2>Outlets</h2>
+				<ul data-role="listview" id="Outlets"></ul>
+			</div>
+			<div data-role="collapsible" data-collapsed-icon="arrow-r" data-expanded-icon="arrow-d" data-inset="false" id="InputsBar">
+				<h2>Inputs</h2>
+				<ul data-role="listview" id="Inputs"></ul>
+			</div>
+			<div data-role="collapsible" data-collapsed-icon="arrow-r" data-expanded-icon="arrow-d" data-inset="false" style="text-decoration:none" id="MacrosBar">
+				<h2>Feed</h2>
+				<div data-role="controlgroup">
+					<button onClick="setFeed(0);" value="Feed A" id="feed1"/>
+					<button onClick="setFeed(1);" value="Feed B" id="feed2"/>
+					<button onClick="setFeed(2);" value="Feed C" id="feed3"/>
+					<button onClick="setFeed(3);" value="Feed D" id="feed4"/>
+					<button onClick="setFeed(4);" value="Feed Cancel" id="feedcancel"/>
+				</div>
+			</div>
+			<div data-role="collapsible" data-collapsed-icon="arrow-r" data-expanded-icon="arrow-d" data-inset="false" id="webcam">
+				<h2>WebCam</h2>
+				<img id="camImg" width="290px" src=""/>
+				<button onClick="startPlay();" id="playbtn">Play</button>
+			</div>
+			<div data-role="collapsible" data-collapsed-icon="arrow-r" data-expanded-icon="arrow-d" data-inset="false">
+				<h2>Apex Logs and Setup</h2>
+				<ul data-role="listview">
+					<li><a href="#outlog">Outlet Log</a></li>
+					<li><a href="#sensorlog">Sensor Log</a></li>
+					<li><a href="#log">Controller Log</a></li>
+					<li><a href="#-" id="filemanager">File Manager</a></li>
+					<li><a href="#csetup">Controller Setup</a></li>
+				</ul>
+			</div>
+			<div data-role="collapsible" data-collapsed-icon="arrow-r" data-expanded-icon="arrow-d" data-inset="false">
+				<h2>Apex Info</h2>
+				<div data-role="listview">
+					<li>Software<span class="ui-li-aside" id="software">1.0</span></li>
+					<li>Hardware<span class="ui-li-aside" id="hardware">1.0</span></li>
+					<li>Serial<span class="ui-li-aside" id="serial">1.0</span></li>
+					<li>Timezone<span class="ui-li-aside" id="timezone">1.0</span></li>
+					<li data-role="list-divider">Power</li>
+					<li>Failed<span class="ui-li-aside" id="powerfailed">none</span></li>
+					<li>Restored<span class="ui-li-aside" id="powerrestored">none</span></li>
+				</div>
+			</div>
+		</div>
+	</div>
+	<div data-role="footer" data-position="fixed" data-tap-toggle="false">
+		<a href="#info" data-role="button" data-icon="info" data-iconpos="notext" class="ui-btn-left" data-iconshadow="false"></a>
+		<h1 id="footertxt"></h1>
+		<a href="#doc" data-role="button" data-icon="search" data-iconpos="notext" class="ui-btn-right" data-iconshadow="false"></a>
+	</div>
+</div>
+<div data-role="page" id="outlog">
+	<div data-role="header" data-position="fixed" data-tap-toggle="false">
+		<h1>Outlet Log</h1>
+	</div>
+	<div data-role="content">
+		<ul data-role="listview" data-filter="true" id="outloglist"></ul>
+	</div>
+</div>
+<div data-role="page" id="sensorlog">
+	<div data-role="header" data-position="fixed" data-tap-toggle="false">
+		<h1>Sensor Log</h1>
+	</div>
+	<div data-role="content">
+		<ul data-role="listview" data-filter="true" id="sensorloglist"></ul>
+	</div>
+</div>
+<div data-role="page" id="doc">
+	<div data-role="header" data-position="fixed" data-tap-toggle="false">
+		<h1>Documentation</h1>
+	</div>
+	<div data-role="content" id="doccontents">
+		<p>m-apex (or mobile apex) was written as a supplement to the Apex app for smartphones. You can edit the html source
+			to your liking.</p>
+		<p>Unlike the Apex app, this does not continuously connect to the apex to get data. Other than the initial
+			connection to get the html page and load the initial data, this program does not consume any data bandwidth until
+			you click on the refresh button or view a section or log. This works better for smartphones without unlimited data
+			plan.</p>
+		<div data-role="collapsible-set">
+			<div data-role="collapsible">
+				<h2>Setup</h2>
+				<p>This program will work as is with the default Setup values.</p>
+				<p>If you use a webcam on your aquarium, you can enter the URL to retrieve a jpg or mjpeg image.</p>
+				<p>For Foscam compatible cameras, use this URL for image http://host:port/snapshot.cgi and this URL for server
+					push mjpeg http://host:port/videostream.cgi?resolution=8&rate=11</p>
+				<p><strong>Do not use server push if you do not have unlimited data plan on your mobile device!!!</strong></p>
+				<p>The Connection Timeout is the number of seconds before the browser will disconnect if Apex does not respond,
+					and Connection Retries is the number of times to retry in case of a failed connection. A spinner status will
+					be displayed during a connection, and the retry attempt number is displayed if applicable.</p>
+				<p>You must click on the Save button at the top right of the page to save the values you entered.</p>
+			</div>
+			<div data-role="collapsible">
+				<h2>Header</h2>
+				<p>The header section displays the Apex Host name in the center, with the Setup button to the left, and Refresh
+					button to the right. The Refresh button updates the Sensors and Outlets section if they are expanded.</p>
+			</div>
+			<div data-role="collapsible">
+				<h2>Sensors</h2>
+				<p>This section displays all your Apex sensors (probes) and their values. A chart of the last 24 hours is
+					displayed, with the min, max and avg values shown below. If you have a Conductivity probe and it returns
+					salinity values, the calculated specific gravity value will be displayed under the salinity value.</p>
+			</div>
+			<div data-role="collapsible">
+				<h2>Outlets</h2>
+				<p>This displays all the outlets defined on your Apex and allows you to manually turn On or Off the outlet.</p>
+				<p>The outlet name is color coded as follows: green = On, red = off, blue = Unknown and orange = Profile.</p>
+				<p>For outlets running on a profile, if you tap the outlet name, the profile name will display as a tooltip.</p>
+				<p>When you click on On or Off, only the outlet command is sent to the Apex.</p>
+				<p>If you click on the Auto button, an Update command is sent 600ms later to retrieve the outlet status so the
+					appropriate outlet name color can be applied.</p>
+			</div>
+			<div data-role="collapsible">
+				<h2>Inputs</h2>
+				<p>This section displays all the input switch states.</p>
+			</div>
+			<div data-role="collapsible">
+				<h2>Feed</h2>
+				<p>This section allows you to execute the Feed modes defined on the Apex. When you exectue a Feed program, the
+					feed buttons will be disabled and a countdown timer will display the remaining time on the feed program
+					currently running.</p>
+			</div>
+			<div data-role="collapsible">
+				<h2>WebCam</h2>
+				<p>If you entered a webcam image url in the Setup section, this will display an image from the webcam.</p>
+				<p>If you click on the Play button, it will play 15 frames 500ms apart to simulate a short video clip if the url
+					is to a jpg image. If the url is a videostream, then it starts playing the live webcam video.</p>
+			</div>
+			<div data-role="collapsible">
+				<h2>Apex Logs and Setup</h2>
+				<p>This section allows you to view Apex Outlet Log and Sensor Data Log. The log list is filterable to show only
+					lines that matches the search characters you type in.</p>
+				<p>For Outlet Log, switch your smartphone to landscape orientation if you have outlets running on profiles to
+					see the profile name. </p>
+				<p>You can also open the Apex Outlets setup page, the Apex Profiles setup page and the full Apex page in a new
+					browser window in this section.</p>
+			</div>
+			<div data-role="collapsible">
+				<h2>Apex Info</h2>
+				<p>This section displays miscellaneous information about your Apex device.</p>
+			</div>
+			<div data-role="collapsible">
+				<h2>Footer</h2>
+				<p>The center displays the timestamp the Outlets section was updated. The Info button is on the left and
+					Documentation button is on the right.</p>
+			</div>
+		</div>
+	</div>
+</div>
+<div data-role="page" id="info">
+	<div data-role="header" data-position="fixed" data-tap-toggle="false">
+		<h1>m-apex v1.05</h1>
+	</div>
+	<div data-role="content">
+		<h2>Software License Agreement</h2>
+		<p>BEFORE INSTALLING THIS SOFTWARE, YOU SHOULD CAREFULLY READ THE FOLLOWING TERMS AND CONDITIONS. INSTALLING THE
+			SOFTWARE INDICATES YOUR ACCEPTANCE OF THE TERMS AND CONDITIONS. IF YOU DO NOT AGREE TO THE TERMS OF THIS
+			AGREEMENT, DO NOT INSTALL THE SOFTWARE. </p>
+		<p>The owner of m-apex licenses its software (hereinafter referred to as the "Software", including any accompanying
+			documentation) to you only upon the condition that you accept all of the terms contained in this license agreement
+			("Agreement"). </p>
+		<div data-role="collapsible-set">
+			<div data-role="collapsible">
+				<h2>GRANT OF USE.</h2>
+				<p>Software is copyrighted and title to Software and all associated intellectual property rights are retained by
+					Jerry Sy (hereinafter referred to as the "owner"). Software is confidential information of the owner.<BR> <BR>
+					The owner grants you a non-exclusive license to use the software in personal or non commercial purposes.<BR>
+					<BR> You may not remove or obscure any copyright and trademark notices relating to the Software.<BR> <BR> You
+					may not reverse engineer, decompile, or disassemble the Software, except and only to the extent that such
+					activity is expressly permitted by applicable law notwithstanding this limitation.<BR> <BR> You may not
+					sub-license, transfer, assign or distribute the Software or any of your rights or obligations under this
+					License Agreement, in whole or in part. </p>
+			</div>
+			<div data-role="collapsible">
+				<h2>TERM AND TERMINATiON</h2>
+				<p>This Agreement is effective until terminated. You may terminate this Agreement at any time by destroying all
+					copies of Software. This Agreement will terminate immediately without notice from the owner if you fail to
+					comply with any provision of this Agreement. Upon termination, you must destroy all copies of Software. </p>
+			</div>
+			<div data-role="collapsible">
+				<h2>DiSCLAIMER OF WARRANTY</h2>
+				<p>The Software is provided "AS IS" WITHOUT WARRANTY OF ANY KIND EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT
+					LIMITED TO THE IMPLIED WARRANTY OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. </p>
+			</div>
+			<div data-role="collapsible">
+				<h2>LIMITATION OF LIABILITY</h2>
+				<p><strong>NO LIABILITY FOR CONSEQUENTIAL DAMAGES.</strong> THE ENTIRE RISK ARISING OUT OF THE USE OR
+					PERFORMANCE OF THIS SOFTWARE AND DOCUMENTATION REMAINS WITH YOU. IN NO EVENT WILL THE OWNER BE LIABLE FOR ANY
+					LOST PROFITS, LOST SAVINGS, INCIDENTAL OR INDIRECT DAMAGES OR OTHER ECONOMIC CONSEQUENTIAL DAMAGES, EVEN IF
+					THE OWNER OR ITS AUTHORIZED SUPPLER HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES. IN ADDITION THE OWNER
+					AND ITS SUPPLIERS WILL NOT BE LIABLE FOR ANY DAMAGES CLAIMED BY YOU BASED ON ANY THIRD PARTY CLAIM.<BR> <BR>
+					Some jurisdictions do not allow the exclusion of implied warranties, or the limitation for consequential
+					damages, so the above may not apply to you. </p>
+			</div>
+			<div data-role="collapsible">
+				<h2>COPYRIGHT</h2>
+				<p>Contents of this file, program code, concepts, and user interfaces are &copy; 2013 and beyond by Jerry
+					Sy.<BR> <br> Nepture Apex is trademarked and copyrighted by Neptune Systems.<BR>
+				</p>
+			</div>
+			<div data-role="collapsible">
+				<h2>CREDITS</h2>
+				<p>Thanks to Russ Michel for providing access to his Apex for testing and development.<br> <br> This program
+					uses jQuery, jQuery Mobile, sparkline.</p>
+			</div>
+			<div data-role="collapsible">
+				<h2>AUTHOR</h2>
+				<p>You may contact the author to provide comments, suggestions and bug report about this program or request
+					program customization. Contact via <a href="mailto:j3rry5y@gmail.com">email</a> or via IM at
+					<a target="_blank" href="http://www.reefcentral.com/forums/member.php?u=186039">d0ughb0y@ReefCentral</a> or
+					<a target="_blank" href="http://www.reef2reef.com/forums/member.php?u=11889">doughboy@Reef2Reef.</a>
+				</p>
+			</div>
+		</div>
+	</div>
+</div>
+<div data-role="page" id="setup">
+	<div data-role="header" data-position="fixed" data-tap-toggle="false">
+		<h2>Setup</h2>
+		<a data-role="button" class="ui-btn-right" data-theme="c" data-icon="check" data-iconpos="right" onClick="saveSetup();">Save</a>
+	</div>
+	<div data-role="content">
+		<div data-role="fieldcontain">
+			<label for="webcamurl">Webcam Image URL:</label>
+			<input type="url" name="textinput2" id="webcamurl" value="" data-mini="true"/>
+		</div>
+		<div data-role="fieldcontain">
+			<label for="webcamname">Webcam Login:</label>
+			<input type="text" name="textinput3" id="webcamname" value="" data-mini="true"/>
+		</div>
+		<div data-role="fieldcontain">
+			<label for="webcampass">Webcam Password:</label>
+			<input type="password" name="passwordinput2" id="webcampass" value="" data-mini="true"/>
+		</div>
+		<div data-role="fieldcontain">
+			<label for="httptimeout">Connection Timeout in seconds:</label>
+			<input type="range" name="slider" id="httptimeout" value="10" min="5" max="15" data-highlight="false" data-mini="true"/>
+		</div>
+		<div data-role="fieldcontain">
+			<label for="httpretries">Connection Retries:</label>
+			<input type="range" name="slider1" id="httpretries" value="1" min="0" max="5" data-highlight="false" data-mini="true"/>
+		</div>
+	</div>
+</div>
+<div data-role="page" id="log">
+	<div data-role="header" data-position="fixed" data-tap-toggle="false">
+		<h1>Controller Log</h1>
+	</div>
+	<div data-role="content">
+		<ul data-role="listview" id="loglist" data-filter="true"></ul>
+	</div>
+	<div data-role="footer" data-position="fixed" data-tap-toggle="false">
+		<h1 id="logfooter"></h1>
+	</div>
+</div>
+<div data-role="page" id="csetup">
+	<div data-role="header" data-position="fixed" data-tap-toggle="false">
+		<a data-role="button" class="ui-btn-right" data-theme="c" data-icon="check" data-iconpos="right" onClick="saveconfig();">Save</a>
+		<h1>Controller Setup</h1>
+		<div data-role="navbar">
+			<ul>
+				<li><a href="#" id="csetupoutlet" class="ui-btn-active" ui-state-persist>Outlets</a></li>
+				<li><a href="#" id="csetupmacro">Macros</a></li>
+				<li><a href="#" id="csetupaction">Actions</a></li>
+				<li><a href="#" id="csetupmisc">Misc</a></li>
+			</ul>
+		</div>
+	</div>
+	<div data-role="content">
+		<div id="contentoutlet">
+			<label for="selectrec" class="select">Name:</label>
+			<select name="selectmenu" id="selectrec" data-mini="true"></select> <label for="initoff">Off:</label>
+			<input type="text" name="initoff" id="initoff" value="" data-mini="true"/> <label for="ontime">On:</label>
+			<input type="text" name="ontime" id="ontime" value="" data-mini="true"/> <label for="offtime">Off:</label>
+			<input type="text" name="offtime" id="offtime" value="" data-mini="true"/> <label for="cycletime">Cycle:</label>
+			<input type="text" name="cycletime" id="cycletime" value="" readonly data-mini="true"/>
+			<label for="days" class="select">Days:</label>
+			<select name="days" id="days" multiple data-native-menu="false" data-mini="true">
+				<option value="1">Sun</option>
+				<option value="2">Mon</option>
+				<option value="3">Tue</option>
+				<option value="4">Wed</option>
+				<option value="5">Thu</option>
+				<option value="6">Fri</option>
+				<option value="7">Sat</option>
+			</select> <label for="mode" class="select">Mode:</label> <select name="mode" id="mode" data-mini="true">
+			<option value="0">Auto</option>
+			<option value="1" disabled>Manual</option>
+			<option value="2">Disabled</option>
+			<option value="3" disabled>Macro</option>
+		</select>
+		</div>
+		<div id="contentaction">
+			<label for="selectmacro" class="select">Name:</label>
+			<select name="selectmacro" id="selectmacro" data-mini="true"> </select>
+			<ul data-role="listview" id="actionlist" style="margin-top:10px"></ul>
+		</div>
+		<div id="contentmisc">
+			<h4 style="text-align:center">pH Calibration</h4>
+			<section class="ui-grid-b">
+				<div class="ui-block-a">
+					<button id="ph7btn" data-mini="true" data-theme="c" onClick="phcal({'cal':'s'});"/>
+				</div>
+				<div class="ui-block-b">
+					<button id="ph10btn" data-mini="true" data-theme="c" onClick="phcal({'cal':'t'})"/>
+				</div>
+				<div class="ui-block-c"><input type="text" readonly id="phval" data-mini="true" value=""/></div>
+			</section>
+			<h4 style="text-align:center">Temp Control</h4>
+			<section class="ui-grid-b">
+				<div class="ui-block-a">Heater:</div>
+				<div class="ui-block-b"><input type="number" id="htrlow" data-mini="true" value=""/></div>
+				<div class="ui-block-c"><input type="number" id="htrhigh" data-mini="true" value=""/></div>
+				<div class="ui-block-a">Fan:</div>
+				<div class="ui-block-b"><input type="number" id="fanlow" data-mini="true" value=""/></div>
+				<div class="ui-block-c"><input type="number" id="fanhigh" data-mini="true" value=""/></div>
+			</section>
+			<h4 style="text-align:center">Sonar Alert</h4>
+			<section class="ui-grid-b">
+				<div class="ui-block-a">Range:</div>
+				<div class="ui-block-b"><input type="number" id="sonarlow" data-mini="true" value=""/></div>
+				<div class="ui-block-c"><input type="number" id="sonarhigh" data-mini="true" value=""/></div>
+				<div class="ui-block-a">Low Alert Value:</div>
+				<div class="ui-block-b"><input type="number" id="sonaralertval" data-mini="true" value=""/></div>
+				<div class="ui-block-c"><input type="text" readonly id="sonarval" data-mini="true" value=""/></div>
+			</section>
+			<div><label for="sonaralert">Sonar Alert</label><input type="checkbox" id="sonaralert"/></div>
+			<h4 style="text-align:center">Alerts</h4>
+			<section class="ui-grid-b">
+				<div class="ui-block-a">Temp:</div>
+				<div class="ui-block-b"><input type="number" id="alerttemplow" data-mini="true" value="74.0"/></div>
+				<div class="ui-block-c"><input type="number" id="alerttemphigh" data-mini="true" value="82.0"/></div>
+				<div class="ui-block-a">pH:</div>
+				<div class="ui-block-b"><input type="number" id="alertphlow" data-mini="true" value="7.6"/></div>
+				<div class="ui-block-c"><input type="number" id="alertphhigh" data-mini="true" value="8.6"/></div>
+			</section>
+			<section class="ui-grid-a">
+				<div class="ui-block-a"><label for="sndalert">Sound</label><input type="checkbox" id="sndalert"/></div>
+				<div class="ui-block-b"><label for="emailalert">Email</label><input type="checkbox" id="emailalert"/>
+				</div>
+			</section>
+			<label for="resetconf">Reset:</label> <input type="number" id="resetconf" data-mini="true" value=""/>
+		</div>
+	</div>
+</div>
+<div data-role="page" id="editaction">
+	<div data-role="header">
+		<h1>Edit Action</h1>
+	</div>
+	<div data-role="content">
+		<label for="editoutlet">Outlet:</label>
+		<input type="number" name="editoutlet" id="editoutlet" value="" data-mini="true"/> <label for="editoff">Init
+		Off:</label> <input type="number" name="editoff" id="editoff" value="" data-mini="true"/> <label for="editon">On
+		Time:</label> <input type="number" name="editon" id="editon" value="" data-mini="true"/>
+		<button onClick="saveaction();" data-mini="true">Save</button>
+	</div>
+</div>
+<script type="text/javascript">
+var retry=0;
+var maxretries=localStorage.getItem('httpretries');
+var initialized=false;
+var lastupdatetime=new Date(0);
+var sensoropen=false;
+var imageupdatecount=0;
+var sensordata={names:[], record:[]};
+var outlogdata={record:[]};
+var feedactive=false;
+var feedexpanded=false;
+var feedcounter=0;
+var feedname=0;
+var feedtimeoutfunction;
+var feedactivefunction;
+var logpath="";
+var config={};
+var macros=[];
+var outletname=["Koralia1", "Koralia2", "Koralia3", "Koralia4", "CAL", "ALK", "Return", "Skimmer"];
+var action=[];
+$("#page").on("pageshow", initHome);
+$('#setup').on("pagebeforeshow", function (e) {
+	$('#httptimeout').val(localStorage.getItem('timeout')/1000).slider('refresh');
+	$('#httpretries').val(localStorage.getItem('httpretries')).slider('refresh');
+	$('#webcamurl').val(localStorage.getItem('webcamurl'));
+	$('#webcamname').val(localStorage.getItem('webcamname'));
+	$('#webcampass').val(localStorage.getItem('webcampass'));
+});
+$('#sensorlog').on("pagebeforeshow",function (e) {
+	$('#sensorloglist').empty().listview('refresh');
+	$('input[data-type="search"]').val("");
+	$('input[data-type="search"]').trigger("change");
+}).on("pageshow", function () {
+		setTimeout(function () {
+			getsensordata(loadsensor);
+		}, 0);
+	});
+$('#outlog').on("pagebeforeshow",function (e) {
+	$('#outloglist').empty().listview('refresh');
+	$('input[data-type="search"]').val("");
+	$('input[data-type="search"]').trigger("change");
+}).on("pageshow", function (e) {
+		if (logpath.length==19)
+			loadfileoutlog(); else
+			loadoutlog();
+	});
+$('#Outlets').on("change", $("input[type='radio']"), function (event, ui) {
+	var olet=event.target;
+	var val=$(olet).val();
+	var name=olet.name;
+	var dev=name.replace('_state', '');
+	var s=name+"="+val+"&noResponse=1";
+	$.mobile.loading('show', {text:'Sending command...', textVisible:true});
+	$.post("/cgi-bin/status.cgi", s,function (data) {
+		if (val=="0") {
+			lastupdatetime=new Date(0);
+			setTimeout(updateStatus, 600);
+		} else if (val=="1") {
+			$('#'+dev).attr('style', 'color:#F00').addClass('refresh');
+		} else if (val=="2") {
+			$('#'+dev).attr('style', 'color:#090').addClass('refresh');
+		}
+	}).always(function () {
+			$.mobile.loading('hide');
+		}).fail(function (jqXHR, textStatus, errorThrown) {
+			alert(textStatus);
+			updateStatus();
+		});
+});
+$('#webcam').on('collapse',function () {
+	imageupdatecount=0;
+	$('#camImg').off('load error');
+	$('#camImg').attr('src', '');
+	$.mobile.loading('hide');
+}).on('expand', function (e) {
+		var wcurl=getwebcamurl();
+		var videopush=false;
+		if (wcurl!="") {
+			if (wcurl.indexOf("videostream.cgi")!= -1) {
+				videopush=true;
+				if ($(window).width()>320)
+					$('#camImg').removeAttr('width'); else
+					$('#camImg').attr('width', '290px');
+			} else {
+				$('#camImg').attr('width', '290px');
+			}
+			$.mobile.loading('show', {text:'Loading Image...', textVisible:true});
+			var firstparam=wcurl.indexOf('?')== -1;
+			$('#camImg').attr('src', wcurl+(firstparam?'?':'&')+'_='+Math.random());
+			$('#camImg').one('load error', function (e) {
+				$.mobile.loading('hide');
+				if (e.type=='error') {
+					alert('Unable to load image.');
+					$('#playbtn').button('disable');
+				} else {
+					$('#playbtn').button(videopush?'disable':'enable');
+				}
+			});
+		} else {
+			$('#camImg').attr('src', '');
+			$('#playbtn').button('disable');
+		}
+	});
+$('#SensorBar').on('collapse',function () {
+	sensoropen=false;
+}).on('expand', function (e) {
+		if (!sensoropen) {
+			sensoropen=true;
+			if (initialized)
+				setTimeout(function () {
+					updateStatus(true);
+				}, 0);
+		}
+	});
+$('#OutletsBar').on('expand',function (e) {
+	if (initialized) {
+		if ($('#Outlets li').length>12) {
+			$('#page [data-role=header], #page [data-role=footer]').fixedtoolbar("hide");
+		}
+		setTimeout(updateStatus, 0);
+	}
+}).on('collapse', function () {
+		if ($('#Outlets li').length>12) {
+			$('#page [data-role=header], #page [data-role=footer]').fixedtoolbar("show");
+		}
+	});
+$('#InputsBar').on('expand', function (e) {
+	setTimeout(updateStatus, 0);
+});
+$('#MacrosBar').on('expand',function (e) {
+	if (!feedexpanded) {
+		feedexpanded=true;
+		updateFeedTime();
+	}
+}).on('collapse', function () {
+		feedexpanded=false;
+		clearTimeout(feedtimeoutfunction);
+	});
+$('#outloglist').on('orientationchange', function (e) {
+	if (e.orientation=='landscape') {
+		$('#outloglist .ui-block-a').css('width', '40%');
+		$('#outloglist .ui-block-b').css('width', '35%');
+		$('#outloglist .ui-block-c').css('width', '25%');
+	} else if (e.orientation=='portrait') {
+		$('#outloglist .ui-block-a').css('width', '55%');
+		$('#outloglist .ui-block-b').css('width', '35%');
+		$('#outloglist .ui-block-c').css('width', '10%');
+	}
+	$('#outloglist').listview('refresh');
+});
+$('#Sensors').on('orientationchange', function (e) {
+	if (e.orientation=='landscape') {
+		$('.sensor').css('width', '80%');
+	} else if (e.orientation=='portrait') {
+		$('.sensor').css('width', '70%');
+	}
+	getSparkData();
+});
+$(document).on('mouseenter', '.outlettext',function (e) {
+	var toolTip=$(this).attr('tooltip');
+	$('<span class="tooltip"></span>').text(toolTip).appendTo('body').css('top', (e.pageY-10)+'px').css('left', (e.pageX+20)+'px').fadeIn('slow');
+}).on('mouseleave', '.outlettext',function () {
+		$('.tooltip').remove();
+	}).on('mousemove', '.outlettext', function (e) {
+		$('.tooltip').css('top', (e.pageY-10)+'px').css('left', (e.pageX+20)+'px');
+	});
+function getsensordata(callback) {
+	var initstring="Updating";
+	if (retry>0) {
+		initstring=initstring+" "+retry;
+	}
+	initstring+="...";
+	if (initialized)
+		$.mobile.loading('show', {text:initstring, textVisible:true});
+	var timenow=new Date();
+	var timeincr=0;
+	timenow.setDate(timenow.getDate()-1);
+	if (sensordata.record.length>0) {
+		timeincr=calculateLogInterval();
+		$.each(sensordata.record, function (i, r) {
+			var currentTime=new Date(r.date);
+			if (currentTime.getTime()>=timenow.getTime()) {
+				for (var x=0; x<i-1; x++)
+					sensordata.record.shift();
+				if (sensordata.record.length>0) {
+					timenow=new Date(sensordata.record[sensordata.record.length-1].date);
+					timenow.setTime(timenow.getTime()+timeincr);
+				}
+				return false;
+			}
+		});
+	}
+	if (timenow.getTime()>(new Date()).getTime()) {
+		if (typeof callback=="function")
+			callback();
+		$.mobile.loading('hide');
+		return;
+	}
+	var sdate=(timenow.getFullYear()+' ').substring(2, 4)+checkTime(timenow.getMonth()+1)+checkTime(timenow.getDate())+checkTime(timenow.getHours())+checkTime(timenow.getMinutes());
+	$.get("/cgi-bin/datalog.xml?sdate="+sdate+"&days=31",function (data) {
+		var records=data.getElementsByTagName("record");
+		if (records.length>0&&sensordata.names.length==0) {
+			var names=records[0].getElementsByTagName("name");
+			for (var i=0; i<names.length; i++) {
+				sensordata.names.push(names[i].childNodes[0].nodeValue);
+			}
+		}
+		$.each(records, function (i, rec) {
+			var probes=rec.getElementsByTagName("probe");
+			var rec={'date':rec.getElementsByTagName("date")[0].childNodes[0].nodeValue, data:[]};
+			$.each(probes, function (j, probe) {
+				rec.data.push(probe.getElementsByTagName("value")[0].childNodes[0].nodeValue);
+			});
+			sensordata.record.push(rec);
+		});
+		if (typeof callback=="function") callback();
+	}).fail(function (jqXHR, textStatus, errorThrown) {
+			if (retry>=maxretries) {
+				alert('unable to connect to apex.');
+				retry=0;
+				return;
+			}
+			retry++;
+			console.log(textStatus);
+			setTimeout(getsensordata, 1);
+		}).always(function () {
+			if (initialized)
+				$.mobile.loading('hide');
+		}).done(function (f) {
+			retry=0;
+		});
+}
+function loadoutlog() {
+	var initstring="Loading";
+	if (retry>0) {
+		initstring=initstring+" "+retry;
+	}
+	initstring+="...";
+	$.mobile.loading('show', {text:initstring, textVisible:true});
+	var timenow=new Date();
+	timenow.setDate(timenow.getDate()-1);
+	$.each(outlogdata.record, function (i, r) {
+		var currentTime=new Date(r.date);
+		if (currentTime.getTime()>=timenow.getTime()) {
+			for (var x=0; x<i-1; x++)
+				outlogdata.record.shift();
+			if (outlogdata.record.length>0) {
+				timenow=new Date(outlogdata.record[outlogdata.record.length-1].date);
+				timenow.setTime(timenow.getTime()+60000);
+			}
+			return false;
+		}
+	});
+	var sdate=(timenow.getFullYear()+' ').substring(2, 4)+checkTime(timenow.getMonth()+1)+checkTime(timenow.getDate())+checkTime(timenow.getHours())+checkTime(timenow.getMinutes());
+	$.get("/cgi-bin/outlog.xml?sdate="+sdate+"&days=31",function (data) {
+		var records=data.getElementsByTagName("record");
+		$.each(records, function (i, rec) {
+			var datetxt=rec.getElementsByTagName("date")[0].childNodes[0].nodeValue;
+			var name=rec.getElementsByTagName("name")[0].childNodes[0].nodeValue;
+			var value=rec.getElementsByTagName("value")[0].childNodes[0].nodeValue;
+			outlogdata.record.push({'date':datetxt, 'name':name, 'value':value});
+		});
+		$.each(outlogdata.record, function (i, rec) {
+			var divblocka=$('<div class="ui-block-a">'+rec.date+'</div>');
+			var divblockb=$('<div class="ui-block-b">'+rec.name+'</div>');
+			var divblockc=$('<div class="ui-block-c">'+rec.value+'</div>');
+			var sec=$('<section class="ui-grid-b">');
+			sec.append(divblocka, divblockb, divblockc);
+			var olist=$('<li/>');
+			olist.append(sec);
+			$('#outloglist').append(olist);
+		});
+		$('#outloglist').listview('refresh');
+	}).always(function () {
+			$.mobile.loading('hide');
+		}).fail(function (jqXHR, textStatus, errorThrown) {
+			if (retry>=maxretries) {
+				alert('unable to connect to apex.');
+				retry=0;
+				history.back();
+				return;
+			}
+			retry++;
+			setTimeout(loadoutlog, 1);
+		}).done(function (f) {
+			retry=0;
+		});
+}
+function calculateLogInterval() {
+	if (sensordata.record.length>1) {
+		var timeval=0;
+		var interval=0;
+		for (var i=sensordata.record.length-1; i>=0; i--) {
+			var rec=sensordata.record[i];
+			var curtimeval=new Date(rec.date).getTime();
+			if (timeval==0) {
+				timeval=curtimeval;
+				continue;
+			}
+			if (interval==timeval-curtimeval)
+				return interval;
+			interval=timeval-curtimeval;
+			timeval=curtimeval;
+		}
+	}
+	return 60000; //1 minute
+}
+function loadsensor() {
+	$.each(sensordata.record, function (i, rec) {
+		var vals=rec.data;
+		var datetxt=rec.date;
+		var divblock=$('<div class="ui-block-a">'+datetxt+'</div>');
+		var sec=$('<section class="ui-grid-'+String.fromCharCode(96+vals.length)+'">');
+		sec.append(divblock);
+		$.each(vals, function (j, val) {
+			var divblock=$('<div class="ui-block-'+String.fromCharCode(98+j)+'" style="width:'+(45.0/vals.length)+'%">'+val+'</div>');
+			sec.append(divblock);
+		});
+		var olist=$('<li/>');
+		olist.append(sec);
+		$('#sensorloglist').append(olist);
+	});
+	$('#sensorloglist').listview('refresh');
+}
+function openSetup() {
+	$.mobile.changePage('#setup');
+}
+function initHome() {
+	if (initialized) return;
+	initPage();
+}
+function setFeed(i) {
+	var s="FeedCycle=Feed&FeedSel="+i+"&noResponse=1";
+	var initstring="Starting Feed ";
+	initstring=initstring+String.fromCharCode(65+i);
+	initstring+="...";
+	$.mobile.loading('show', {text:initstring, textVisible:true});
+	$.post("/cgi-bin/status.cgi", s,function (f) {
+		if (i==4) {
+			feedcounter=0;
+			feedname=0;
+			feedactive=false;
+		} else {
+			feedactive=true;
+		}
+		updateFeedButtons();
+	}).always(function () {
+			$.mobile.loading('hide');
+			updateFeedTime();
+		}).fail(function (jqXHR, textStatus, errorThrown) {
+			alert(textStatus);
+		}).done(function (data) {
+		});
+}
+function updateFeedButtons() {
+	if (feedactive) {
+		$('#feed1').button('disable');
+		$('#feed2').button('disable');
+		$('#feed3').button('disable');
+		$('#feed4').button('disable');
+	} else {
+		$('#feed1').text("Feed A").button('enable').button('refresh');
+		$('#feed2').text("Feed B").button('enable').button('refresh');
+		$('#feed3').text("Feed C").button('enable').button('refresh');
+		$('#feed4').text("Feed D").button('enable').button('refresh');
+	}
+}
+function checkTime(i) {
+	if (i<10) {
+		i="0"+i;
+	}
+	return i;
+}
+function updateFeedTime() {
+	$.getJSON("/cgi-bin/status.json?_="+Math.random(),function (a) {
+		var feednum=parseInt(a.pstat.feed.name);
+		var feedcount=parseInt(a.pstat.feed.active);
+		feedactive=feednum>0&&feednum<5;
+		if (feedexpanded) {
+			if (feedactive) {
+				if (feedcounter==0&&feedcount==0) { //try again
+					clearTimeout(feedtimeoutfunction);
+					feedtimeoutfunction=setTimeout(updateFeedTime, 0);
+					return;
+				} else if (feedcounter==0&&feedcount>0) {
+					feedcounter=feedcount;
+					feedname=feednum;
+				}
+			}
+			updateFeedButtons();
+			updateFeedActive();
+		}
+		feedcounter=feedcount;
+		feedname=feednum;
+	}).always(function () {
+			if (feedcounter>0&&feedexpanded) {
+				clearTimeout(feedtimeoutfunction);
+				feedtimeoutfunction=setTimeout(updateFeedTime, 5000);
+			}
+		}).fail(function (jqXHR, textStatus, errorThrown) {
+		}).done(function (a) {
+		});
+}
+function updateFeedActive() {
+	if (feedcounter>0) {
+		$('#feed'+feedname).text("Feed "+String.fromCharCode(64+feedname)+"  "+feedcounter).button('refresh');
+		feedcounter--;
+		clearTimeout(feedactivefunction);
+		feedactivefunction=setTimeout(updateFeedActive, 998);
+	} else {
+		feedactive=0;
+		feedname=0;
+		feedcounter=0;
+		updateFeedButtons();
+		clearTimeout(feedactivefunction);
+		clearTimeout(feedtimeoutfunction);
+	}
+}
+function updateStatus(spark) {
+	var initstring="Updating";
+	if (retry>0) {
+		initstring=initstring+" "+retry;
+	} else {
+		var currenttime=new Date();
+		if (currenttime.getTime()-lastupdatetime.getTime()<15000) {
+			if (sensoropen) {
+				setTimeout(function () {getsensordata(getSparkData);}, 0);
+			}
+			return;
+		}
+		lastupdatetime=currenttime;
+	}
+	initstring+="...";
+	$.mobile.loading('show', {text:initstring, textVisible:true});
+	$.getJSON("/cgi-bin/status.json?_="+Math.random(),function (f) {
+		if (spark==true)
+			setTimeout(function () {getsensordata(getSparkData);}, 0);
+		renderPage(f);
+		retry=0;
+	}).always(function () {
+			$.mobile.loading('hide');
+		}).fail(function (jqXHR, textStatus, errorThrown) {
+			if (retry>=maxretries) {
+				alert('unable to connect to apex.');
+				retry=0;
+				return;
+			}
+			retry++;
+			setTimeout(function () {
+				updateStatus(spark)
+			}, 1);
+		}).done(function (f) {
+		});
+}
+function renderPage(f) {
+	var a;
+	var tmp1;
+	var tmp2;
+	var tmp3;
+	var tmp4;
+	a=f;
+	var h=[];
+	var c=[];
+	var e=0;
+	var td=new Date(a.pstat.d*1000);
+	var ts=checkTime(td.getMonth()+1)+'-'+checkTime(td.getDate())+'-'+td.getFullYear()+' '+checkTime(td.getHours())+':'+checkTime(td.getMinutes())+':'+checkTime(td.getSeconds());
+	$('#footertxt').html(ts);
+	$('#hostname').html(a.pstat.hostname);
+	document.title=a.pstat.hostname;
+	$('#software').html(a.pstat.software);
+	$('#hardware').html(a.pstat.hardware);
+	$('#serial').html(a.pstat.serial);
+	$('#timezone').html(a.pstat.timezone);
+	if (!isNaN(a.pstat.power.failed)) {
+		td=new Date(a.pstat.power.failed*1000);
+		ts=checkTime(td.getMonth()+1)+'-'+checkTime(td.getDate())+'-'+(td.getFullYear()-2000)+' '+checkTime(td.getHours())+':'+checkTime(td.getMinutes())+':'+checkTime(td.getSeconds());
+		$('#powerfailed').html(ts);
+	} else {
+		$('#powerfailed').html(a.pstat.power.failed);
+	}
+	if (!isNaN(a.pstat.power.restored)) {
+		td=new Date(a.pstat.power.restored*1000);
+		ts=checkTime(td.getMonth()+1)+'-'+checkTime(td.getDate())+'-'+(td.getFullYear()-2000)+' '+checkTime(td.getHours())+':'+checkTime(td.getMinutes())+':'+checkTime(td.getSeconds());
+		$('#powerrestored').html(ts);
+	} else {
+		$('#powerrestored').html(a.pstat.power.restored);
+	}
+	for (var i in a.pstat.probes) {
+		var probe=a.pstat.probes[i];
+		var val = parseFloat(probe.v);
+		var places = 2;    //ph, do
+		if (probe.t==="Temp" || probe.t==="Cond" || probe.t==="Amps") {
+			places=1;
+		} else if (probe.t==="Orp") {
+			places=0;
+		}
+		$("#"+probe.did).html(val.toFixed(places));
+		if (probe.t==="Cond" && val<40.0) {
+			var sg = val/35.0*0.0264+1.0;
+			$('#'+probe.did+'_sg').html("SG "+sg.toFixed(4));
+		}
+	}
+	for (var i in a.pstat.inputs) {
+		var input=a.pstat.inputs[i];
+		$('#'+input.did).html(getInputHtml(input));
+	}
+	for (var i in a.pstat.outlets) {
+		var outlet=a.pstat.outlets[i];
+		var tooltiptxt="";
+		tmp1='#outlet'+i;
+		c='color:#090';
+		if (outlet.s=="AON") {
+			tmp2='auto';
+			tmp3='on';
+			tmp4='off';
+		} else if (outlet.s=="AOF") {
+			tmp2='auto';
+			tmp3='on';
+			tmp4='off';
+			c='color:#F00';
+		} else if (outlet.s=="ON") {
+			tmp2='on';
+			tmp3='auto';
+			tmp4='off';
+		} else if (outlet.s=="OFF") {
+			tmp2='off';
+			tmp3='auto';
+			tmp4='on';
+			c='color:#F00';
+		} else if (outlet.s=="UNK") {
+			tmp2='auto';
+			tmp3='off';
+			tmp4='on';
+			c='color:#00F';
+		} else {
+			tmp2='auto';
+			tmp3='off';
+			tmp4='on';
+			c='color:#F90';
+			tooltiptxt=outlet.s;
+		}
+		$(tmp1+tmp2).prop('checked', true).checkboxradio("refresh");
+		$(tmp1+tmp3).prop('checked', false).checkboxradio("refresh");
+		$(tmp1+tmp4).prop('checked', false).checkboxradio("refresh");
+		if (tooltiptxt!="")
+			$('#'+outlet.n).attr('tooltip', tooltiptxt).addClass('outlettext');
+		$('#'+outlet.n).attr('style', c);
+	}
+}
+function getSparkData() {
+	if (sensoropen==false&&initialized) return;
+	for (var i=0; i<sensordata.names.length; i++) {
+		var c=[];
+		var sensorname=sensordata.names[i];
+		var max_=0.0;
+		var min_=1000.0;
+		var total_=0.0;
+		$.each(sensordata.record, function (j, rec) {
+			c.push(parseFloat(rec.data[i]));
+			if (c[j]>max_) {
+				max_=c[j];
+			}
+			if (c[j]<min_) {
+				min_=c[j];
+			}
+			total_+=c[j];
+		});
+		$("."+sensorname+"_gr").sparkline(c, {width:"100%", height:"100%"});
+		$("#"+sensorname+"_mma").html("min:"+min_+"&nbsp;&nbsp;max:"+max_+"&nbsp;&nbsp;avg:"+parseFloat(total_/sensordata.record.length).toFixed(2));
+		if (!initialized) {
+			initialized=true;
+			lastupdatetime=new Date();
+			$.mobile.loading('hide');
+		}
+	}
+}
+function startPlay() {
+	$('#camImg').on('load', fixImageTimeout);
+	$('#playbtn').button('disable');
+	imageupdatecount=15;
+	reloadImage();
+}
+function fixImageTimeout() {
+	setTimeout(reloadImage, 500);
+}
+function reloadImage() {
+	if (imageupdatecount<=0) {
+		imageupdatecount=15;
+		$('#playbtn').text('Play');
+		$('#playbtn').button('enable');
+		$('#playbtn').button('refresh');
+		$('#camImg').off('load error');
+		return;
+	}
+	var wcurl=getwebcamurl();
+	if (wcurl!="") {
+		$('#playbtn').text('Play '+imageupdatecount);
+		$('#playbtn').button('refresh');
+		imageupdatecount--;
+		var firstparam=wcurl.indexOf('?')== -1;
+		$('#camImg').attr('src', wcurl+(firstparam?'?':'&')+'_='+Math.random());
+	}
+}
+function getwebcamurl() {
+	var url="http://";
+	var webname=localStorage.getItem('webcamname');
+	var webpass=localStorage.getItem('webcampass');
+	var weburl=localStorage.getItem('webcamurl');
+	if (weburl!=null&&weburl!="") {
+		if (weburl.indexOf("http://")==0) {
+			weburl=weburl.substring(7);
+		}
+		if (webname!=null&&webname!="") {
+			url=url+webname+':'+webpass+'@';
+		}
+		url=url+weburl;
+		return url;
+	}
+	return "";
+}
+function initPage() {
+	var initstring="Initializing";
+	if (retry>0) {
+		initstring=initstring+" "+retry;
+	}
+	initstring+="...";
+	$.mobile.loading('show', {text:initstring, textVisible:true});
+	var url="/cgi-bin/status.json?_="+Math.random();
+	$.getJSON(url,function (f) {
+		$('#Sensors').empty();
+		for (var i in f.pstat.probes) {
+			probe=f.pstat.probes[i];
+			var leftblock=$('<div class="sensor"></div>');
+			var row1=$('<div class="sensor_name">'+probe.n+'</div>');
+			var row2=$('<div class="sensor_spark '+probe.n+'_gr"></div>');
+			var row3=$('<div class="sensor_mma" id="'+probe.n+'_mma"></div>');
+			var dummy=$('<div style="clear:both"/>');
+			leftblock.append(row1);
+			leftblock.append(row2);
+			leftblock.append(row3);
+			var rightblock=$('<div class="sensor2"></div>');
+			var rowa=$('<div class="sensor_value" id="'+probe.did+'"></div>');
+			rightblock.append(rowa);
+			if (probe.t==="Cond") {
+				var rowb=$('<div class="sensor_sg" id="'+probe.did+'_sg"></div>');
+				rightblock.append(rowb);
+			}
+			var slist=$('<li/>');
+			slist.append(leftblock);
+			slist.append(rightblock);
+			slist.append(dummy);
+			$('#Sensors').append(slist);
+		}
+		$('#Sensors').listview('refresh');
+		$('#Outlets').empty();
+		for (var i in f.pstat.outlets) {
+			var outlet=f.pstat.outlets[i];
+			var divblocka=$('<div class="ui-block-a"/>');
+			divblocka.append($('<h3 class="ui-li-heading" Tooltip="" style="color:#090" id="'+outlet.n+'">'+outlet.n+'</h3>'));
+			var divblockb=$('<div class="ui-block-b"/>');
+			var fldset=$('<fieldset data-role="controlgroup" data-type="horizontal"  data-mini="true"/>');
+			fldset.append($('<input type="radio" name="'+outlet.n+'_state" id="outlet'+i+'auto" value="0" checked="true" />'));
+			fldset.append($('<label for="outlet'+i+'auto">Auto</label>'));
+			fldset.append($('<input type="radio" name="'+outlet.n+'_state" id="outlet'+i+'off" value="1" checked="false" />'));
+			fldset.append($('<label for="outlet'+i+'off">Off</label>'));
+			fldset.append($('<input type="radio" name="'+outlet.n+'_state" id="outlet'+i+'on" value="2" checked="false"/>'));
+			fldset.append($('<label for="outlet'+i+'on">On</label>'));
+			divblockb.append(fldset);
+			var sec=$('<section class="ui-grid-a"/>');
+			sec.append(divblocka, divblockb);
+			var olist=$('<li/>');
+			olist.append(sec);
+			$('#Outlets').append(olist);
+		}
+		$('#Outlets').trigger('create');
+		$('#Outlets').listview('refresh');
+		$('#Inputs').empty();
+		for (var i in f.pstat.inputs) {
+			var input=f.pstat.inputs[i];
+			var divblocka=$('<div class="ui-block-a"/>');
+			divblocka.append($('<h3 class="ui-li-heading" id="'+input.n+'">'+input.n+'</h3>'));
+			var divblockb=$('<div class="ui-block-b"/>');
+			divblockb.append($('<h3 class="ui-li-heading" id="'+input.did+'">'+getInputHtml(input)+'</h3>'));
+			var sec=$('<section class="ui-grid-a"/>');
+			sec.append(divblocka, divblockb);
+			var olist=$('<li/>');
+			olist.append(sec);
+			$('#Inputs').append(olist);
+		}
+		$('#Inputs').trigger('create').listview('refresh');
+		$('#feed1').text("Feed A").button('enable').button('refresh');
+		$('#feed2').text("Feed B").button('enable').button('refresh');
+		$('#feed3').text("Feed C").button('enable').button('refresh');
+		$('#feed4').text("Feed D").button('enable').button('refresh');
+		$('#feedcancel').text("Feed Cancel").button('enable').button('refresh');
+		renderPage(f);
+		getsensordata(getSparkData);
+	}).always(function () {
+			if (initialized)
+				$.mobile.loading('hide');
+		}).fail(function (jqXHR, textStatus, errorThrown) {
+			if (retry>=maxretries) {
+				alert('unable to connect to apex.');
+				retry=0;
+				$.mobile.loading('hide');
+				return;
+			}
+			retry++;
+			setTimeout(initPage, 1);
+		}).done(function (f, textStatus, xhr) {
+			retry=0;
+		});
+}
+function getInputHtml(a) {
+	if (a.did==="base_I1") {
+		Status='<div id="perc"><div id="perc_in" style="width:'+a.v+'%"/><div id="perc_txt">'+a.v+'%</div></div>';
+	} else {
+		if (a.v==0) {
+			Status="Open".fontcolor("#090");
+			/* open color for switches*/
+		} else {
+			Status="Closed".fontcolor("#f00");
+			/* closed color for switches*/
+		}
+	}
+	return Status;
+}
+function saveSetup() {
+	localStorage.setItem('timeout', $('#httptimeout').val()*1000);
+	localStorage.setItem('httpretries', $('#httpretries').val());
+	localStorage.setItem('webcamurl', $('#webcamurl').val());
+	localStorage.setItem('webcamname', $('#webcamname').val());
+	localStorage.setItem('webcampass', $('#webcampass').val());
+	$.ajaxSetup({
+		timeout:localStorage.getItem('timeout'),
+		cache:true
+	});
+	alert("Saved Settings.");
+	maxretries=localStorage.getItem('httpretries');
+	history.back();
+}///////////////////////////
+$(document).on("swiperight", ".filelist", function (event) {
+	var listitem=$(this);
+	var path=listitem.attr('path');
+	if (confirm("delete "+path+"?")) {
+		$.get('/delete'+path,function (data) {
+			removelinks(listitem);
+			listitem.remove();
+			alert("File/dir successfully deleted.");
+		}).fail(function (jqXHR, textStatus, errorThrown) {
+				alert("Error deleting file, "+textStatus+". "+jqXHR.responseText);
+			}).always(function () {
+			}).done(function (data) {
+			});
+	}
+	event.preventDefault();
+});
+$(document).on('pagehide', '.filemanager', function (e, data) {
+	var tid=$(this).attr('id');
+	var nid=data.nextPage.attr('id');
+	if (nid==='page') {
+		removelinks($('#-'));
+		$('#-').remove();
+	} else if (tid.length>nid.length&&nid!=='log'&&nid!=='outlog') {
+		removelinks($('#'+tid));
+		$('#'+tid).remove();
+	}
+});
+$(document).on('pagebeforechange', function (e, data) {
+	var u;
+	if (typeof data.toPage==="string") {
+		u=$.mobile.path.parseUrl(data.toPage);
+		if (u.hash.indexOf('#-')!==0||$(u.hash).length>0) {
+			return;
+		}
+	} else
+		return;
+	var path=u.hash.substr(1).replace(/-/g, '/');
+	$.mobile.loading('show', {text:'Loading...', textVisible:true});
+	$.getJSON('/cgi-bin/files.json?root='+path,function (f) {
+		createPage(u.hash.substr(1), f.files);
+		data.options.dataUrl=u.href;
+		$.mobile.changePage(u.hash, data.options);
+		e.preventDefault();
+	}).always(function () {
+			$.mobile.loading('hide');
+		}).fail(function (jqXHR, textStatus, errorThrown) {
+			alert(textStatus);
+		}).done(function (f) {
+		});
+});
+$('#log').on('pagebeforeshow', function (e) {
+	$('#loglist').empty().listview('refresh');
+}).on('pageshow', function (e) {
+	loadlog();
+});
+$('#csetup').on('pageinit', function (e) {
+	$('#contentaction').hide();
+	$('#contentmisc').hide();
+}).on('pageshow', function (e, data) {
+	if (data.prevPage[0].id=='page')
+		macropage();
+});
+$(document).on('tap', '.logfile, .outlogfile, .actionline', function (e) {
+	var listitem=$(this);
+	logpath=listitem.attr('path');
+});
+$('#selectrec').on('change', function (e, ui) {
+	var i=parseInt($(this).val());
+	$('#initoff').val(secsToTime(macros[i].initoff));
+	$('#ontime').val(secsToTime(macros[i].ontime));
+	$('#offtime').val(secsToTime(macros[i].offtime));
+	$('#cycletime').val(secsToTime(parseInt(macros[i].initoff)+parseInt(macros[i].ontime)+parseInt(macros[i].offtime)));
+	var sdays=[];
+	var intdays=parseInt(macros[i].days);
+	for (var j=1; j<=7; j++) {
+		if (intdays>>j&0x01) {
+			sdays.push(""+j);
+		}
+	}
+	$('#days').val(sdays).selectmenu('refresh');
+	$('#mode').val(macros[i].mode).selectmenu('refresh');
+});
+$('#selectmacro').on('change', function (e) {
+	var i=parseInt($(this).val());
+	$('#actionlist').empty();
+	action=config.actions[i];
+	$.each(action, function (i, action) {
+		var divblocka=$('<div class="ui-block-a">'+(action.outlet<8?outletname[action.outlet]:(action.outlet==20?"Feeder":"End") )+'</div>');
+		var divblockb=$('<div class="ui-block-b">'+action.initoff+'</div>');
+		var divblockc=$('<div class="ui-block-c">'+action.ontime+'</div>');
+		var sec=$('<section class="ui-grid-b">');
+		sec.append(divblocka, divblockb, divblockc);
+		var alnk=$('<a href="#editaction" data-rel="dialog"/>').append(sec);
+		var olist=$('<li path="'+i+'"/>');
+		olist.append(alnk).addClass('actionline');
+		$('#actionlist').append(olist);
+	});
+	$('#actionlist').listview('refresh');
+});
+$('#editaction').on('pagebeforeshow', function (e) {
+	var i=parseInt(logpath);
+	$('#editoutlet').val(action[i].outlet);
+	$('#editoff').val(action[i].initoff);
+	$('#editon').val(action[i].ontime);
+});
+$('#days').on('change', function (e) {
+	var d=0;
+	$.each($(this).val(), function (i, v) {
+		d=d|1<<parseInt(v);
+	});
+	var sel=parseInt($('#selectrec').val());
+	macros[sel].days=d;
+});
+$('#mode').on('change', function (e) {
+	var sel=parseInt($('#selectrec').val());
+	macros[sel].mode=$(this).val();
+	console.log($(this).val());
+});
+$('#initoff').on('change', function (e) {
+	var sel=parseInt($('#selectrec').val());
+	macros[sel].initoff=timeToSecs($(this).val());
+	console.log($(this).val());
+});
+$('#ontime').on('change', function (e) {
+	var sel=parseInt($('#selectrec').val());
+	macros[sel].ontime=timeToSecs($(this).val());
+	console.log($(this).val());
+});
+$('#offtime').on('change', function (e) {
+	var sel=parseInt($('#selectrec').val());
+	macros[sel].offtime=timeToSecs($(this).val());
+	console.log($(this).val());
+});
+$('#resetconf').on('change', function (e) {
+	config.initialized=parseInt($('#resetconf').val());
+});
+$('#htrlow').on('change', function (e) {
+	config.htrlow=parseFloat($('#htrlow').val());
+});
+$('#htrhigh').on('change', function (e) {
+	config.htrhigh=parseFloat($('#htrhigh').val());
+});
+$('#fanlow').on('change', function (e) {
+	config.fanlow=parseFloat($('#fanlow').val());
+});
+$('#fanhigh').on('change', function (e) {
+	config.fanhigh=parseFloat($('#fanhigh').val());
+});
+$('#sonarlow').on('change', function (e) {
+	config.sonarlow=parseInt($('#sonarlow').val());
+});
+$('#sonarhigh').on('change', function (e) {
+	config.sonarhigh=parseInt($('#sonarhigh').val());
+});
+$('#sonaralertval').on('change', function (e) {
+	config.sonaralertval=parseInt($('#sonaralertval').val());
+});
+$('#sonaralert').on('change', function (e) {
+	config.sonaralert=this.checked;
+});
+$('#alerttemplow').on('change', function (e) {
+	config.alerttemplow=parseFloat($('#alerttemplow').val());
+});
+$('#alerttemphigh').on('change', function (e) {
+	config.alerttemphigh=parseFloat($('#alerttemphigh').val());
+});
+$('#alertphlow').on('change', function (e) {
+	config.alertphlow=parseFloat($('#alertphlow').val());
+});
+$('#alertphhigh').on('change', function (e) {
+	config.alertphhigh=parseFloat($('#alertphhigh').val());
+});
+$('#sndalert').on('change', function (e) {
+	config.soundalert=this.checked;
+});
+$('#emailalert').on('change', function (e) {
+	config.emailalert=this.checked;
+});
+$('#csetupoutlet').on('click', function (e) {
+	$('#contentaction').hide();
+	$('#contentmisc').hide();
+	$('#contentoutlet').show();
+	macros=config.outlets;
+	$('#selectrec').empty();
+	$.each(macros, function (i, macro) {
+		$('#selectrec').append('<option value="'+i+'">'+macro.name+'</option>');
+	});
+	$('#selectrec').val('0').selectmenu('refresh').trigger('change');
+});
+$('#csetupmacro').on('click', function (e) {
+	$('#contentaction').hide();
+	$('#contentmisc').hide();
+	$('#contentoutlet').show();
+	console.log('change to macros');
+	macros=config.macros;
+	$('#selectrec').empty();
+	$.each(macros, function (i, macro) {
+		$('#selectrec').append('<option value="'+i+'">'+macro.name+'</option>');
+	});
+	$('#selectrec').val('0').selectmenu('refresh').trigger('change');
+});
+$('#csetupaction').on('click', function (e) {
+	$('#contentmisc').hide();
+	$('#contentoutlet').hide();
+	$('#contentaction').show();
+	macros=config.macros;
+	$('#selectmacro').empty();
+	$.each(macros, function (i, macro) {
+		$('#selectmacro').append('<option value="'+i+'">'+macro.name+'</option>');
+	});
+	$('#selectmacro').val('0').selectmenu('refresh').trigger('change');
+});
+$('#csetupmisc').on('click', function (e) {
+	$('#contentaction').hide();
+	$('#contentoutlet').hide();
+	$('#ph7btn').text("pH 7");
+	$('#ph7btn').button('refresh');
+	$('#ph10btn').text("pH 10");
+	$('#ph10btn').button('refresh');
+	$('#htrlow').val(config.htrlow);
+	$('#htrhigh').val(config.htrhigh);
+	$('#fanlow').val(config.fanlow);
+	$('#fanhigh').val(config.fanhigh);
+	$('#sonarlow').val(config.sonarlow);
+	$('#sonarhigh').val(config.sonarhigh);
+	$('#sonaralertval').val(config.sonaralertval);
+	$('#sonaralert').attr("checked", config.sonaralert).checkboxradio("refresh");
+	$('#alerttemplow').val(config.alerttemplow);
+	$('#alerttemphigh').val(config.alerttemphigh);
+	$('#alertphlow').val(config.alertphlow);
+	$('#alertphhigh').val(config.alertphhigh);
+	$('#sndalert').attr("checked", config.soundalert).checkboxradio("refresh");
+	$('#emailalert').attr("checked", config.emailalert).checkboxradio("refresh");
+	$('#resetconf').val(config.initialized);
+	$('#contentmisc').show();
+	getphdata();
+});
+function getphdata() {
+	$.getJSON('phval.json',function (data) {
+		$('#phval').val(data.phval);
+		$('#sonarval').val(data.sonarval);
+	}).always(function () {
+			if ($('#csetupmisc').hasClass('ui-btn-active')) {
+				setTimeout(getphdata, 1000);
+			}
+		});
+}
+function phcal(param) {
+	$.ajax('phval.json', {
+		data:JSON.stringify(param),
+		contentType:'application/json',
+		type:'POST'}).always(function () {
+		}).done(function (data) {
+			$('#phval').val(data.phval);
+			alert('calibration '+param.cal+' set');
+		}).fail(function (jqXHR, textStatus, errorThrown) {
+			console.log(textStatus);
+			alert('Failed to set calibration '+textStatus);
+		});
+}
+function removelinks(id) {
+	$.each(id.find('.direntry'), function (i, lnk) {
+		var item=$($(lnk).attr('href'));
+		removelinks(item);
+		item.remove();
+	});
+}
+function createPage(id, files) {
+	var pagesel=id;
+	var listsel=id+'-list';
+	var total=0;
+	var basepath=id.replace(/-/g, "/");
+	var p=$('<div data-role="page" id="'+pagesel+'"/>');
+	var h=$('<div data-role="header" data-position="fixed" data-tap-toggle="false"/>');
+	var c=$('<div data-role="content"/>');
+	var l=$('<ul data-role="listview" id="'+listsel+'" />');
+	var f=$('<div data-role="footer" data-position="fixed"  data-tap-toggle="false"/>');
+	h.append($('<h1>'+basepath+'</h1>'));
+	h.append($('<a data-role="button" href="#page" data-icon="home" data-direction="reverse" data-iconpos="notext" data-iconshadow="false" class="ui-btn-right"/>'));
+	f.append($('<h1 id="'+pagesel+'-footer"/>'));
+	c.append(l);
+	p.addClass('filemanager');
+	p.append(h, c, f);
+	p.appendTo($.mobile.pageContainer);
+	$.mobile.initializePage();
+	$.each(files, function (i, file) {
+		var list=$('<li  class="filelist" path="'+basepath+file.name+'"/>');
+		var filesize=parseInt(file.size, 10);
+		if (filesize== -1) {
+			var l=$('<a href="#'+id+file.name+'-" class="direntry">'+file.name+'</a>');
+			list.append(l);
+		} else {
+			var divblocka=$('<div >'+file.name+'</div>');
+			var divblockb=$('<div class="ui-li-aside">'+file.size+'</div>');
+			total+=filesize;
+			if (file.name.indexOf('.LOG')!= -1) {
+				var a=$('<a href="#log"/>');
+				a.append(divblocka, divblockb);
+				list.addClass('logfile');
+				list.append(a);
+			} else if (pagesel.indexOf('-OUT')==0&&file.name.indexOf('.TXT')!= -1) {
+				var a=$('<a href="#outlog"/>');
+				a.append(divblocka, divblockb);
+				list.addClass('outlogfile');
+				list.append(a);
+			} else {
+				list.append(divblocka, divblockb);
+			}
+		}
+		$('#'+listsel).append(list);
+	});
+	$('#'+pagesel+'-footer').html('Total Size = '+total);
+	$('#'+listsel).trigger('create');
+}
+function loadlog() {
+	$.mobile.loading('show', {text:'Loading...', textVisible:true});
+	if (logpath=="") {
+		var t=new Date();
+		logpath="/LOG/"+t.getFullYear()+'/'+checkTime(t.getMonth()+1)+'/'+checkTime(t.getDate())+'.LOG';
+	}
+	$.get(logpath,function (data) {
+		var loglines=data.split("\n");
+		$.each(loglines, function (i, line) {
+			var l=$('<li>'+line.substr(11)+'</li>');
+			$('#loglist').append(l);
+		});
+		$('#logfooter').html(logpath);
+		$('#loglist').listview('refresh');
+		logpath="";
+	}).done(function (data) {
+		}).fail(function (jqXHR, textStatus, errorThrown) {
+			alert(textStatus);
+			history.back();
+		}).always(function () {
+			$.mobile.loading('hide');
+			logpath="";
+		});
+}
+function createoutletcontent() {
+	$('#csetupcontent').empty().html("<label for=\"selectrec\" class=\"select\">Name:</label>\n"+
+		"<select name=\"selectmenu\" id=\"selectrec\" data-mini=\"true\"></select>\n"+
+		"<label for=\"initoff\">Off:</label>\n"+
+		"<input type=\"text\" name=\"initoff\" id=\"initoff\" value=\"\" data-mini=\"true\" />\n"+
+		"<label for=\"ontime\">On:</label>\n"+
+		"<input type=\"text\" name=\"ontime\" id=\"ontime\" value=\"\" data-mini=\"true\" />\n"+
+		"<label for=\"offtime\">Off:</label>\n"+
+		"<input type=\"text\" name=\"offtime\" id=\"offtime\" value=\"\"  data-mini=\"true\"/>\n"+
+		"<label for=\"cycletime\">Cycle:</label>\n"+
+		"<input type=\"text\" name=\"cycletime\" id=\"cycletime\" value=\"\" readonly data-mini=\"true\"/>\n"+
+		"<label for=\"days\" class=\"select\">Days:</label>\n"+
+		"<select name=\"days\" id=\"days\" multiple data-native-menu=\"false\" data-mini=\"true\">\n"+
+		"<option value=\"1\">Sun</option>\n"+
+		"<option value=\"2\">Mon</option>\n"+
+		"<option value=\"3\">Tue</option>\n"+
+		"<option value=\"4\">Wed</option>\n"+
+		"<option value=\"5\">Thu</option>\n"+
+		"<option value=\"6\">Fri</option>\n"+
+		"<option value=\"7\">Sat</option>\n"+
+		"</select>\n"+
+		"<label for=\"mode\" class=\"select\">Mode:</label>\n"+
+		"<select name=\"mode\" id=\"mode\" data-mini=\"true\">\n"+
+		"<option value=\"0\">Auto</option>\n"+
+		"<option value=\"1\" disabled>Manual</option>\n"+
+		"<option value=\"2\">Disabled</option>\n"+
+		"<option value=\"3\" disabled>Macro</option>\n"+
+		"</select>\n");
+	$.mobile.initializePage();
+}
+function saveaction() {
+	var i=parseInt(logpath);
+	action[i].outlet=$('#editoutlet').val();
+	action[i].initoff=$('#editoff').val();
+	action[i].ontime=$('#editon').val();
+	$('#editaction').dialog('close');
+	$('#selectmacro').trigger('change');
+}
+function saveconfig() {
+	$.mobile.loading('show', {text:'Saving config...', textVisible:true});
+	$.ajax("config.json", {
+		data:JSON.stringify(config),
+		contentType:"application/json",
+		type:'POST'}).always(function () {
+			$.mobile.loading('hide');
+		}).done(function () {
+			console.log("saveconfig done");
+			alert("config updated successfully");
+			history.back();
+		}).fail(function (jqXHR, textStatus, errorThrown) {
+			console.log(textStatus);
+			alert(textStatus);
+		});
+}
+function macropage() {
+	var initstring="Loading";
+	if (retry>0) {
+		initstring=initstring+" "+retry;
+	}
+	initstring+="...";
+	$.mobile.loading('show', {text:initstring, textVisible:true});
+	$.getJSON("config.json",function (data) {
+		config=data.config;
+		$('#csetupoutlet').trigger('click');
+	}).fail(function (jqXHR, textStatus, errorThrown) {
+			console.log(textStatus);
+			if (textStatus==='parseerror') {
+				alert('xml parse error');
+				retry=0;
+				history.back();
+				return;
+			}
+			if (retry>=maxretries) {
+				alert('unable to connect to apex.');
+				retry=0;
+				history.back();
+				return;
+			}
+			retry++;
+			setTimeout(macropage, 1);
+		}).always(function () {
+			$.mobile.loading('hide');
+		}).done(function (data) {
+			retry=0;
+		});
+}
+function secsToTime(secs) {
+	return checkTime(Math.floor(secs/3600))+":"+checkTime(Math.floor((secs%3600)/60))+":"+checkTime((secs%3600)%60);
+}
+function timeToSecs(time) {
+	var secs=0;
+	$.each(time.split(":"), function (i, rec) {
+		secs+=parseInt(rec)*Math.pow(60, 2-i);
+	});
+	return secs;
+}
+function loadfileoutlog() {
+	if (logpath==="") {
+		console.log("no path specified");
+		alert("no out log file specified");
+		return;
+	}
+	var initstring="Loading";
+	if (retry>0) {
+		initstring=initstring+" "+retry;
+	}
+	initstring+="...";
+	$.mobile.loading('show', {text:initstring, textVisible:true});
+	var sdate=logpath.substring(7, 9)+logpath.substring(10, 12)+logpath.substring(13, 15)+"0000";
+	logpath="";
+	$.get("/cgi-bin/outlog.xml?sdate="+sdate+"&days=1",function (data) {
+		var records=data.getElementsByTagName("record");
+		$.each(records, function (i, rec) {
+			var divblocka=$('<div class="ui-block-a">'+rec.getElementsByTagName("date")[0].childNodes[0].nodeValue+'</div>');
+			var divblockb=$('<div class="ui-block-b">'+rec.getElementsByTagName("name")[0].childNodes[0].nodeValue+'</div>');
+			var divblockc=$('<div class="ui-block-c">'+rec.getElementsByTagName("value")[0].childNodes[0].nodeValue+'</div>');
+			var sec=$('<section class="ui-grid-b">');
+			sec.append(divblocka, divblockb, divblockc);
+			var olist=$('<li/>');
+			olist.append(sec);
+			$('#outloglist').append(olist);
+		});
+		$('#outloglist').listview('refresh');
+		logpath="";
+	}).always(function () {
+			$.mobile.loading('hide');
+		}).fail(function (jqXHR, textStatus, errorThrown) {
+			console.log(textStatus);
+			if (textStatus==='parseerror') {
+				alert('xml parse error');
+				retry=0;
+				return;
+			}
+			if (retry>=maxretries) {
+				alert('unable to connect to apex.');
+				retry=0;
+				return;
+			}
+			retry++;
+			setTimeout(loadfileoutlog, 1);
+		}).done(function (f) {
+			retry=0;
+		});
+}
+</script>
+</body>
+</html>
