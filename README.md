@@ -10,6 +10,8 @@ You will need to get the following arduino libraries:
 Time
 http://playground.arduino.cc/uploads/Code/Time.zip
 
+You need to edit the Time.cpp and Time.h (instructions below).
+
 OneWire
 http://www.pjrc.com/teensy/arduino_libraries/OneWire.zip
 
@@ -48,3 +50,29 @@ Edit Wire/utility/twi.h file line 25 to
   #define TWI_FREQ 400000L
 
 Make sure to edit config.h defines before compiling and uploading to the mega board.
+
+
+Editing the Time library to add a new now2 function that can be called from an Interrupt handler.
+Edit Time.h file and add this line
+
+time_t now2();
+
+at line 104 after the now() function.
+
+Edit Time.cpp file by adding a now2 function at line 263 right after the now() function
+
+time_t now2(){
+  while( millis() - prevMillis >= 1000){      
+    sysTime++;
+    prevMillis += 1000;	
+#ifdef TIME_DRIFT_INFO
+    sysUnsyncedTime++; // this can be compared to the synced time to measure long term drift     
+#endif	
+  }
+  return sysTime;
+}
+
+It is essentially the same as the now() function except I removed the time sync code.
+
+The reason for this change is if now() is called from an interrupt service routine, and the time sync is called, it retrieves the time from RTC, which uses I2C interrupt, hence will completely lock up the Arduino code.
+So we make an "interrupt friendly" now2 function so we can determine the time from an interrupt service routine.
