@@ -7,7 +7,7 @@ Download the files and copy them into an arduino sketch folder named Chauvet16.
 
 The index.htm file you will need to copy into an SD card that goes into the SD card slot on the Ethernet-SD shield. Once you have the program running on the Arduino, you can upload updates to the index.htm file via this curl command.
 
-    curl -0 -v -T index.htm http://<your controller ip>:<port>/upload/index.htm
+    curl -0 -v -T index.htm http://user:password@<your controller ip>:<port>/upload/index.htm
     
 You can download curl for pretty much any platform here. 
 http://curl.haxx.se/download.html
