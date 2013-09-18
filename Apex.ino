@@ -1,78 +1,40 @@
-//const char apex_hwsw[] PROGMEM = "hardware=\"1.0\" software=\"4.20_1B13\">\n\t<hostname>";
 FLASH_STRING(apex_hwsw,"hardware=\"1.0\" software=\"4.20_1B13\">\n\t<hostname>");
-//const char apex_intro1[] PROGMEM = "</hostname>\n\t<serial>AC4:12345</serial>\n\t<timezone>";
 FLASH_STRING(apex_intro1,"</hostname>\n\t<serial>AC4:12345</serial>\n\t<timezone>");
-//const char apex_intro2[] PROGMEM = "</timezone>\n";
 FLASH_STRING(apex_intro2,"</timezone>\n");
-//const char apex_date1[] PROGMEM = "<date>";
 FLASH_STRING(apex_date1,"<date>");
-//const char apex_date2[] PROGMEM = "</date>\n\t";
 FLASH_STRING(apex_date2,"</date>\n\t");
-//const char apex_power[] PROGMEM = "<power><failed>none</failed><restored>none</restored></power>\n\t";
 FLASH_STRING(apex_power,"<power><failed>none</failed><restored>none</restored></power>\n\t");
-//const char apex_temp1[] PROGMEM = "<probes>\n\t\t<probe><name>Temp</name><value>";
 FLASH_STRING(apex_temp1,"<probes>\n\t\t<probe><name>Temp</name><value>");
-//const char apex_temp2[] PROGMEM = "</value><type>Temp</type></probe>\n\t\t"; 
 FLASH_STRING(apex_temp2,"</value><type>Temp</type></probe>\n\t\t");
-//const char apex_ph1[] PROGMEM = "<probe><name>pH</name><value>";
 FLASH_STRING(apex_ph1,"<probe><name>pH</name><value>");
-//const char apex_ph2[] PROGMEM = "</value><type>pH</type></probe>\n\t</probes>\n\t<outlets>\n";
 FLASH_STRING(apex_ph2,"</value><type>pH</type></probe>\n\t</probes>\n\t<outlets>\n");
-//const char apex_status1[] PROGMEM = "<status ";
 FLASH_STRING(apex_status1,"<status ");
-//const char apex_status2[] PROGMEM = "\t</outlets>\n</status>";
 FLASH_STRING(apex_status2,"\t</outlets>\n</status>");
-//const char apex_outlet1[] PROGMEM = "\t\t<outlet><name>";
 FLASH_STRING(apex_outlet1,"\t\t<outlet><name>"); //getname
-//const char apex_outlet2[] PROGMEM = "</name><outputID>";
 FLASH_STRING(apex_outlet2,"</name><outputID>");  //get order
-//const char apex_outlet3[] PROGMEM = "</outputID><state>";
 FLASH_STRING(apex_outlet3,"</outputID><state>"); //get state auto and on or off
-//const char apex_outlet4[] PROGMEM = "</state><deviceID>1_";
 FLASH_STRING(apex_outlet4,"</state><deviceID>1_"); //hard coded device id
-//const char apex_outlet5[] PROGMEM = "</deviceID></outlet>\n";
 FLASH_STRING(apex_outlet5,"</deviceID></outlet>\n");
-//const char apex_datalog1[] PROGMEM = "<datalog ";
 FLASH_STRING(apex_datalog1,"<datalog ");
-//const char apex_datalog2[] PROGMEM = "</datalog>";
 FLASH_STRING(apex_datalog2,"</datalog>");
-//const char apex_outlog1[] PROGMEM = "<outlog ";
 FLASH_STRING(apex_outlog1,"<outlog ");
-//const char apex_outlog2[] PROGMEM = "</outlog>";
 FLASH_STRING(apex_outlog2,"</outlog>");
-//const char apex_json1[] PROGMEM = "{\"pstat\":";
 FLASH_STRING(apex_json1,"{\"pstat\":");
-//const char apex_json1b[] PROGMEM = "{\"hostname\":\"";
 FLASH_STRING(apex_json1b,"{\"hostname\":\"");
-//const char apex_json1c[] PROGMEM = "\",\"software\":\"4.20_1B13\",\"hardware\":\"1.0\",\"serial\":\"AC4:12345\",\"timezone\":\"";
 FLASH_STRING(apex_json1c,"\",\"software\":\"4.20_1B13\",\"hardware\":\"1.0\",\"serial\":\"AC4:12345\",\"timezone\":\"");
-//const char apex_json2[] PROGMEM = "\",\"d\":";
 FLASH_STRING(apex_json2,"\",\"d\":");
-//const char apex_json3[] PROGMEM = ",\"feed\":{\"name\":";
 FLASH_STRING(apex_json3,",\"feed\":{\"name\":");
-//const char apex_json3a[] PROGMEM = ",\"active\":";
 FLASH_STRING(apex_json3a,",\"active\":");
-//const char apex_json3b[] PROGMEM = "},\"power\":{\"failed\":1367205445,\"restored\":1367205445},";
 FLASH_STRING(apex_json3b,"},\"power\":{\"failed\":1367205445,\"restored\":1367205445},");
-//const char apex_json4[] PROGMEM = "\"probes\":[{\"did\":\"base_Temp\",\"t\":\"Temp\",\"n\":\"Temp\",\"v\":";
 FLASH_STRING(apex_json4,"\"probes\":[{\"did\":\"base_Temp\",\"t\":\"Temp\",\"n\":\"Temp\",\"v\":");
-//const char apex_json5[] PROGMEM = "},{\"did\":\"base_pH\",\"t\":\"pH\",\"n\":\"pH\",\"v\":";
 FLASH_STRING(apex_json5,"},{\"did\":\"base_pH\",\"t\":\"pH\",\"n\":\"pH\",\"v\":");
-//const char apex_json6[] PROGMEM = "}],\"outlets\":[";
 FLASH_STRING(apex_json6,"}],\"outlets\":[");
-//const char apex_json7[] PROGMEM = "{\"n\":\"";
 FLASH_STRING(apex_json7,"{\"n\":\"");
-//const char apex_json8[] PROGMEM = "\",\"s\":\"";
 FLASH_STRING(apex_json8,"\",\"s\":\"");
-//const char apex_json9[] PROGMEM = "\",\"oid\":\"";
 FLASH_STRING(apex_json9,"\",\"oid\":\"");
-//const char apex_json10[] PROGMEM = "\",\"did\":\"1_";
 FLASH_STRING(apex_json10,"\",\"did\":\"1_");
-//const char apex_json11[] PROGMEM = "\"}";
 FLASH_STRING(apex_json11,"\"}");
-//const char apex_json12[] PROGMEM = "],\"inputs\":[";
 FLASH_STRING(apex_json12,"],\"inputs\":[");
-//const char apex_json13[] PROGMEM = "]}}";
 FLASH_STRING(apex_json13,"]}}");
 
 boolean process_params(char* inputstring, char* params_[], uint8_t len) {
