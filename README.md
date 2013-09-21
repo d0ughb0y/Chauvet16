@@ -17,7 +17,7 @@ Setting Up Arduino Libraries
 
 You will need to get the following arduino libraries:
 
-Time
+Time and DS1370RTC
 http://playground.arduino.cc/uploads/Code/Time.zip
 
 You need to edit the Time.cpp and Time.h (instructions below).
@@ -27,9 +27,6 @@ http://www.pjrc.com/teensy/arduino_libraries/OneWire.zip
 
 LiquidCrystal
 https://bitbucket.org/fmalpartida/new-liquidcrystal/downloads/LiquidCrystal_V1.2.1.zip
-
-DS1307RTC
-http://www.pjrc.com/teensy/arduino_libraries/DS1307RTC.zip
 
 SdFat
 http://sdfatlib.googlecode.com/files/sdfatlib20130629.zip
@@ -72,12 +69,12 @@ at line 104 after the now() function.
 Edit Time.cpp file by adding a now2 function at line 263 right after the now() function
 
     time_t now2(){
-    while( millis() - prevMillis >= 1000){      
-      sysTime++;
-      prevMillis += 1000;	
+      while( millis() - prevMillis >= 1000){
+        sysTime++;
+        prevMillis += 1000;
     #ifdef TIME_DRIFT_INFO
-      sysUnsyncedTime++; // this can be compared to the synced time to measure long term drift     
-    #endif	
+        sysUnsyncedTime++; // this can be compared to the synced time to measure long term drift
+    #endif
       }
       return sysTime;
     }
