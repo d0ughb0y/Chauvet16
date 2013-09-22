@@ -129,9 +129,10 @@ inline void outletHandlerB() { //once per minute handler
        logSensorsFlag = true; 
     }
   }
-//  if (minnow==21) {
-//    netCheckFlag=true;
-//  }
+  //check if network is still up every 21mins past the hour (not a busy time)
+  if (minnow==21) { 
+    netCheckFlag=true;
+  }
   if (secnow%LCD_MSG_CYCLE_SECS==0) {
     displaymode++;
     if (displaymode>=LCD_NUM_MSGS) displaymode=0;    

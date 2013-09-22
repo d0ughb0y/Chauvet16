@@ -258,7 +258,6 @@ void logOutlet() {
       sei();
       fileout_.close();
     }
-    netCheck();//workaround for EMI problem with relays dropping ethernet connection
   } 
 }
 

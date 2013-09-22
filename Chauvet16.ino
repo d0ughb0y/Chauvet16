@@ -43,7 +43,7 @@ volatile boolean testDst = false;
 volatile boolean emailFlag = false;
 volatile boolean logalarmFlag = false;
 volatile boolean logSensorsFlag = false;
-//volatile boolean netCheckFlag = false;
+volatile boolean netCheckFlag = false;
 volatile uint16_t sonaravg = 0;
 volatile uint8_t displaymode = 0;
 
@@ -131,10 +131,10 @@ void loop() {
       logAlarm();
       logalarmFlag=false;
     }
-//    if (netCheckFlag) {
-//      netCheck();
-//      netCheckFlag=false; 
-//    }
+    if (netCheckFlag) {
+      netCheck();
+      netCheckFlag=false; 
+    }
     updateTemp();
     updatePh();
     updateSonar();
