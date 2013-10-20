@@ -141,7 +141,7 @@ boolean initPH() {
   char phchars[15];
   Serial1.begin(38400);
   for (int i=0;i<255,strlen(phchars)==0;i++) {
-    Serial1.print("e\r");
+    Serial1.print("r\r");
     delay(384);
     getresponse(phchars);
   }
@@ -149,10 +149,13 @@ boolean initPH() {
     return false;
   }
   phreading=atof(phchars);
-  phready=true;
-  updatePh();
-  phready=false;
-  return true;
+  if (phreading>0) {
+    phready=true;
+    updatePh();
+    phready=false;
+    return true;
+  } else
+    return false;
 }
 
 void updatePh() {
@@ -172,10 +175,8 @@ void updatePh() {
          pha=phreading;
          phavg=phreading;
       }
-      Serial1.print("r\r");
-    }else {
-      Serial1.print("e\r");
     }
+    Serial1.print("r\r");
   }
 }
 

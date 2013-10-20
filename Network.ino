@@ -219,7 +219,7 @@ void sendEmail() {
     client << F("\r\n");
     client << F("Temp:") << getTemp() << "\r\n";
     client << F("pH:") <<getph() << "\r\n";
-    client << F("Top Off water level:") << getSonarPct() << "%\r\n.\r\n";
+    client << F("Top Off water level:") << (uint8_t)getSonarPct() << "%\r\n.\r\n";
     if(!eRcv(client)) return;
     client << F("QUIT\r\n");    
     if(!eRcv(client)) return;

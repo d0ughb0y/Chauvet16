@@ -129,8 +129,8 @@ inline void outletHandlerB() { //once per minute handler
        logSensorsFlag = true; 
     }
   }
-  //check if network is still up every 21mins past the hour (not a busy time)
-  if (minnow==21) { 
+  //check if network is still up at 1,21,41 mins past the hour (not a busy time)
+  if ((minnow+1)%20==1) { 
     netCheckFlag=true;
   }
   if (secnow%LCD_MSG_CYCLE_SECS==0) {
@@ -150,10 +150,8 @@ inline void outletHandlerB() { //once per minute handler
     if (ato2 || ato1) {// open, pin high
       _outletOff(Kalk); //turn off both kalk and ato
     } else { //closed, pin low
-      if (isOutletOn(Return)) {
-        if (ph<8.7) { //if ph<8.7 turn on kalk, else ato
-          _outletOn(Kalk);
-        }
+      if (isOutletOn(Return) && ph < 8.7 && conf.outletRec[Kalk].mode == _auto) {
+        _outletOn(Kalk);//on if rtn is on, ph not high, and kalk outlet on auto
       }
     }
   }

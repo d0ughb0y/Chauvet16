@@ -23,8 +23,8 @@ static uint16_t deltaTime = 0;
 
 SdFat sd;
 SdFile file_;
-uint32_t debug1=0;
-uint32_t debug2=0;
+volatile uint32_t debug1=0;
+volatile uint32_t debug2=0;
 LiquidCrystal_I2C lcd(LCD_ADDR,LCD_EN,LCD_RW,LCD_RS,LCD_D4,LCD_D5,LCD_D6,LCD_D7,LCD_BACKLIGHT,NEGATIVE);
 
 enum outlet {OUTLETDEFS, Feeder=20, End=255};
@@ -91,10 +91,10 @@ void setup() {
 
 
 void loop() {
-  uint32_t time1 = micros();
   currentTime = millis();
   deltaTime = currentTime - previousTime;
   if (deltaTime > 16) { //60hz ~ every 16ms
+    profile(true);
     time_t timenow = now();
     static time_t lasttimenow = 0;
     if (timenow!=lasttimenow) {
@@ -140,21 +140,32 @@ void loop() {
     updateSonar();
     logOutlet();
     previousTime = currentTime;
-    //debug1 and debug2 can be any number you want to display on lcd for debugging purposes
-    //here I display the current and average execution time in milliseconds
-    debug2 = micros()-time1;
-    static uint32_t sum = 0;
-    if (debug2 < 5000000) {
-      if (sum) {
-        sum = (sum-debug1)+debug2;
-      } else {
-        if (debug2>0)
-          sum = debug2 * 60;
-      }
-      debug1=sum/60;
-    }
+    profile(false);
   }
   //do every cycle  
   webprocess(); 
+}
+
+
+void profile(boolean start) {
+  //debug1 and debug2 can be any number you want to display on lcd for debugging purposes
+  //here I display the current and average execution time in microseconds
+  //profile function is safe to call inside ISR
+  //just add profile(true) at the start of function
+  //and add profile(false) at end of function (or before every return)
+  static uint32_t time1;
+  if (start){
+    time1 = micros();
+    return;
+  }
+  debug2 = micros()-time1;
+  static uint32_t sum = 0;
+  if (sum) {
+    sum = (sum-debug1)+debug2;
+  } else {
+    if (debug2>0)
+      sum = debug2 * 60;
+  }
+  debug1=sum/60;
 }
 

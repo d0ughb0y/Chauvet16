@@ -201,11 +201,11 @@ void poutlets() {
 void pdebug() {
   if (!lcdpresent) return;
   lcd.setCursor(0,1);
-//  cli();
-//  uint32_t d1 = debug1;
-//  uint32_t d2 = debug2;
-//  sei();
-  lcd << debug1 << F("us ") << debug2 << F("us            ");
+  cli();
+  uint32_t d1 = debug1;
+  uint32_t d2 = debug2;
+  sei();
+  lcd << d1 << F("us ") << d2 << F("us            ");
 }
 
 ///////////////////////////////
