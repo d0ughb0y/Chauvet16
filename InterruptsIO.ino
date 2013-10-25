@@ -1,6 +1,8 @@
 #define CYCLETIMEB 15624 //1s
 #define CYCLETIMEA 1500 //~100ms
 #define CYCLESKIP 15 //1ms
+#define CYCLE1MS 15 //1ms
+
 volatile static uint16_t beepcount[6];
 
 inline void enablePCINT(){
@@ -11,16 +13,19 @@ inline void disablePCINT(){
   PCICR &= ~(1<<PCIE2);
 }
 
+//All three Timer4 registers are used by this controller
+//This means you cannot use Digital Pins 6,7 and 8 for PWM
+//You can still use those Pins for IO
+//Timer4 Register A - used by outlet program scheduler
+//Timer4 Register B - used for misc timed tasks
+//Timer4 Register C - used for buzzer
 void setupTimers(){
   TCCR4A = 0;
-  TCCR4B = /*_BV(WGM42) |*/ _BV(CS42) | _BV(CS40);  //div 1024  64us / count Normal mode
+  TCCR4B = _BV(CS42) | _BV(CS40);  //div 1024  64us / count Normal mode
   OCR4A = CYCLETIMEA;   
   OCR4B = CYCLETIMEB; //1 second
+  OCR4C = CYCLE1MS;
   TIMSK4 = 0;
-  TCCR3A = 0;
-  TCCR3B = _BV(WGM32) | _BV(CS30);
-  OCR3A = 16000; //1ms
-  TIMSK3=0;
   DDRE |= _BV(PE3);
   PORTE &= ~_BV(PE3);
 }
@@ -57,7 +62,7 @@ inline void beepFail() {
 
 void beepx(uint8_t first, uint8_t second, uint8_t third,
   uint8_t endpause, uint16_t cyclepause) {
-  if (TIMSK3!=0) return;
+  if (TIMSK4 & _BV(OCIE4C) !=0) return;
   uint8_t SaveSREG = SREG;
   cli();
   beepcount[0]=first;
@@ -65,16 +70,18 @@ void beepx(uint8_t first, uint8_t second, uint8_t third,
   beepcount[2]=second;
   beepcount[4]=third;
   beepcount[5]=cyclepause;
-  TIMSK3 = _BV(OCIE3A); 
+  TIMSK4 |= _BV(OCIE4C);
+  OCR4C=TCNT4+CYCLE1MS;
   SREG=SaveSREG;
 }
 
 inline void beepoff() {
-  TIMSK3 = 0; 
+  TIMSK4 &= ~_BV(OCIE4C); 
   PORTE &= ~_BV(PE3);
 }
 
 void alarmOn() {
+ if (TIMSK4 & _BV(OCIE4C) !=0) return;
  if (conf.soundalert) {
    uint8_t saveSREG=SREG;
    cli();
@@ -84,7 +91,8 @@ void alarmOn() {
    beepcount[3]=50;
    beepcount[4]=200;
    beepcount[5]=2000;
-   TIMSK3 = _BV(OCIE3A); 
+   TIMSK4 |= _BV(OCIE4C); 
+   OCR4C=TCNT4+CYCLE1MS;
    SREG=saveSREG; 
  }
 }
@@ -127,7 +135,7 @@ ISR(TIMER4_COMPB_vect) { //once per minute handler
   outletHandlerB();
 }
 
-ISR(TIMER3_COMPA_vect) { //buzzer
+ISR(TIMER4_COMPC_vect) { //buzzer
   static uint8_t state = 0;
   static uint16_t counter = 0;
   
@@ -136,13 +144,14 @@ ISR(TIMER3_COMPA_vect) { //buzzer
       PORTE |= _BV(PE3);
   } else {
     if (state==5 && beepcount[5]==0) {
-      TIMSK3 = 0;  
+      TIMSK4 &= ~_BV(OCIE4C);  
     }
     counter=0;
     state++;
     if (state>5) state=0;
     PORTE &= ~_BV(PE3);
   }
+  OCR4C+=CYCLE1MS;
 }
 
 //////////////////////////////////////////
