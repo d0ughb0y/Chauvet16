@@ -122,9 +122,11 @@ inline void outletHandlerB() { //once per minute handler
   int hrnow = hour(timenow);
   int monnow = month(timenow);
   if (secnow==0) {  // one minute
+    #ifdef AUTODST
     if (hrnow==2 && (monnow==3 || monnow==11)) {//2am
       testDst = true;
     }
+    #endif
     if (minnow%10==0 && !logSensorsFlag) {
        logSensorsFlag = true; 
     }

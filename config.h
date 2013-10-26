@@ -23,7 +23,10 @@
 #define LCD_D7 3
 #define LCD_BACKLIGHT 7
 
-#define STDTZOFFSET -8L
+#define STDTZOFFSET -8
+//comment the next line if your location does not use daylight savings time
+#define AUTODST
+
 #define WEBSERVERPORT 8000
 //go to http://base64-encoder-online.waraxe.us
 //to create your encoded string

@@ -262,19 +262,11 @@ void efail(EthernetClient& client)
 ////////////////////////////////////
 //  CLOCK
 ///////////////////////////////////
+#ifdef AUTODST
 boolean isDst = false;
+#endif
 IPAddress timeServer(NTPSERVER);
 EthernetUDP Udp;
-
-time_t getntp(){
-  long start = millis();
-  time_t ntptime = getNtpTime(Udp, timeServer);
-  char buf[20];
-  logMessage(F("Time NTP sync "), getdatestring(ntptime,buf));
-  long elapsed = millis() - start;
-  logMessage(F("Time to execute sync "),elapsed);
-  return ntptime;
-}
 
 void initClock() {
   unsigned int localPort = 7777;      // local port to listen for UDP packets
@@ -282,6 +274,7 @@ void initClock() {
   unsigned long ntptime = getNtpTime(Udp, timeServer); //get standard time
   if (ntptime>0) {
     setTime(ntptime);
+    #ifdef AUTODST
     if (IsDST(ntptime)) 
     {
       //dstoffset = STDTZOFFSET+1L; //dst
@@ -289,6 +282,7 @@ void initClock() {
       ntptime += SECS_PER_HOUR;
       setTime(ntptime);  //adjust to dst
     }
+    #endif
     logMessage(F("Got NTP time "));
     p(F("NTP sync OK.    "));
     char buf[20];
@@ -323,9 +317,11 @@ void initClock() {
       for(;;);
     }
   }
-  tz = IsDST(now())?-7:-8;
+  #ifdef AUTODST
+  tz = IsDST(now())?(STDTZOFFSET+1):STDTZOFFSET;
+  #endif
 }
-
+#ifdef AUTODST
 void autoDST(time_t t) {
   if (IsDST(t)==isDst) return;
   isDst = !isDst;
@@ -335,6 +331,8 @@ void autoDST(time_t t) {
     RTC.set(t-SECS_PER_HOUR);
   setTime(RTC.get());
   logMessage(F("Auto adjusted DST time."));
+  char buf[20];
+  logMessage(F("Current time is "),getdatestring(now(),buf));
 }
 
 boolean IsDST(time_t t)
@@ -357,7 +355,7 @@ boolean IsDST(time_t t)
   dstEnd += SECS_PER_HOUR; //1AM
   return (t>=dstStart && t<dstEnd);
 }
-
+#endif
 unsigned long getNtpTime(EthernetUDP Udp, IPAddress timeServer)
 {
 

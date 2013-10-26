@@ -33,13 +33,15 @@ volatile uint8_t _ActiveMacro = 4;
 volatile time_t _MacroTime = 0;
 volatile time_t _MacroCountDown = 0;
 volatile conf_t conf;
-volatile int tz = -8;
+volatile int tz = STDTZOFFSET;
   
 volatile OutLogRec_t _outlog[OUTLOGSZ];
 volatile uint8_t _head = 0;
 volatile uint8_t _tail = 0;
 volatile boolean alarm = false;
+#ifdef AUTODST
 volatile boolean testDst = false;
+#endif
 volatile boolean emailFlag = false;
 volatile boolean logalarmFlag = false;
 volatile boolean logSensorsFlag = false;
@@ -115,10 +117,12 @@ void loop() {
       }
       lastdisplaymode = displaymode;
     }
+    #ifdef AUTODST
     if (testDst) {
       autoDST(timenow);
       testDst = false;
     }
+    #endif
     if (logSensorsFlag) { //every 10 minutes only
       logSensorsFlag = false;
       logSensors();
