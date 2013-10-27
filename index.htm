@@ -505,7 +505,7 @@ var feedactivefunction;
 var logpath="";
 var config={};
 var macros=[];
-var outletname=["Koralia1", "Koralia2", "Koralia3", "Koralia4", "CAL", "ALK", "Return", "Skimmer"];
+var outletname=[];
 var action=[];
 $("#page").on("pageshow", initHome);
 $('#setup').on("pagebeforeshow", function (e) {
@@ -1434,6 +1434,9 @@ $('#csetupaction').on('click', function (e) {
 	$('#contentoutlet').hide();
 	$('#contentaction').show();
 	macros=config.macros;
+	$.each(config.outlets, function(i, outlet) {
+		outletname[i]=outlet.name;
+	});
 	$('#selectmacro').empty();
 	$.each(macros, function (i, macro) {
 		$('#selectmacro').append('<option value="'+i+'">'+macro.name+'</option>');
