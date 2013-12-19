@@ -1,6 +1,9 @@
 //////////////////////////////////////////////////////
 //   CHAUVET16 Program for the CHAUVET16 CONTROLLER //
-//   (c) 2013 and beyond by Jerry Sy aka d0ughb0y   //
+//   Copyright (c) 2013 by Jerry Sy aka d0ughb0y    //
+//   mail-to: j3rry5y@gmail.com                     //
+//   Commercial use of this software without        //
+//   permission is absolutely prohibited.           //
 //   make sure to edit config.h first before        //
 //   uploading to the mega.                         //
 //////////////////////////////////////////////////////
@@ -27,7 +30,7 @@ volatile uint32_t debug1=0;
 volatile uint32_t debug2=0;
 LiquidCrystal_I2C lcd(LCD_ADDR,LCD_EN,LCD_RW,LCD_RS,LCD_D4,LCD_D5,LCD_D6,LCD_D7,LCD_BACKLIGHT,NEGATIVE);
 
-enum outlet {OUTLETDEFS, Feeder=20, End=255};
+enum outlet {OUTLETDEFS, Feeder=20, Pump0=30, Pump1=31, Pump2=32, Pump3=33, PPump0=40, PPump1=41, End=255};
 
 volatile uint8_t _ActiveMacro = 4;
 volatile time_t _MacroTime = 0;
@@ -48,31 +51,32 @@ volatile boolean logSensorsFlag = false;
 volatile boolean netCheckFlag = false;
 volatile uint16_t sonaravg = 0;
 volatile uint8_t displaymode = 0;
+volatile float phavg=0;
 
 void setup() {
-  setupTimers();
+  initBuzzer();
+  initTimer();
+  beep();
   initializeEEPROM();
   #ifdef _FEEDER
   initFeeder();
   #endif
   initATO();
-  initIO();
-  #ifdef _X10
-  initX10();
-  #endif
+  initPeristalticPumps();
   #ifdef _SONAR
   initSonar();
   #endif
   enablePCINT();
-  beep();
   initUtils(); //init led, i2c pullup, lcd, SD
   lightOn();
   initNetwork(); //ethernet, clock, webserver, start logging here
   initSensors(); //temp and ph
   initOutlets();
   initPWM();
+  #ifdef _PWMA
+  initPWMPumps();
+  #endif
   lightOff();
-  startOutletTimers(); 
   #ifdef _SONAR
   for (int i=0;i<255;i++) {
     updateSonar();
@@ -82,6 +86,10 @@ void setup() {
       break;
     }
   }  
+  #endif
+  startTimer();
+  #ifdef _PWMA
+  startPumps();
   #endif
   p(F("Boot Completed. "));
   logMessage(F("Initialization Completed."));
@@ -112,7 +120,15 @@ void loop() {
                 break;
         case 2: pinputs();
                 break;
-        case 3: pdebug();
+#if defined(_PWMA)
+        case 3: ppwmpump(0);
+                break; 
+#endif                
+#if defined(_PWMB)
+        case 4: ppwmpump(2);
+                break; 
+#endif
+        case LCD_NUM_MSGS-1: pdebug();
                 break;
       }
       lastdisplaymode = displaymode;
@@ -162,6 +178,8 @@ void profile(boolean start) {
     time1 = micros();
     return;
   }
+  uint8_t saveSREG=SREG;
+  cli();
   debug2 = micros()-time1;
   static uint32_t sum = 0;
   if (sum) {
@@ -171,5 +189,6 @@ void profile(boolean start) {
       sum = debug2 * 60;
   }
   debug1=sum/60;
+  SREG=saveSREG;
 }
 

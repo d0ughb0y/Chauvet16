@@ -1,3 +1,9 @@
+/*
+ * Copyright (c) 2013 by Jerry Sy aka d0ughb0y
+ * mail-to: j3rry5y@gmail.com
+ * Commercial use of this software without
+ * permission is absolutely prohibited.
+*/
 FLASH_STRING(apex_hwsw,"hardware=\"1.0\" software=\"4.20_1B13\">\n\t<hostname>");
 FLASH_STRING(apex_intro1,"</hostname>\n\t<serial>AC4:12345</serial>\n\t<timezone>");
 FLASH_STRING(apex_intro2,"</timezone>\n");
@@ -35,6 +41,7 @@ FLASH_STRING(apex_json9,"\",\"oid\":\"");
 FLASH_STRING(apex_json10,"\",\"did\":\"1_");
 FLASH_STRING(apex_json11,"\"}");
 FLASH_STRING(apex_json12,"],\"inputs\":[");
+FLASH_STRING(apex_json12a,"],\"pwmpumps\":[");
 FLASH_STRING(apex_json13,"]}}");
 
 boolean process_params(char* inputstring, char* params_[], uint8_t len) {
@@ -303,10 +310,13 @@ boolean apex_command_handler(TinyWebServer& webserver) {
       if (_ActiveMacro>=4 || (fmode==4 && _ActiveMacro < 4)) {
         cli();
         _ActiveMacro = fmode;
+        _MacroCountDown=0;
         if (fmode<4)
           _MacroTime=now2();
         else
           _MacroTime=0;
+        if (fmode==4)
+          FeedModeOFF();
         sei();
         logMessage(F("Execute Feed Command "),fmode);
       }
@@ -345,6 +355,10 @@ boolean apex_status_json_handler(TinyWebServer& webserver) {
   client << (getATO1()?0:1) << F("},");
   client << F("{\"did\":\"base_I3\",\"n\":\"ATO Lower\",\"v\":");
   client << (getATO2()?0:1) << F("}");
+  client << apex_json12a;
+  for (int i=0;i<MAXPWMPUMPS;i++) {
+     getpumpinfo(client,i);
+  }
   client << apex_json13 << F("\n");
   return true;  
 }
@@ -353,8 +367,8 @@ boolean apex_error(TinyWebServer& webserver, const __FlashStringHelper* msg, int
   webserver.send_error_code(400);
   webserver.send_content_type("text/plain");
   webserver.end_headers();
-  webserver << F("Unable to update conf\n");
-  webserver << msg << " " << i << F("\n");
+//  webserver << F("Unable to update conf\n");
+  webserver << msg << F(" ") << i << F("\n");
   beepFail();
   return true;   
 }
@@ -377,6 +391,7 @@ boolean apex_config_post(TinyWebServer& webserver, long postlen) {
   uint8_t* ptr = (uint8_t*)&json[0];
   uint32_t start_time = 0;
   boolean watchdog_start = false;
+  boolean updatepwmpump = false;
   for (len=0;len<postlen && client.connected();) {
     int ln = client.available()?client.read(ptr,avail):0;
     if (!ln) {
@@ -397,99 +412,107 @@ boolean apex_config_post(TinyWebServer& webserver, long postlen) {
   }
   if (len!=postlen) return apex_error(webserver,F("len mismatch"),len);
   conf_t myconf;
-  memset((void*)&myconf,0,sizeof(conf_t));
-  if (strcmp_P(strtok(json,delims),PSTR("outlets"))!=0) return apex_error(webserver,F("outlets"),0);
-  for (int i=0;i<MAXOUTLETS;i++) {
-    strtok(NULL,delims);
-//    if (strcmp(strtok(NULL,delims),"name")!=0) return apex_error(webserver,F("outlets+name"),i);//skip name
-    strcpy((char*)myconf.outletRec[i].name,strtok(NULL,delims));
-    strtok(NULL,delims);
-//   if (strcmp(strtok(NULL,delims),"initoff")!=0) return apex_error(webserver,F("outlets+initoff"),i);//skip initoff
-    myconf.outletRec[i].initoff=atol(strtok(NULL,delims));
-    strtok(NULL,delims);
-//    if (strcmp(strtok(NULL,delims),"ontime")!=0) return apex_error(webserver,F("outlets+ontime"),i);//skip ontime
-    myconf.outletRec[i].ontime=atol(strtok(NULL,delims));
-    strtok(NULL,delims);
-//    if (strcmp(strtok(NULL,delims),"offtime")!=0) return apex_error(webserver,F("outlets+offtime"),i);//skip offtime
-    myconf.outletRec[i].offtime=atol(strtok(NULL,delims));
-    strtok(NULL,delims);
-//    if (strcmp(strtok(NULL,delims),"days")!=0) return apex_error(webserver,F("outlets+days"),i);//skip days
-    myconf.outletRec[i].days=(uint8_t)atoi(strtok(NULL,delims));
-    strtok(NULL,delims);
-//    if (strcmp(strtok(NULL,delims),"mode")!=0) return apex_error(webserver,F("outlets+mode"),i);//skip mode
-    myconf.outletRec[i].mode=(uint8_t)atoi(strtok(NULL,delims));
-  }
-  if (strcmp_P(strtok(NULL,delims),PSTR("macros"))!=0) return apex_error(webserver,F("macros"),0);
-  for (int i=0;i<MAXMACROS;i++) {
-    strtok(NULL,delims);
-//    if (strcmp(strtok(NULL,delims),"name")!=0) return apex_error(webserver,F("macros+name"),i);//skip name
-    strcpy((char*)myconf.macrosRec[i].name,strtok(NULL,delims));
-    strtok(NULL,delims);
-//    if (strcmp(strtok(NULL,delims),"initoff")!=0) return apex_error(webserver,F("macros+initoff"),i);//skip initoff
-    myconf.macrosRec[i].initoff=atol(strtok(NULL,delims));
-    strtok(NULL,delims);
-//    if (strcmp(strtok(NULL,delims),"ontime")!=0) return apex_error(webserver,F("macros+ontime"),i);//skip ontime
-    myconf.macrosRec[i].ontime=atol(strtok(NULL,delims));
-    strtok(NULL,delims);
-//    if (strcmp(strtok(NULL,delims),"offtime")!=0) return apex_error(webserver,F("macros+offtime"),i);//skip offtime
-    myconf.macrosRec[i].offtime=atol(strtok(NULL,delims));
-    strtok(NULL,delims);
-//    if (strcmp(strtok(NULL,delims),"days")!=0) return apex_error(webserver,F("macros+days"),i);//skip days
-    myconf.macrosRec[i].days=(uint8_t)atoi(strtok(NULL,delims));
-    strtok(NULL,delims);
-//    if (strcmp(strtok(NULL,delims),"mode")!=0) return apex_error(webserver,F("macros+mode"),i);//skip mode
-    myconf.macrosRec[i].mode=(uint8_t)atoi(strtok(NULL,delims));
-  }
-  if (strcmp_P(strtok(NULL,delims),PSTR("actions"))!=0) return apex_error(webserver,F("actions"),0);
-  for (int i=0;i<MAXMACROS;i++) {
-    for (int j=0;j<MAXMACROACTIONS;j++) {
+  cli();
+  memcpy((void*)&myconf,(void*)&conf,sizeof(conf_t));
+  sei();
+  char* name = strtok(json,delims);
+  while (name!=NULL) {
+    if (strcmp_P(name,PSTR("outlets"))==0) {
+      for (int i=0;i<MAXOUTLETS;i++) {
+        strtok(NULL,delims);
+        strcpy((char*)myconf.outletRec[i].name,strtok(NULL,delims));
+        strtok(NULL,delims);
+        myconf.outletRec[i].initoff=atol(strtok(NULL,delims));
+        strtok(NULL,delims);
+        myconf.outletRec[i].ontime=atol(strtok(NULL,delims));
+        strtok(NULL,delims);
+        myconf.outletRec[i].offtime=atol(strtok(NULL,delims));
+        strtok(NULL,delims);
+        myconf.outletRec[i].days=(uint8_t)atoi(strtok(NULL,delims));
+        strtok(NULL,delims);
+        myconf.outletRec[i].mode=(uint8_t)atoi(strtok(NULL,delims));
+      }
+    } else if (strcmp_P(name,PSTR("macros"))==0) {
+      for (int i=0;i<MAXMACROS;i++) {
+        strtok(NULL,delims);
+        strcpy((char*)myconf.macrosRec[i].name,strtok(NULL,delims));
+        strtok(NULL,delims);
+        myconf.macrosRec[i].initoff=atol(strtok(NULL,delims));
+        strtok(NULL,delims);
+        myconf.macrosRec[i].ontime=atol(strtok(NULL,delims));
+        strtok(NULL,delims);
+        myconf.macrosRec[i].offtime=atol(strtok(NULL,delims));
+        strtok(NULL,delims);
+        myconf.macrosRec[i].days=(uint8_t)atoi(strtok(NULL,delims));
+        strtok(NULL,delims);
+        myconf.macrosRec[i].mode=(uint8_t)atoi(strtok(NULL,delims));
+      }
+    } else if (strcmp_P(name,PSTR("actions"))==0) {
+      for (int i=0;i<MAXMACROS;i++) {
+        for (int j=0;j<MAXMACROACTIONS;j++) {
+          strtok(NULL,delims);
+          myconf.actions[i][j].outlet=(uint8_t)atoi(strtok(NULL,delims));
+          strtok(NULL,delims);
+          myconf.actions[i][j].initoff=atol(strtok(NULL,delims));
+          strtok(NULL,delims);
+          myconf.actions[i][j].ontime=atol(strtok(NULL,delims));
+        } 
+      }
+    } else if (strcmp_P(name,PSTR("pumps"))==0) {
+      for (int i=0;i<MAXPWMPUMPS;i++) {
+        for (int j=0;j<MAXINTERVALS;j++) {
+          strtok(NULL,delims);
+//          if (strcmp_P(strtok(NULL,delims),PSTR("wm"))!=0) return apex_error(webserver,F("wm"),i);;
+          myconf.pump[i][j].waveMode=(uint8_t)atoi(strtok(NULL,delims));
+          strtok(NULL,delims);
+//          if (strcmp_P(strtok(NULL,delims),PSTR("sm"))!=0) return apex_error(webserver,F("sm"),i);;
+          myconf.pump[i][j].syncMode=(uint8_t)atoi(strtok(NULL,delims));
+          strtok(NULL,delims);
+//          if (strcmp_P(strtok(NULL,delims),PSTR("l"))!=0) return apex_error(webserver,F("l"),i);;
+          myconf.pump[i][j].level=(uint8_t)atoi(strtok(NULL,delims));
+          strtok(NULL,delims);
+//          if (strcmp_P(strtok(NULL,delims),PSTR("pw"))!=0) return apex_error(webserver,F("pw"),i);;
+          myconf.pump[i][j].pulseWidth=(uint8_t)atoi(strtok(NULL,delims));
+        }
+      }  
+      updatepwmpump=true;
+    } else if (strcmp_P(name,PSTR("misc"))==0) {
       strtok(NULL,delims);
-//     if (strcmp(strtok(NULL,delims),"outlet")!=0) return apex_error(webserver,F("actions+outlet"),j);//skip outlet
-      myconf.actions[i][j].outlet=(uint8_t)atoi(strtok(NULL,delims));
+      myconf.htrlow =atof(strtok(NULL,delims));
       strtok(NULL,delims);
-//      if (strcmp(strtok(NULL,delims),"initoff")!=0) return apex_error(webserver,F("actions+initoff"),j);//skip initoff
-      myconf.actions[i][j].initoff=atol(strtok(NULL,delims));
+      myconf.htrhigh=atof(strtok(NULL,delims));
       strtok(NULL,delims);
-//      if (strcmp(strtok(NULL,delims),"ontime")!=0) return apex_error(webserver,F("actions+ontime"),j);//skip ontime
-      myconf.actions[i][j].ontime=atol(strtok(NULL,delims));
-    } 
+      myconf.fanlow=atof(strtok(NULL,delims));
+      strtok(NULL,delims);
+      myconf.fanhigh=atof(strtok(NULL,delims));
+      strtok(NULL,delims);
+      myconf.sonarlow=atoi(strtok(NULL,delims));
+      strtok(NULL,delims);
+      myconf.sonarhigh=atoi(strtok(NULL,delims));
+      strtok(NULL,delims);
+      myconf.sonaralertval=atoi(strtok(NULL,delims));      
+      strtok(NULL,delims);
+      myconf.sonaralert=strcmp(strtok(NULL,delims),"true")==0?true:false;
+      strtok(NULL,delims);
+      myconf.alerttemplow=atof(strtok(NULL,delims));
+      strtok(NULL,delims);
+      myconf.alerttemphigh=atof(strtok(NULL,delims));
+      strtok(NULL,delims);
+      myconf.alertphlow=atof(strtok(NULL,delims));
+      strtok(NULL,delims);
+      myconf.alertphhigh=atof(strtok(NULL,delims));
+      strtok(NULL,delims);
+      myconf.soundalert=strcmp_P(strtok(NULL,delims),PSTR("true"))==0?true:false;
+      strtok(NULL,delims);
+      myconf.emailalert=strcmp_P(strtok(NULL,delims),PSTR("true"))==0?true:false;
+      strtok(NULL,delims);
+      myconf.initialized=(uint8_t)atoi(strtok(NULL,delims));
+    } else {
+      beepFail();
+      return apex_error(webserver,F("unable to save config"),0);
+    }
+    name = strtok(NULL,delims);  
   }
-  strtok(NULL,delims);
-//  if (strcmp(strtok(NULL,delims),"phcal7")!=0) return apex_error(webserver,F("phcal7"),0);
-//  myconf.phcal7=atoi(strtok(NULL,delims));
-//  strtok(NULL,delims);
-//  if (strcmp(strtok(NULL,delims),"phcal10")!=0) return apex_error(webserver,F("phcal10"),0);
-//  myconf.phcal10=atoi(strtok(NULL,delims)); 
-//  strtok(NULL,delims);
-  myconf.htrlow =atof(strtok(NULL,delims));
-  strtok(NULL,delims);
-  myconf.htrhigh=atof(strtok(NULL,delims));
-  strtok(NULL,delims);
-  myconf.fanlow=atof(strtok(NULL,delims));
-  strtok(NULL,delims);
-  myconf.fanhigh=atof(strtok(NULL,delims));
-  strtok(NULL,delims);
-  myconf.sonarlow=atoi(strtok(NULL,delims));
-  strtok(NULL,delims);
-  myconf.sonarhigh=atoi(strtok(NULL,delims));
-  strtok(NULL,delims);  
-  myconf.sonaralertval=atoi(strtok(NULL,delims));
-  strtok(NULL,delims);
-  myconf.sonaralert=strcmp(strtok(NULL,delims),"true")==0?true:false;
-  strtok(NULL,delims);  
-  myconf.alerttemplow=atof(strtok(NULL,delims));
-  strtok(NULL,delims);
-  myconf.alerttemphigh=atof(strtok(NULL,delims));
-  strtok(NULL,delims);
-  myconf.alertphlow=atof(strtok(NULL,delims));
-  strtok(NULL,delims);
-  myconf.alertphhigh=atof(strtok(NULL,delims));
-  strtok(NULL,delims);
-  myconf.soundalert=strcmp(strtok(NULL,delims),"true")==0?true:false;
-  strtok(NULL,delims);
-  myconf.emailalert=strcmp(strtok(NULL,delims),"true")==0?true:false;
-  if (strcmp_P(strtok(NULL,delims),PSTR("initialized"))!=0) return apex_error(webserver,F("initialized"),0);
-  myconf.initialized=(uint8_t)atoi(strtok(NULL,delims));
   cli();
   memcpy((void*)&conf,(void*)&myconf,sizeof(conf_t));
   sei();
@@ -497,6 +520,8 @@ boolean apex_config_post(TinyWebServer& webserver, long postlen) {
   webserver.send_error_code(200);
   webserver.send_content_type("text/html");
   webserver.end_headers();
+  client << F("OK");
+  if (updatepwmpump) updatePWMPumps();
   beepOK();
   return true; 
 }
@@ -507,49 +532,63 @@ boolean apex_config_get(TinyWebServer& webserver) {
   Client& client = webserver.get_client();
   client << F("{\"config\":{\"outlets\":[");
   for (int i=0;i<MAXOUTLETS;i++) {
-    client << F("{\"name\":\"") << (char*)conf.outletRec[i].name;
-    client << F("\",\"initoff\":\"") << conf.outletRec[i].initoff;
-    client << F("\",\"ontime\":\"") << conf.outletRec[i].ontime;
-    client << F("\",\"offtime\":\"") << conf.outletRec[i].offtime;
-    client << F("\",\"days\":\"") << conf.outletRec[i].days;
-    client << F("\",\"mode\":\"") << conf.outletRec[i].mode << F("\"}");
-    client << ((i<MAXOUTLETS-1)?",":"") << F("\n");
+    client << F("{\"n\":\"") << (char*)conf.outletRec[i].name;
+    client << F("\",\"iof\":\"") << conf.outletRec[i].initoff;
+    client << F("\",\"ont\":\"") << conf.outletRec[i].ontime;
+    client << F("\",\"oft\":\"") << conf.outletRec[i].offtime;
+    client << F("\",\"d\":\"") << conf.outletRec[i].days;
+    client << F("\",\"m\":\"") << conf.outletRec[i].mode << F("\"}");
+    client << ((i<MAXOUTLETS-1)?",":"") ;
   }
   client << F("],\"macros\":["); 
   for (int i=0;i<MAXMACROS;i++) {
-    client << F("{\"name\":\"") << (char*)conf.macrosRec[i].name;
-    client << F("\",\"initoff\":\"") << conf.macrosRec[i].initoff;
-    client << F("\",\"ontime\":\"") << conf.macrosRec[i].ontime;
-    client << F("\",\"offtime\":\"") << conf.macrosRec[i].offtime;
-    client << F("\",\"days\":\"") << conf.macrosRec[i].days;
-    client << F("\",\"mode\":\"") << conf.macrosRec[i].mode << F("\"}");
-    client << ((i<MAXMACROS-1)?",":"") << F("\n");
+    client << F("{\"n\":\"") << (char*)conf.macrosRec[i].name;
+    client << F("\",\"iof\":\"") << conf.macrosRec[i].initoff;
+    client << F("\",\"ont\":\"") << conf.macrosRec[i].ontime;
+    client << F("\",\"oft\":\"") << conf.macrosRec[i].offtime;
+    client << F("\",\"d\":\"") << conf.macrosRec[i].days;
+    client << F("\",\"m\":\"") << conf.macrosRec[i].mode << F("\"}");
+    client << ((i<MAXMACROS-1)?",":"");
   }
   client << F("],\"actions\":[");
   for (int i=0;i<MAXMACROS;i++) {
     client << "[";
     for (int j=0;j<MAXMACROACTIONS;j++) {
-      client << "{\"outlet\":\"" << conf.actions[i][j].outlet;
-      client << "\",\"initoff\":\"" << conf.actions[i][j].initoff;
-      client << "\",\"ontime\":\"" << conf.actions[i][j].ontime << "\"}";
+      client << "{\"out\":\"" << conf.actions[i][j].outlet;
+      client << "\",\"iof\":\"" << conf.actions[i][j].initoff;
+      client << "\",\"ont\":\"" << conf.actions[i][j].ontime << "\"}";
       client << (j<MAXMACROACTIONS-1?",":"") << F("\n");
     }    
     client << "]" << (i<MAXMACROS-1?",":"") << F("\n");
   }  
-  client << F("],\"htrlow\":\"") << conf.htrlow << F("\",");
-  client << F("\"htrhigh\":\"") << conf.htrhigh << F("\",\"fanlow\":\"");
-  client << conf.fanlow << F("\",\"fanhigh\":\"") << conf.fanhigh;
-  client << F("\",\"sonarlow\":\"") << conf.sonarlow; 
-  client << F("\",\"sonarhigh\":\"") << conf.sonarhigh;
-  client << F("\",\"sonaralertval\":\"") << conf.sonaralertval;
-  client << F("\",\"sonaralert\":\"") << (conf.sonaralert?"true":"false");
-  client << F("\",\"alerttemplow\":\"") << conf.alerttemplow;
-  client << F("\",\"alerttemphigh\":\"") << conf.alerttemphigh;
-  client << F("\",\"alertphlow\":\"") << conf.alertphlow;
-  client << F("\",\"alertphhigh\":\"") << conf.alertphhigh;
-  client << F("\",\"soundalert\":") << (conf.soundalert?"true":"false");
-  client << F(",\"emailalert\":") << (conf.emailalert?"true":"false");
-  client << F(",\"initialized\":\"")<< conf.initialized << F("\"}}\n");
+  client << F("],\"pumps\":[\n");
+  for (int i=0;i<MAXPWMPUMPS;i++) {
+    client << F("[\n");
+    for (int j=0;j<MAXINTERVALS;j++) {
+      client << F("{\"wm\":\"") << conf.pump[i][j].waveMode;
+      client << F("\",\"sm\":\"") << conf.pump[i][j].syncMode;
+      client << F("\",\"l\":\"") << conf.pump[i][j].level;
+      client << F("\",\"pw\":\"") << conf.pump[i][j].pulseWidth;
+      client << F("\"}") << (j<(MAXINTERVALS-1)?",":"");
+    }
+    client << F("]") << (i<(MAXPWMPUMPS-1)?",":"");
+  }
+  client << F("],\n\"misc\":{\n");
+  client << F("\"hl\":\"") << conf.htrlow; 
+  client << F("\",\n\"hh\":\"") << conf.htrhigh; 
+  client << F("\",\n\"fl\":\"") << conf.fanlow; 
+  client << F("\",\n\"fh\":\"") << conf.fanhigh;
+  client << F("\",\n\"sl\":\"") << conf.sonarlow; 
+  client << F("\",\n\"sh\":\"") << conf.sonarhigh;
+  client << F("\",\n\"sav\":\"") << conf.sonaralertval;
+  client << F("\",\n\"sa\":\"") << (conf.sonaralert?"true":"false");
+  client << F("\",\n\"atl\":\"") << conf.alerttemplow;
+  client << F("\",\n\"ath\":\"") << conf.alerttemphigh;
+  client << F("\",\n\"aphl\":\"") << conf.alertphlow;
+  client << F("\",\n\"aphh\":\"") << conf.alertphhigh;
+  client << F("\",\n\"snda\":") << (conf.soundalert?"true":"false");
+  client << F(",\n\"ema\":") << (conf.emailalert?"true":"false");
+  client << F(",\n\"init\":\"")<< conf.initialized << F("\"}}}\n");
   return true;     
 }
 
@@ -591,6 +630,80 @@ boolean apex_phval_handler(TinyWebServer& webserver) {
   client << F("{\"phval\":\"") << getph() << F("\",\"sonarval\":\"");
   client << getSonar() << F("\"}");
   return true;  
+}
+
+boolean apex_pwmpumpdata_handler(TinyWebServer& webserver) {
+  if (!check_auth(webserver)) return true;
+  Client& client = webserver.get_client();
+  webserver.send_error_code(200);
+  webserver.send_content_type("application/json");
+  webserver.end_headers();
+  client << F("{\"pwmpumpdata\":[");
+  for (int i=0;i<MAXPWMPUMPS;i++) {
+    client << F("{\"data\":[");
+    getpwmdata(client,i);
+    client << F("]}");
+    client << (i==(MAXPWMPUMPS-1)?"":",");  
+  }
+  client << F("]}");
+  return true; 
+}
+
+boolean apex_pwmwavedef_handler(TinyWebServer& webserver) {
+  if (!check_auth(webserver)) return true;
+  Client& client = webserver.get_client();
+  webserver.send_error_code(200);
+  webserver.send_content_type("application/json");
+  webserver.end_headers();
+  getwavedef(client);
+  return true;  
+}
+boolean apex_pwmset_handler(TinyWebServer& webserver) {
+  if (!check_auth(webserver)) return true;
+  Client& client = webserver.get_client();
+  const char* hdrlen = webserver.get_header_value("Content-Length");
+  if (hdrlen!=NULL) {
+    int len = atol(hdrlen)+1;
+    char json[len];
+    char val[4];
+    char chan[4];
+    int i=0;
+    while (client.available() && i<len) {
+      json[i++]=(char)client.read();
+    }
+    json[i]=0;
+    char delims[] = "{}[],:\"";
+    if (strcmp_P(strtok(json,delims),PSTR("channel"))!=0) 
+      return apex_error(webserver,F("invalid pwm set value"),0);
+    strcpy((char*)chan,strtok(NULL,delims));
+    char* prop=strtok(NULL,delims);
+    if (strcmp_P(prop,PSTR("level"))==0) {
+      strcpy((char*)val,strtok(NULL,delims));
+      setpwmlevel(atoi(chan),atoi(val));      
+    } else if (strcmp_P(prop,PSTR("pulsewidth"))==0) {
+      strcpy((char*)val,strtok(NULL,delims));
+      setpulsewidth(atoi(chan),atoi(val));
+    } else if (strcmp_P(prop,PSTR("wavemode"))==0) {
+      strcpy((char*)val,strtok(NULL,delims));
+      setwavemode(atoi(chan),atoi(val));
+    } else if (strcmp_P(prop,PSTR("syncmode"))==0) {
+      strcpy((char*)val,strtok(NULL,delims));
+      setsyncmode(atoi(chan),atoi(val));      
+    } else if(strcmp_P(prop,PSTR("pumpauto"))==0 ||
+        strcmp_P(prop,PSTR("pumpmanual"))==0) {
+      strcpy((char*)val,strtok(NULL,delims));
+      setpumpauto(atoi(chan),atoi(val));
+    } else {
+//      chirp();
+      return apex_error(webserver,F("invalid pwm set value"),0);
+    }
+  }  
+  webserver.send_error_code(200);
+  webserver.send_content_type("application/json");
+  webserver.end_headers();
+//return local pwm values
+  getpumpinfo(client);
+  return true;
 }
 
 boolean apex_filesjson_handler(TinyWebServer& webserver) {

@@ -1,7 +1,14 @@
+/*
+ * Copyright (c) 2013 by Jerry Sy aka d0ughb0y
+ * mail-to: j3rry5y@gmail.com
+ * Commercial use of this software without
+ * permission is absolutely prohibited.
+*/
 #define numReadings 8
 volatile uint16_t tempavg = 0;
 
 void initSensors() {
+#ifdef _TEMP
   if (initTemp()) {
     p(F("Temp OK.        "));
     logMessage(F("Temp sensor initialized."));
@@ -9,8 +16,9 @@ void initSensors() {
     beepFail();
     p(F("Temp Init failed"));
     logMessage(F("Temp Init failed"));
-    for(;;);
   }
+#endif
+#ifdef _PH
   if (initPH()) {
     p(F("pH OK.          "));
     logMessage(F("pH sensor initialized."));   
@@ -18,35 +26,59 @@ void initSensors() {
     beepFail();
     p(F("pH Init failed  "));
     logMessage(F("pH Init failed"));
-    for(;;);   
   } 
+#endif  
 }
 
-#define TEMPPIN 46
+boolean tempinit = false;
+boolean phinit = false;
+#ifdef _TEMP
+#define TEMPPIN 48
 OneWire ds(TEMPPIN);
+#endif
 
 boolean initTemp() {
-  if ( ds.reset()) {
-     for (int i=0;i<255;i++) {
-        updateTemp();
-        delay(200);
-        if (getTemp()>32.0) {
-          return true;
-        }  
-     }
-     return false;
+#ifdef _TEMP  
+if (ds.reset()) {
+  for (int i=0;i<10;i++) {
+    tempinit=true;
+    updateTemp();
+    delay(200);
+    if (getTemp()>32.0) {
+      tempinit=true;
+      return true;
+    }  
   }
+} else
+#endif  
+  return false;
 }
 
 float getTemp() {
-  uint8_t saveSREG = SREG;
-  cli();
-  float t = tempavg;
-  SREG=saveSREG;
-  return t/16.0*1.8+32.0;
+  if (!tempinit) return 0.0;
+  static float lasttemp=0.0;
+  static unsigned long lastread = 0;
+  unsigned long timenow = micros();
+  if (timenow-lastread>1000000) {
+    uint8_t saveSREG = SREG;
+    cli();
+    uint16_t t = tempavg;
+    SREG=saveSREG;
+    lasttemp = t / 16.0 * 1.8 + 32.0;
+    lastread=timenow;
+  }
+  return lasttemp;
 }
 
 void updateTemp() {
+#ifdef _TEMP
+  if (!tempinit) {
+    //test if temp probe is plugged in
+    if (ds.reset())
+      tempinit=true;
+    else
+      return;  
+  }
   static uint8_t state = 0;
   static uint16_t sum = 0;
 
@@ -59,6 +91,8 @@ void updateTemp() {
           state=2;
         else
           state=1;
+        } else {
+          tempinit=false;
         }
         break;    
     case 1: //status
@@ -89,13 +123,17 @@ void updateTemp() {
           } 
           tempavg = sum / numReadings;
         }
+      } else {
+        tempinit=false;
       } 
       state=0;
       break;
   }
+#endif
 }
 
 void checkTempISR(){
+  if (!tempinit) return;
   #ifdef _HEATER
   if (getTemp() <= conf.htrlow && conf.outletRec[Heater].mode==_auto)
     _outletOn(Heater);
@@ -113,9 +151,9 @@ void checkTempISR(){
 }
 
 void checkAlarm() {
-  if (getTemp()>=conf.alerttemphigh || getTemp()<=conf.alerttemplow ||
-    getph()>=conf.alertphhigh || getph()<=conf.alertphlow ||
-    (conf.sonaralert && getSonar()>conf.sonaralertval)) {
+  if ((tempinit && (getTemp()>=conf.alerttemphigh || getTemp()<=conf.alerttemplow)) ||
+    (phinit && (phavg>=conf.alertphhigh || phavg<=conf.alertphlow)) ||
+    (conf.sonaralert && sonaravg>conf.sonaralertval)) {
       if (!alarm) {
         alarmOn();
         emailFlag=true;
@@ -133,38 +171,43 @@ void checkAlarm() {
 ///////////////////////////////////////////////////////
 //  pH section
 ///////////////////////////////////////////////////////
-volatile float phavg=0;
 static float phreading=0;
 static boolean phready = false;
 
 boolean initPH() {
+#ifdef _PH  
   char phchars[15];
+  phchars[0]=0;
   Serial1.begin(38400);
   for (int i=0;i<255,strlen(phchars)==0;i++) {
-    Serial1.print("r\r");
+    Serial1.print("e\rr\r");
     delay(384);
     getresponse(phchars);
   }
   if (strlen(phchars)==0) {
+    phinit=false;
     return false;
   }
   phreading=atof(phchars);
   if (phreading>0) {
     phready=true;
+    phinit=true;
     updatePh();
     phready=false;
     return true;
-  } else
+  } else 
+#endif  
     return false;
 }
 
 void updatePh() {
+  if (!phinit) return;
   static float sum=0;
   static float pha = 0;
   if (phready) {
     phready=false;
     if (phreading>0) {
-      if (sum) {
+      if (pha) {
         sum = (sum-pha)+phreading;
         pha = sum / numReadings; 
         cli();
@@ -181,6 +224,7 @@ void updatePh() {
 }
 
 float getph() {
+  if (!phinit) return 0.0;
   uint8_t saveSREG=SREG;
   cli();
   float p = phavg;

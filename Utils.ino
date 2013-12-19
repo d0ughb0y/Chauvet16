@@ -1,3 +1,9 @@
+/*
+ * Copyright (c) 2013 by Jerry Sy aka d0ughb0y
+ * mail-to: j3rry5y@gmail.com
+ * Commercial use of this software without
+ * permission is absolutely prohibited.
+*/
 static ofstream fileout_;
 
 void initUtils() {
@@ -8,6 +14,7 @@ void initUtils() {
 
 inline void lightToggle() {
   PINB |= _BV(PB7);
+  PING |= _BV(PG0);
 }
 
 inline void lightOn() {
@@ -66,10 +73,26 @@ void initializeConf() {
       conf.actions[i][j].ontime=defaultactions[i][j].ontime;
     }  
   }
+  PumpDef_t defaultpump[][6] = {
+                            #ifdef _PWMA
+                            PUMP0,PUMP1
+                            #endif
+                            #ifdef _PWMB
+                            ,PUMP2,PUMP3
+                            #endif
+                            };
+  for (int i=0;i<MAXPWMPUMPS;i++) {
+    for (int j=0;j<MAXINTERVALS;j++) {
+      conf.pump[i][j].syncMode=defaultpump[i][j].syncMode;
+      conf.pump[i][j].waveMode=defaultpump[i][j].waveMode;
+      conf.pump[i][j].level=defaultpump[i][j].level;
+      conf.pump[i][j].pulseWidth=defaultpump[i][j].pulseWidth;
+    }
+  }    
   conf.fanlow = 79.0;
   conf.fanhigh = 79.7;
-  conf.htrlow = 77.3;
-  conf.htrhigh = 78.0;
+  conf.htrlow = 78.3;
+  conf.htrhigh = 79.0;
   conf.sonarlow = 40;
   conf.sonarhigh = 5;
   conf.sonaralertval = 37;
@@ -86,11 +109,12 @@ void initializeConf() {
 void initializeEEPROM() {
   readEEPROM();
   if (conf.initialized!=EEPROMSIG) {
-    beepx(50,50,200,50,0);
+    delay(500);
     initializeConf();
+    beepOK();
     writeEEPROM();
+    readEEPROM();
   }
-  readEEPROM();
 }
 
 //////////////////////////////////////////
@@ -198,6 +222,37 @@ void poutlets() {
     lcd << F("        ");
 }
 
+void ppwmpump(uint8_t chan){
+  if (!lcdpresent) return;
+  lcd.setCursor(0,1);
+  uint8_t llevel[2];
+  uint8_t lwaveMode[2];  
+  cli();
+  for (int i=0;i<2;i++) {
+    if (_syncMode[i+chan]!=_master) {
+      llevel[i]=_level[0];
+      lwaveMode[i]=_waveMode[0];
+    } else {
+      llevel[i]=_level[i+chan];
+      lwaveMode[i]=_waveMode[i+chan];
+    }
+  }
+  sei();
+  for (int i=0;i<2;i++) {
+    uint8_t namelen = strlen(wave[lwaveMode[i]].name);
+    lcd << wave[lwaveMode[i]].name << (namelen<4?" ":"");
+    if (llevel[i]==255) {
+      if (namelen<4)
+        lcd << F("100%");
+      else
+        lcd << F("100");
+    } else
+      lcd <<(uint8_t)llevel[i]*100/255 << F("%");
+    if (i==0) lcd << F(" ");  
+  }
+  lcd << F("   ");
+}
+
 void pdebug() {
   if (!lcdpresent) return;
   lcd.setCursor(0,1);
@@ -277,7 +332,7 @@ void logSensors() {
 void logMessage(const __FlashStringHelper *msg, char* str) {
   char buffer[20];
   if (logSetup(now2(),buffer, "LOG","log")) {
-    fileout_ << buffer << " " << msg << " " << str  << "\n";
+    fileout_ << buffer << F(" ") << msg << F(" ") << str  << F("\n");
     fileout_.close();
   }   
 }
@@ -298,8 +353,8 @@ void logMessage(const __FlashStringHelper *msg, int n) {
 void logMessage(uint8_t ip[], char* msg) {
   char buffer[20];
   if (logSetup(now2(),  buffer, "LOG", "log")) {
-     fileout_ << buffer << " " << (int)ip[0] << "." << (int)ip[1] << "." << (int)ip[2];
-     fileout_ << "." << (int)ip[3] << " " << msg << "\n";
+     fileout_ << buffer << F(" ") << (int)ip[0] << F(".") << (int)ip[1] << F(".") << (int)ip[2];
+     fileout_ << F(".") << (int)ip[3] << F(" ") << msg << F("\n");
      fileout_.close();
   }
 }
@@ -385,21 +440,21 @@ void getfiles(Client& client, char* rootstr) {
       client << fn;
       client << F("\",\"date\":\"");
       uint8_t x = FAT_MONTH(d.lastWriteDate);
-      client << (x<10?"0":"") << x << "/";
+      client << (x<10?"0":"") << x << F("/");
       x = FAT_DAY(d.lastWriteDate);
-      client << (x<10?"0":"") << x << "/" << FAT_YEAR(d.lastWriteDate);
+      client << (x<10?"0":"") << x << F("/") << FAT_YEAR(d.lastWriteDate);
       client << F("\",\"time\":\"");
       x = FAT_HOUR(d.lastWriteTime);
-      client << (x<10?"0":"") << x << ":";
+      client << (x<10?"0":"") << x << F(":");
       x = FAT_MINUTE(d.lastWriteTime);
-      client << (x<10?"0":"") << x << ":";
+      client << (x<10?"0":"") << x << F(":");
       x = FAT_SECOND(d.lastWriteTime);
       client << (x<10?"0":"") << x;
       client << F("\",\"size\":\"");
       if (!file_.isDir())
         client << file_.fileSize();
       else
-        client <<  "-1";
+        client <<  F("-1");
       client << F("\"}");
       file_.close();
     }

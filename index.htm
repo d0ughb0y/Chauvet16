@@ -1,3 +1,7 @@
+<!--Copyright (c) 2013 by Jerry Sy aka d0ughb0y-->
+<!--mail-to: j3rry5y@gmail.com-->
+<!--Commercial use of this software without-->
+<!--permission is absolutely prohibited.-->
 <!DOCTYPE html>
 <html>
 <head>
@@ -16,7 +20,7 @@
 			$.mobile.listview.prototype.options.theme="d";
 			$.mobile.collapsible.prototype.options.theme="b";
 			$.mobile.collapsible.prototype.options.contentTheme="c";
-			$.mobile.defaultPageTransition="fade";
+			$.mobile.defaultPageTransition="slide";
 			$.event.special.swipe.horizontalDistanceThreshold=100;
 			if (localStorage.length<=1) {
 				localStorage.setItem('timeout', 8000);
@@ -29,7 +33,7 @@
 		});
 	</script>
 	<style type="text/css">
-		#Outlets .ui-li, #Inputs .ui-li, #outloglist .ui-li, #sensorloglist .ui-li, #loglist .ui-li {
+		#Outlets .ui-li, #Inputs .ui-li, #outloglist .ui-li, #sensorloglist .ui-li, #loglist .ui-li  {
 			padding-bottom: 0;
 			padding-top: 0;
 			font-weight: normal;
@@ -38,10 +42,10 @@
 		#outloglist .ui-block-b { width: 35%; }
 		#outloglist .ui-block-c { width: 10%; }
     #loglist .ui-li { font-size: small; }
-    #csetup label.ui-select, #csetup label.ui-input-text {
+    #csform label.ui-select, #csform label.ui-input-text {
        width: 20% !important; display: inline-block !important;
     }
-    #csetup .ui-select, #csetup .ui-input-text {
+    #csform .ui-select, #csform .ui-input-text {
 			width: 70% !important; display: inline-block !important;
 		}
 		.tooltip {
@@ -86,6 +90,21 @@
 			height: 15px;
 			font-size: small;
 			text-align: center;
+		}
+		.pump {
+			width: 90%;
+			height: 65px;
+		}
+		.pump_info {
+			height: 20px;
+			font-size: large;
+		}
+		.pump_spark {
+			height: 30px;
+		}
+		.pump_footer {
+			height: 15px;
+			font-size: small;
 		}
 		#perc {
 			width: 120px;
@@ -137,6 +156,18 @@
 				<h2>Inputs</h2>
 				<ul data-role="listview" id="Inputs"></ul>
 			</div>
+			<div data-role="collapsible" data-collapsed-icon="arrow-r" data-expanded-icon="arrow-d" data-inset="false"id="PWMPumpsBar">
+				<h2>PWM Pumps</h2>
+				<ul data-role="listview" id="PWMPumps"></ul>
+			</div>
+			<div data-role="collapsible" data-collapsed-icon="arrow-r" data-expanded-icon="arrow-d"	data-inset="false"id="DosersBar">
+				<h2>Dosing Pumps</h2>
+				<ul data-role="listview" id="Dosers"><li>Coming soon ...</li></ul>
+			</div>
+			<div data-role="collapsible" data-collapsed-icon="arrow-r" data-expanded-icon="arrow-d"	data-inset="false"id="LEDsBar">
+				<h2>LEDs</h2>
+				<ul data-role="listview" id="LEDs"><li>Coming soon ...</li></ul>
+			</div>
 			<div data-role="collapsible" data-collapsed-icon="arrow-r" data-expanded-icon="arrow-d" data-inset="false" style="text-decoration:none" id="MacrosBar">
 				<h2>Feed</h2>
 				<div data-role="controlgroup">
@@ -153,7 +184,7 @@
 				<button onClick="startPlay();" id="playbtn">Play</button>
 			</div>
 			<div data-role="collapsible" data-collapsed-icon="arrow-r" data-expanded-icon="arrow-d" data-inset="false">
-				<h2>Apex Logs and Setup</h2>
+				<h2>Logs and Setup</h2>
 				<ul data-role="listview">
 					<li><a href="#outlog">Outlet Log</a></li>
 					<li><a href="#sensorlog">Sensor Log</a></li>
@@ -387,19 +418,27 @@
 </div>
 <div data-role="page" id="csetup">
 	<div data-role="header" data-position="fixed" data-tap-toggle="false">
-		<a data-role="button" class="ui-btn-right" data-theme="c" data-icon="check" data-iconpos="right" onClick="saveconfig();">Save</a>
 		<h1>Controller Setup</h1>
-		<div data-role="navbar">
-			<ul>
-				<li><a href="#" id="csetupoutlet" class="ui-btn-active" ui-state-persist>Outlets</a></li>
-				<li><a href="#" id="csetupmacro">Macros</a></li>
-				<li><a href="#" id="csetupaction">Actions</a></li>
-				<li><a href="#" id="csetupmisc">Misc</a></li>
-			</ul>
-		</div>
 	</div>
 	<div data-role="content">
-		<div id="contentoutlet">
+		<ul data-role="listview" id="csetupitemlist">
+			<li><a href="#csform">Outlets</a></li>
+			<li><a href="#csform">Macros</a> </li>
+			<li><a href="#csform">Actions</a></li>
+			<li><a href="#csform">PWM Pumps</a></li>
+			<li><a href="#csform">Dosers</a></li>
+			<li><a href="#csform">LEDs</a></li>
+			<li><a href="#csform">Misc</a></li>
+		</ul>
+	</div>
+</div>
+<div data-role="page" id="csform">
+	<div data-role="header" data-position="fixed" data-tap-toggle="true">
+		<a data-role="button" class="ui-btn-right" data-theme="c" data-icon="check" data-iconpos="right" onClick="saveconfig();">Save</a>
+		<h1 id="csformhdr">Controller Setup</h1>
+	</div>
+	<div data-role="content">
+		<div id="contentoutlets">
 			<label for="selectrec" class="select">Name:</label>
 			<select name="selectmenu" id="selectrec" data-mini="true"></select> <label for="initoff">Off:</label>
 			<input type="text" name="initoff" id="initoff" value="" data-mini="true"/> <label for="ontime">On:</label>
@@ -422,10 +461,30 @@
 			<option value="3" disabled>Macro</option>
 		</select>
 		</div>
-		<div id="contentaction">
+		<div id="contentactions">
 			<label for="selectmacro" class="select">Name:</label>
 			<select name="selectmacro" id="selectmacro" data-mini="true"> </select>
 			<ul data-role="listview" id="actionlist" style="margin-top:10px"></ul>
+		</div>
+		<div id="contentpumps">
+			<div data-role="navbar" id="pumpnav" data-mini="true">
+				<ul>
+					<li><a href="#" class="ui-btn-active ui-state-persist" id="pumpnav0">Pump 0</a> </li>
+					<li><a href="#" id="pumpnav1">Pump 1</a> </li>
+				</ul>
+			</div>
+			<div data-role="content">
+				<div>
+					<ul data-role="listview" id="pumpprogramlist">
+					</ul>
+				</div>
+			</div>
+		</div>
+		<div id="contentdosers">
+			<h1>Coming Soon...</h1>
+		</div>
+		<div id="contentleds">
+			<h1>Coming Soon...</h1>
 		</div>
 		<div id="contentmisc">
 			<h4 style="text-align:center">pH Calibration</h4>
@@ -487,6 +546,61 @@
 		<button onClick="saveaction();" data-mini="true">Save</button>
 	</div>
 </div>
+<div data-role="page" id="pumpprogramedit">
+	<div data-role="header">
+		<h1>Pump Program</h1>
+	</div>
+	<div data-role="content">
+		<label for="_wavemode" class="select">Wave Mode:</label>
+		<select name="_wavemode" id="_wavemode" data-mini="true">	</select>
+		<label for="_syncmode" class="select">Sync Mode:</label>
+		<select name="_syncemode" id="_syncmode" data-mini="true">
+			<option value="0">Master</option>
+			<option value="1">Sync</option>
+			<option value="2">Anti-Sync</option>
+		</select>
+		<div data-role="fieldcontain">
+			<label for="_level">Max Speed:</label>
+			<input type="range" name="_slider2" id="_level" value="50" min="0" max="100" step="1"	data-highlight="true"
+				data-mini="true"/>
+		</div>
+		<div data-role="fieldcontain">
+			<label for="pulsewidth">Pulse Width:</label>
+			<input type="range" name="_slider3" id="_pulsewidth" value="10" min="0" max="10" step="1"	data-highlight="true"
+				data-mini="true"/>
+		</div>
+		<button onclick="savePumpProgram();" data-mini="true">Save</button>
+	</div>
+</div>
+<div data-role="page" id="pwmpage">
+	<div data-role="header" data-position="fixed" data-tap-toggle="false">
+		<h1 id="pumpname"></h1>
+	</div>
+	<div data-role="content" id="pwmpagecontent">
+		<label for="wavemode" class="select">Wave Mode:</label>
+		<select name="wavemode" id="wavemode" data-mini="true">	</select>
+		<label for="syncmode" class="select">Sync Mode:</label>
+		<select name="syncemode" id="syncmode" data-mini="true">
+			<option value="0">Master</option>
+			<option value="1">Sync</option>
+			<option value="2">Anti-Sync</option>
+		</select>
+		<div data-role="fieldcontain">
+			<label for="level">Max Speed:</label>
+			<input type="range" name="slider2" id="level" value="50" min="0" max="100" step="1"	data-highlight="true"	data-mini="true"/>
+		</div>
+		<div data-role="fieldcontain">
+			<label for="pulsewidth">Pulse Width:</label>
+			<input type="range" name="slider3" id="pulsewidth" value="10" min="0" max="10" step="1"	data-highlight="true"	data-mini="true"/>
+		</div>
+		<div data-role="controlgroup" data-type="horizontal" data-mini="true"  style="text-align: center">
+			<input name="pumpauto" id="pumpauto" value="1" checked="checked" type="radio" data-mini="true">
+			<label for="pumpauto">Auto</label>
+			<input name="pumpauto" id="pumpmanual" value="0" type="radio" data-mini="true">
+			<label for="pumpmanual">Manual</label>
+		</div>
+	</div>
+</div>
 <script type="text/javascript">
 var retry=0;
 var maxretries=localStorage.getItem('httpretries');
@@ -507,7 +621,19 @@ var config={};
 var macros=[];
 var outletname=[];
 var action=[];
-$("#page").on("pageshow", initHome);
+var pwmpumpsopen=false;
+var updatewavefunction;
+var pwmbarwidth=6;
+var pwmpumpsconfig=[];
+var pwmpumpsidx=0;
+var pwmpumpspgmitem=-1;
+var wavedef=[];
+var csitem=-1;
+$("#page").on('pageinit',function(e){
+ initHome();
+}).on('pagebeforeshow',function(e){
+ if (initialized) updateStatus();
+}).on("pageshow", function(e){});
 $('#setup').on("pagebeforeshow", function (e) {
 	$('#httptimeout').val(localStorage.getItem('timeout')/1000).slider('refresh');
 	$('#httpretries').val(localStorage.getItem('httpretries')).slider('refresh');
@@ -533,6 +659,65 @@ $('#outlog').on("pagebeforeshow",function (e) {
 			loadfileoutlog(); else
 			loadoutlog();
 	});
+$('#pwmpage').on('pageinit', function(e){
+	$('#syncmode').selectmenu();
+	$('#wavemode').selectmenu();
+	$('#level').slider();
+	$('#pulsewidth').slider();
+}).on("pagebeforeshow", function(e){
+	$('#pumpname').html('Pump '+pwmpumpsidx);
+	$('#level').on('slidestop', function(e){
+		pwmpagechange(e);
+	});
+	$('#pulsewidth').on('slidestop', function(e){
+		pwmpagechange(e);
+	});
+  updatepwmpagefields();
+	clearTimeout(updatewavefunction);
+}).on("pageshow",function(){
+}).on('pagebeforehide', function(e){
+		lastupdatetime=new Date(0);
+			updateStatus();
+}).on('change', '#pulsewidth, #level,  #wavemode, #syncmode, #pumpauto, #pumpmanual', function (e,ui){
+	if (e.target.id=='pulsewidth' ||e.target.id=='level') {
+		if (e.originalEvent === undefined) return;
+	}
+	pwmpagechange(e);
+});
+function pwmpagechange(e) {
+	var tmp=e.target.value;
+	if (e.target.id=='level') {
+		if (tmp==100) tmp=255; else  tmp=parseInt(tmp)*255/100;
+		tmp=tmp.toFixed(0);
+		if (tmp==pwmpumpsconfig[pwmpumpsidx].level)return;
+		pwmpumpsconfig[pwmpumpsidx].level=tmp;
+	} else if (e.target.id=='pulsewidth') {
+		if (tmp==pwmpumpsconfig[pwmpumpsidx].pulseWidth) return;
+		pwmpumpsconfig[pwmpumpsidx].pulseWidth=tmp;
+	} else if (e.target.id=='wavemode') {
+		if (tmp==pwmpumpsconfig[pwmpumpsidx].waveMode) return;
+		pwmpumpsconfig[pwmpumpsidx].waveMode=tmp;
+	} else if (e.target.id=='syncmode') {
+		if (tmp==pwmpumpsconfig[pwmpumpsidx].syncMode) return;
+		pwmpumpsconfig[pwmpumpsidx].syncMode=tmp;
+	} else if (e.target.id=='pumpauto') {
+		if (tmp==pwmpumpsconfig[pwmpumpsidx].pumpAuto) return;
+		pwmpumpsconfig[pwmpumpsidx].pumpAuto=tmp;
+	} else if (e.target.id=='pumpmanual') {
+		if (tmp==pwmpumpsconfig[pwmpumpsidx].pumpAuto) return;
+		pwmpumpsconfig[pwmpumpsidx].pumpAuto=tmp;
+	} else return;
+	$.ajax('pwmset.json', {
+		data:"{\"channel\":\""+pwmpumpsidx+"\",\""+e.target.id+"\":\""+tmp+"\"}",
+		contentType:'application/json',
+		type:'POST'}).always(function () {
+		}).done(function (data) {
+			pwmpumpsconfig=data.pwmpumps;
+			updatepwmpagefields();
+		}).fail(function (jqXHR, textStatus, errorThrown) {
+			console.log(textStatus);
+		});
+}
 $('#Outlets').on("change", $("input[type='radio']"), function (event, ui) {
 	var olet=event.target;
 	var val=$(olet).val();
@@ -616,6 +801,18 @@ $('#OutletsBar').on('expand',function (e) {
 $('#InputsBar').on('expand', function (e) {
 	setTimeout(updateStatus, 0);
 });
+$('#PWMPumpsBar').on('expand',function(e){
+	if (!pwmpumpsopen) {
+		pwmpumpsopen=true;
+		if (initialized) {
+			setTimeout(function() {updateStatus(0);},0);
+//			updatewavefunction =	setTimeout("getpwmpumpdata();",0);
+		}
+	}
+}).on('collapse',function(){
+		pwmpumpsopen=false;
+		clearTimeout(updatewavefunction);
+	});
 $('#MacrosBar').on('expand',function (e) {
 	if (!feedexpanded) {
 		feedexpanded=true;
@@ -645,14 +842,40 @@ $('#Sensors').on('orientationchange', function (e) {
 	}
 	getSparkData();
 });
+$('#PWMPumps').on('orientationchange', function(e){
+	if (e.orientation=='landscape'){
+		pwmbarwidth=10;
+	} else if (e.orientation=='portrait'){
+		pwmbarwidth=6;
+	}
+}).on('click', 'li a', function(e){
+	pwmpumpsidx = $(this).closest('li').index();
+});
+$('#csetupitemlist').on('click','li a', function(e){
+	csitem = $(this).closest('li').index();
+})
 $(document).on('mouseenter', '.outlettext',function (e) {
 	var toolTip=$(this).attr('tooltip');
 	$('<span class="tooltip"></span>').text(toolTip).appendTo('body').css('top', (e.pageY-10)+'px').css('left', (e.pageX+20)+'px').fadeIn('slow');
 }).on('mouseleave', '.outlettext',function () {
-		$('.tooltip').remove();
-	}).on('mousemove', '.outlettext', function (e) {
-		$('.tooltip').css('top', (e.pageY-10)+'px').css('left', (e.pageX+20)+'px');
-	});
+	$('.tooltip').remove();
+}).on('mousemove', '.outlettext', function (e) {
+	$('.tooltip').css('top', (e.pageY-10)+'px').css('left', (e.pageX+20)+'px');
+});
+function getpwmpumpdata() {
+	$.getJSON('pwmpumpdata.json',function(data){
+		for (var i in data.pwmpumpdata) {
+			var x = data.pwmpumpdata[i].data;
+			$(".pump"+i+"_gr").sparkline(x, { type: 'bar', height:"100%",chartRangeMin:"0",chartRangeMax:"255",barWidth:pwmbarwidth,	barSpacing:"1",
+				disableInteraction:true, barColor:(pwmpumpsconfig[i].pumpAuto=='1'?'blue':'gray')});
+		}
+	}).always(function(){
+		if (pwmpumpsopen && $.mobile.activePage[0].id=='page'){
+			clearTimeout(updatewavefunction);
+			updatewavefunction=setTimeout('getpwmpumpdata();',1000);
+		}
+	}).fail(function(jqXHR, textStatus,errorThrown){});
+}
 function getsensordata(callback) {
 	var initstring="Updating";
 	if (retry>0) {
@@ -816,7 +1039,19 @@ function openSetup() {
 }
 function initHome() {
 	if (initialized) return;
-	initPage();
+	$.getJSON('pwmwavedef.json',function(e){
+		wavedef=e.wavedef;
+		$('#wavemode').empty();
+		$('#_wavemode').empty();
+		$.each(wavedef, function (i, wave) {
+			$('#wavemode').append('<option value="'+i+'">'+wave.name+'</option>');
+			$('#_wavemode').append('<option value="'+i+'">'+wave.name+'</option>');
+		});
+		$('#wavemode').val('0').selectmenu().selectmenu('refresh',true);
+		$('#_wavemode').val('0').selectmenu().selectmenu('refresh',true);
+		initPage();
+	});
+
 }
 function setFeed(i) {
 	var s="FeedCycle=Feed&FeedSel="+i+"&noResponse=1";
@@ -861,7 +1096,7 @@ function checkTime(i) {
 	return i;
 }
 function updateFeedTime() {
-	$.getJSON("/cgi-bin/status.json?_="+Math.random(),function (a) {
+	$.getJSON("/cgi-bin/status.json",function (a) {
 		var feednum=parseInt(a.pstat.feed.name);
 		var feedcount=parseInt(a.pstat.feed.active);
 		feedactive=feednum>0&&feednum<5;
@@ -915,13 +1150,17 @@ function updateStatus(spark) {
 			if (sensoropen) {
 				setTimeout(function () {getsensordata(getSparkData);}, 0);
 			}
+			if (pwmpumpsopen) {
+				clearTimeout(updatewavefunction);
+				updatewavefunction=setTimeout("getpwmpumpdata();",0);
+			}
 			return;
 		}
 		lastupdatetime=currenttime;
 	}
 	initstring+="...";
 	$.mobile.loading('show', {text:initstring, textVisible:true});
-	$.getJSON("/cgi-bin/status.json?_="+Math.random(),function (f) {
+	$.getJSON("/cgi-bin/status.json",function (f) {
 		if (spark==true)
 			setTimeout(function () {getsensordata(getSparkData);}, 0);
 		renderPage(f);
@@ -1034,6 +1273,24 @@ function renderPage(f) {
 		if (tooltiptxt!="")
 			$('#'+outlet.n).attr('tooltip', tooltiptxt).addClass('outlettext');
 		$('#'+outlet.n).attr('style', c);
+		pwmpumpsconfig=a.pstat.pwmpumps;
+		for (var i in a.pstat.pwmpumps){
+			var pump =a.pstat.pwmpumps[i];
+			if (i>0 && pump.syncMode!=0) {
+				$('#pump'+i+'_waveMode').html(getWaveName(a.pstat.pwmpumps[0].waveMode));
+				$('#pump'+i+'_foot').html('pulse width='+getPulseWidth(a.pstat.pwmpumps[0].pulseWidth)+' ms period ='+' '+getPeriod(a.pstat.pwmpumps[0])+' ms');
+				$('#pump'+i+'_speed').html(getSpeedPCT(a.pstat.pwmpumps[0].level));
+			} else {
+				$('#pump'+i+'_waveMode').html(getWaveName(pump.waveMode));
+				$('#pump'+i+'_foot').html('pulse width'+'='+getPulseWidth(pump.pulseWidth)+' ms period = '+getPeriod(pump)+' ms');
+				$('#pump'+i+'_speed').html(getSpeedPCT(pump.level));
+			}
+			$('#pump'+i+'_syncMode').html(getSyncModeName(pump.syncMode,false));
+		}
+		if (pwmpumpsopen) {
+			clearTimeout(updatewavefunction);
+			updatewavefunction=setTimeout("getpwmpumpdata();",0);
+		}
 	}
 }
 function getSparkData() {
@@ -1114,7 +1371,7 @@ function initPage() {
 	}
 	initstring+="...";
 	$.mobile.loading('show', {text:initstring, textVisible:true});
-	var url="/cgi-bin/status.json?_="+Math.random();
+	var url="/cgi-bin/status.json";
 	$.getJSON(url,function (f) {
 		$('#Sensors').empty();
 		for (var i in f.pstat.probes) {
@@ -1177,6 +1434,23 @@ function initPage() {
 			$('#Inputs').append(olist);
 		}
 		$('#Inputs').trigger('create').listview('refresh');
+		$('#PWMPumps').empty();
+		for (var i in f.pstat.pwmpumps) {
+			var pump=f.pstat.pwmpumps[i];
+			var sec = $('<section class="ui-grid-b pump_info"></section>');
+			var divblocka=$('<div class="ui-block-a" style="text-align:center" id="pump'+i+'_waveMode"></div>');;
+			var divblockb = $('<div class="ui-block-b" id="pump'+i+'_syncMode"></div>');
+			var divblockc = $('<div class="ui-block-c" id="pump'+i+'_speed"></div>');
+			var pumpfoot=$('<div class="pump_footer" id="pump'+i+'_foot"></div>');
+			sec.append(divblocka,divblockb,divblockc);
+			var sparkbar = $('<div class="pump_spark pump'+i+'_gr"></div>');
+			var anc = $('<a href="#pwmpage" data-identified="'+i+'" class="pump"></a>');
+			anc.append(sec,sparkbar,pumpfoot);
+			var olist=$('<li/>');
+			olist.append(anc);
+			$('#PWMPumps').append(olist);
+		}
+		$('#PWMPumps').trigger('create').listview('refresh');
 		$('#feed1').text("Feed A").button('enable').button('refresh');
 		$('#feed2').text("Feed B").button('enable').button('refresh');
 		$('#feed3').text("Feed C").button('enable').button('refresh');
@@ -1200,6 +1474,52 @@ function initPage() {
 			retry=0;
 		});
 }
+
+function updatepwmpagefields() {
+	var sm = pwmpumpsconfig[pwmpumpsidx].syncMode;
+	$('#syncmode').val(sm).selectmenu(pwmpumpsidx==0?'disable':'enable').selectmenu('refresh');
+	$('#wavemode').val(pwmpumpsconfig[sm==0?pwmpumpsidx:0].waveMode).selectmenu(sm==0?'enable':'disable').selectmenu('refresh');
+	$('#pulsewidth').val(pwmpumpsconfig[sm==0?pwmpumpsidx:0].pulseWidth).slider(sm==0?'enable':'disable').slider('refresh');
+	var pct = pwmpumpsconfig[sm==0?pwmpumpsidx:0].level;
+	if (pct==255) pct=100; else pct=pct*100/255;
+	pct=pct.toFixed(0);
+	$('#level').val(pct).slider(sm==0?'enable':'disable').slider('refresh');
+	$('#pumpauto').prop('checked', pwmpumpsconfig[pwmpumpsidx].pumpAuto==1).checkboxradio("refresh");
+	$('#pumpmanual').prop('checked', pwmpumpsconfig[pwmpumpsidx].pumpAuto==0).checkboxradio("refresh");
+}
+
+function getWaveDef() {
+	$.getJSON('pwmwavedef.json',function(e){
+		 wavedef=e.wavedef;
+	});
+}
+
+function getPeriod(n) {
+	return getPulseWidth(n.pulseWidth)*parseInt(wavedef[parseInt(n.waveMode)].res);
+}
+
+function getPulseWidth(n) {
+	return 110+parseInt(n)*22;
+}
+
+function getWaveName(n) {
+	return wavedef[parseInt(n)].name;
+}
+
+function getSyncModeName(n, abbr) {
+	switch (n) {
+	case '0' : return abbr?"M":"master";
+	case '1' : return abbr?"S":"sync";
+	case '2' : return abbr?"A":"antisync";
+	}
+}
+
+function getSpeedPCT(n) {
+	if (parseInt(n)==255) return '100%';
+	var x= parseInt(n)*100/255;
+	return x.toFixed(0)+"%";
+}
+
 function getInputHtml(a) {
 	if (a.did==="base_I1") {
 		Status='<div id="perc"><div id="perc_in" style="width:'+a.v+'%"/><div id="perc_txt">'+a.v+'%</div></div>';
@@ -1227,7 +1547,7 @@ function saveSetup() {
 	alert("Saved Settings.");
 	maxretries=localStorage.getItem('httpretries');
 	history.back();
-}///////////////////////////
+}
 $(document).on("swiperight", ".filelist", function (event) {
 	var listitem=$(this);
 	var path=listitem.attr('path');
@@ -1286,6 +1606,10 @@ $('#log').on('pagebeforeshow', function (e) {
 $('#csetup').on('pageinit', function (e) {
 	$('#contentaction').hide();
 	$('#contentmisc').hide();
+	$('#contentpumps').hide();
+	$('#contentdosers').hide();
+	$('#contentleds').hide();
+	$('#contentoutlet').show();
 }).on('pageshow', function (e, data) {
 	if (data.prevPage[0].id=='page')
 		macropage();
@@ -1296,28 +1620,28 @@ $(document).on('tap', '.logfile, .outlogfile, .actionline', function (e) {
 });
 $('#selectrec').on('change', function (e, ui) {
 	var i=parseInt($(this).val());
-	$('#initoff').val(secsToTime(macros[i].initoff));
-	$('#ontime').val(secsToTime(macros[i].ontime));
-	$('#offtime').val(secsToTime(macros[i].offtime));
-	$('#cycletime').val(secsToTime(parseInt(macros[i].initoff)+parseInt(macros[i].ontime)+parseInt(macros[i].offtime)));
+	$('#initoff').val(secsToTime(macros[i].iof));
+	$('#ontime').val(secsToTime(macros[i].ont));
+	$('#offtime').val(secsToTime(macros[i].oft));
+	$('#cycletime').val(secsToTime(parseInt(macros[i].iof)+parseInt(macros[i].ont)+parseInt(macros[i].oft)));
 	var sdays=[];
-	var intdays=parseInt(macros[i].days);
+	var intdays=parseInt(macros[i].d);
 	for (var j=1; j<=7; j++) {
 		if (intdays>>j&0x01) {
 			sdays.push(""+j);
 		}
 	}
 	$('#days').val(sdays).selectmenu('refresh');
-	$('#mode').val(macros[i].mode).selectmenu('refresh');
+	$('#mode').val(macros[i].m).selectmenu('refresh');
 });
 $('#selectmacro').on('change', function (e) {
 	var i=parseInt($(this).val());
 	$('#actionlist').empty();
 	action=config.actions[i];
 	$.each(action, function (i, action) {
-		var divblocka=$('<div class="ui-block-a">'+(action.outlet<8?outletname[action.outlet]:(action.outlet==20?"Feeder":"End") )+'</div>');
-		var divblockb=$('<div class="ui-block-b">'+action.initoff+'</div>');
-		var divblockc=$('<div class="ui-block-c">'+action.ontime+'</div>');
+		var divblocka=$('<div class="ui-block-a">'+(action.out<8?outletname[action.out]:(action.out==20?"Feeder":(action.out==30?"Jebao":"End")) )+'</div>');
+		var divblockb=$('<div class="ui-block-b">'+action.iof+'</div>');
+		var divblockc=$('<div class="ui-block-c">'+action.ont+'</div>');
 		var sec=$('<section class="ui-grid-b">');
 		sec.append(divblocka, divblockb, divblockc);
 		var alnk=$('<a href="#editaction" data-rel="dialog"/>').append(sec);
@@ -1329,9 +1653,9 @@ $('#selectmacro').on('change', function (e) {
 });
 $('#editaction').on('pagebeforeshow', function (e) {
 	var i=parseInt(logpath);
-	$('#editoutlet').val(action[i].outlet);
-	$('#editoff').val(action[i].initoff);
-	$('#editon').val(action[i].ontime);
+	$('#editoutlet').val(action[i].out);
+	$('#editoff').val(action[i].iof);
+	$('#editon').val(action[i].ont);
 });
 $('#days').on('change', function (e) {
 	var d=0;
@@ -1339,141 +1663,270 @@ $('#days').on('change', function (e) {
 		d=d|1<<parseInt(v);
 	});
 	var sel=parseInt($('#selectrec').val());
-	macros[sel].days=d;
+	macros[sel].d=d;
 });
 $('#mode').on('change', function (e) {
 	var sel=parseInt($('#selectrec').val());
-	macros[sel].mode=$(this).val();
+	macros[sel].m=$(this).val();
 	console.log($(this).val());
 });
 $('#initoff').on('change', function (e) {
 	var sel=parseInt($('#selectrec').val());
-	macros[sel].initoff=timeToSecs($(this).val());
+	macros[sel].iof=timeToSecs($(this).val());
 	console.log($(this).val());
 });
 $('#ontime').on('change', function (e) {
 	var sel=parseInt($('#selectrec').val());
-	macros[sel].ontime=timeToSecs($(this).val());
+	macros[sel].ont=timeToSecs($(this).val());
 	console.log($(this).val());
 });
 $('#offtime').on('change', function (e) {
 	var sel=parseInt($('#selectrec').val());
-	macros[sel].offtime=timeToSecs($(this).val());
+	macros[sel].oft=timeToSecs($(this).val());
 	console.log($(this).val());
 });
 $('#resetconf').on('change', function (e) {
-	config.initialized=parseInt($('#resetconf').val());
+	config.misc.init=parseInt($('#resetconf').val());
 });
 $('#htrlow').on('change', function (e) {
-	config.htrlow=parseFloat($('#htrlow').val());
+	config.misc.hl=parseFloat($('#htrlow').val());
 });
 $('#htrhigh').on('change', function (e) {
-	config.htrhigh=parseFloat($('#htrhigh').val());
+	config.misc.hh=parseFloat($('#htrhigh').val());
 });
 $('#fanlow').on('change', function (e) {
-	config.fanlow=parseFloat($('#fanlow').val());
+	config.misc.fl=parseFloat($('#fanlow').val());
 });
 $('#fanhigh').on('change', function (e) {
-	config.fanhigh=parseFloat($('#fanhigh').val());
+	config.misc.fh=parseFloat($('#fanhigh').val());
 });
 $('#sonarlow').on('change', function (e) {
-	config.sonarlow=parseInt($('#sonarlow').val());
+	config.misc.sl=parseInt($('#sonarlow').val());
 });
 $('#sonarhigh').on('change', function (e) {
-	config.sonarhigh=parseInt($('#sonarhigh').val());
+	config.misc.sh=parseInt($('#sonarhigh').val());
 });
 $('#sonaralertval').on('change', function (e) {
-	config.sonaralertval=parseInt($('#sonaralertval').val());
+	config.misc.sav=parseInt($('#sonaralertval').val());
 });
 $('#sonaralert').on('change', function (e) {
-	config.sonaralert=this.checked;
+	config.misc.sa=this.checked;
 });
 $('#alerttemplow').on('change', function (e) {
-	config.alerttemplow=parseFloat($('#alerttemplow').val());
+	config.misc.atl=parseFloat($('#alerttemplow').val());
 });
 $('#alerttemphigh').on('change', function (e) {
-	config.alerttemphigh=parseFloat($('#alerttemphigh').val());
+	config.misc.ath=parseFloat($('#alerttemphigh').val());
 });
 $('#alertphlow').on('change', function (e) {
-	config.alertphlow=parseFloat($('#alertphlow').val());
+	config.misc.aphl=parseFloat($('#alertphlow').val());
 });
 $('#alertphhigh').on('change', function (e) {
-	config.alertphhigh=parseFloat($('#alertphhigh').val());
+	config.misc.aphh=parseFloat($('#alertphhigh').val());
 });
 $('#sndalert').on('change', function (e) {
-	config.soundalert=this.checked;
+	config.misc.snda=this.checked;
 });
 $('#emailalert').on('change', function (e) {
-	config.emailalert=this.checked;
+	config.misc.ema=this.checked;
 });
-$('#csetupoutlet').on('click', function (e) {
-	$('#contentaction').hide();
-	$('#contentmisc').hide();
-	$('#contentoutlet').show();
-	macros=config.outlets;
-	$('#selectrec').empty();
-	$.each(macros, function (i, macro) {
-		$('#selectrec').append('<option value="'+i+'">'+macro.name+'</option>');
+$('#pumpnav').on('click', 'li a', function(e){
+	pwmpumpsidx = $(this).closest('li').index();
+	updateprogramlist();
+	$.each($('#pumpnav').find('a'),function(i,obj){
+		$(this).removeClass('ui-state-persist').removeClass('ui-btn-active');
+	})
+	$(this).addClass('ui-state-persist').addClass('ui-btn-active');
+//	e.preventDefault();
+});
+$('#csform').on('pagebeforecreate', function(e) {
+	if (config.pumps.length>2) {
+		$('#pumpnav').append("<li><a id='pumpnav2'>Pump 2</a> </li>").append("<li><a id='pumpnav3'>Pump 3</a> </li>");
+	  $('#pumpnav').navbar();
+	}
+}).on('pagehide', function(e, data) {
+	if (data.nextPage[0].id=='pumpprogramedit') return;
+	csitem=-1;
+	pwmpumpsidx=0;
+}).on('pagebeforeshow', function (e,data) {
+	switch (csitem) {
+	case 0:
+		$('#contentactions').hide();
+		$('#contentmisc').hide();
+		$('#contentpumps').hide();
+		$('#contentdosers').hide();
+		$('#contentleds').hide();
+		$('#contentoutlets').show();
+		$('#csformhdr').html("Outlets Setup");
+		macros=config.outlets;
+		$('#selectrec').empty();
+		$.each(macros, function (i, macro) {
+			$('#selectrec').append('<option value="'+i+'">'+macro.n+'</option>');
+		});
+		$('#selectrec').val('0').selectmenu('refresh').trigger('change');
+		break;
+	case 1:
+		$('#contentactions').hide();
+		$('#contentmisc').hide();
+		$('#contentpumps').hide();
+		$('#contentdosers').hide();
+		$('#contentleds').hide();
+		$('#contentoutlets').show();
+		$('#csformhdr').html("Macros Setup");
+		macros=config.macros;
+		$('#selectrec').empty();
+		$.each(macros, function (i, macro) {
+			$('#selectrec').append('<option value="'+i+'">'+macro.n+'</option>');
+		});
+		$('#selectrec').val('0').selectmenu('refresh').trigger('change');
+		break;
+	case 2:
+		$('#contentactions').show();
+		$('#contentmisc').hide();
+		$('#contentpumps').hide();
+		$('#contentdosers').hide();
+		$('#contentleds').hide();
+		$('#contentoutlets').hide();
+		$('#csformhdr').html("Actions Setup");
+		macros=config.macros;
+		$.each(config.outlets, function(i, outlet) {
+			outletname[i]=outlet.n;
+		});
+		$('#selectmacro').empty();
+		$.each(macros, function (i, macro) {
+			$('#selectmacro').append('<option value="'+i+'">'+macro.n+'</option>');
+		});
+		$('#selectmacro').val('0').selectmenu('refresh').trigger('change');
+		break;
+	case 3:
+		$('#contentactions').hide();
+		$('#contentmisc').hide();
+		$('#contentdosers').hide();
+		$('#contentleds').hide();
+		$('#contentoutlets').hide();
+		$('#contentpumps').show();
+		$('#csformhdr').html("PWM Pumps");
+		$('#pumpnav'+pwmpumpsidx).trigger('click');
+		break;
+	case 4:
+		$('#contentactions').hide();
+		$('#contentmisc').hide();
+		$('#contentpumps').hide();
+		$('#contentdosers').show();
+		$('#contentleds').hide();
+		$('#contentoutlets').hide();
+		$('#csformhdr').html("Dosers Setup");
+		break;
+	case 5:
+		$('#contentactions').hide();
+		$('#contentmisc').hide();
+		$('#contentpumps').hide();
+		$('#contentdosers').hide();
+		$('#contentleds').show();
+		$('#contentoutlets').hide();
+		$('#csformhdr').html("LEDs Setup");
+		break;
+	case 6:
+		$('#contentactions').hide();
+		$('#contentmisc').show();
+		$('#contentpumps').hide();
+		$('#contentdosers').hide();
+		$('#contentleds').hide();
+		$('#contentoutlets').hide();
+		$('#csformhdr').html("Misc Setup");
+		$('#ph7btn').text("pH 7");
+		$('#ph7btn').button('refresh');
+		$('#ph10btn').text("pH 10");
+		$('#ph10btn').button('refresh');
+		$('#htrlow').val(config.misc.hl);
+		$('#htrhigh').val(config.misc.hh);
+		$('#fanlow').val(config.misc.fl);
+		$('#fanhigh').val(config.misc.fh);
+		$('#sonarlow').val(config.misc.sl);
+		$('#sonarhigh').val(config.misc.sh);
+		$('#sonaralertval').val(config.misc.sav);
+		$('#sonaralert').attr("checked", config.misc.sa).checkboxradio("refresh");
+		$('#alerttemplow').val(config.misc.atl);
+		$('#alerttemphigh').val(config.misc.ath);
+		$('#alertphlow').val(config.misc.aphl);
+		$('#alertphhigh').val(config.misc.aphh);
+		$('#sndalert').attr("checked", config.misc.snda).checkboxradio("refresh");
+		$('#emailalert').attr("checked", config.misc.ema).checkboxradio("refresh");
+		$('#resetconf').val(config.misc.init);
+		getphdata();
+		break;
+	}
+});
+$('#pumpprogramedit').on('pagebeforeshow', function(e){
+	$('#_level').on('slidestop', function(e){
+		updatepumpprogrameditpage(e);
 	});
-	$('#selectrec').val('0').selectmenu('refresh').trigger('change');
-});
-$('#csetupmacro').on('click', function (e) {
-	$('#contentaction').hide();
-	$('#contentmisc').hide();
-	$('#contentoutlet').show();
-	console.log('change to macros');
-	macros=config.macros;
-	$('#selectrec').empty();
-	$.each(macros, function (i, macro) {
-		$('#selectrec').append('<option value="'+i+'">'+macro.name+'</option>');
+	$('#_pulsewidth').on('slidestop', function(e){
+		updatepumpprogrameditpage(e);
 	});
-	$('#selectrec').val('0').selectmenu('refresh').trigger('change');
+	var sm = config.pumps[pwmpumpsidx][pwmpumpspgmitem].sm;
+	$('#_syncmode').val(sm).selectmenu(pwmpumpsidx==0?'disable':'enable').selectmenu('refresh');
+	$('#_wavemode').val(config.pumps[sm==0?pwmpumpsidx:0][pwmpumpspgmitem].wm).selectmenu(sm==0?'enable':'disable').selectmenu('refresh');
+	$('#_pulsewidth').val(config.pumps[sm==0?pwmpumpsidx:0][pwmpumpspgmitem].pw).slider(sm==0?'enable':'disable').slider('refresh');
+	var pct = config.pumps[sm==0?pwmpumpsidx:0][pwmpumpspgmitem].l;
+	if (pct==255) pct=100; else pct=pct*100/255;
+	pct=pct.toFixed(0);
+	$('#_level').val(pct).slider(sm==0?'enable':'disable').slider('refresh');
+}).on('change', '#_pulsewidth, #_level,  #_wavemode, #_syncmode', function (e,ui){
+		if (e.target.id=='_pulsewidth' ||e.target.id=='_level') {
+			if (e.originalEvent === undefined) return;
+		}
+		updatepumpprogrameditpage(e);
 });
-$('#csetupaction').on('click', function (e) {
-	$('#contentmisc').hide();
-	$('#contentoutlet').hide();
-	$('#contentaction').show();
-	macros=config.macros;
-	$.each(config.outlets, function(i, outlet) {
-		outletname[i]=outlet.name;
-	});
-	$('#selectmacro').empty();
-	$.each(macros, function (i, macro) {
-		$('#selectmacro').append('<option value="'+i+'">'+macro.name+'</option>');
-	});
-	$('#selectmacro').val('0').selectmenu('refresh').trigger('change');
-});
-$('#csetupmisc').on('click', function (e) {
-	$('#contentaction').hide();
-	$('#contentoutlet').hide();
-	$('#ph7btn').text("pH 7");
-	$('#ph7btn').button('refresh');
-	$('#ph10btn').text("pH 10");
-	$('#ph10btn').button('refresh');
-	$('#htrlow').val(config.htrlow);
-	$('#htrhigh').val(config.htrhigh);
-	$('#fanlow').val(config.fanlow);
-	$('#fanhigh').val(config.fanhigh);
-	$('#sonarlow').val(config.sonarlow);
-	$('#sonarhigh').val(config.sonarhigh);
-	$('#sonaralertval').val(config.sonaralertval);
-	$('#sonaralert').attr("checked", config.sonaralert).checkboxradio("refresh");
-	$('#alerttemplow').val(config.alerttemplow);
-	$('#alerttemphigh').val(config.alerttemphigh);
-	$('#alertphlow').val(config.alertphlow);
-	$('#alertphhigh').val(config.alertphhigh);
-	$('#sndalert').attr("checked", config.soundalert).checkboxradio("refresh");
-	$('#emailalert').attr("checked", config.emailalert).checkboxradio("refresh");
-	$('#resetconf').val(config.initialized);
-	$('#contentmisc').show();
-	getphdata();
-});
+$('#pumpprogramlist').on('click', 'li a', function(e){
+	pwmpumpspgmitem = $(this).closest('li').index();
+})
+function updatepumpprogrameditpage(e){
+	var tmp=e.target.value;
+	if (e.target.id=='_level') {
+		if (tmp==100) tmp=255; else  tmp=parseInt(tmp)*255/100;
+		tmp=tmp.toFixed(0);
+		if (tmp==config.pumps[pwmpumpsidx][pwmpumpspgmitem].l)return;
+		config.pumps[pwmpumpsidx][pwmpumpspgmitem].l=tmp;
+	} else if (e.target.id=='_pulsewidth') {
+		if (tmp==config.pumps[pwmpumpsidx][pwmpumpspgmitem].pw) return;
+		config.pumps[pwmpumpsidx][pwmpumpspgmitem].pw=tmp;
+	} else if (e.target.id=='_wavemode') {
+		if (tmp==config.pumps[pwmpumpsidx][pwmpumpspgmitem].wm) return;
+		config.pumps[pwmpumpsidx][pwmpumpspgmitem].wm=tmp;
+	} else if (e.target.id=='_syncmode') {
+		if (tmp==config.pumps[pwmpumpsidx][pwmpumpspgmitem].sm) return;
+		config.pumps[pwmpumpsidx][pwmpumpspgmitem].sm=tmp;
+	}
+}
+function updateprogramlist(){
+	$('#pumpprogramlist').empty();
+	for (var j=0;j<6;j++) {
+		var _sm = config.pumps[pwmpumpsidx][j].sm;
+		var sec = $('<section class="ui-grid-c"/>');
+		var diva = $('<div class="ui-block-a">'+getWaveName(config.pumps[_sm==0?pwmpumpsidx:0][j].wm)+'</div>');
+		var divb = $('<div class="ui-block-b">'+getSyncModeName(_sm,true)+'</div>');
+		var divc = $('<div class="ui-block-c">'+getSpeedPCT(config.pumps[_sm==0?pwmpumpsidx:0][j].l)+'</div>');
+		var divd = $('<div class="ui-block-d">'+config.pumps[_sm==0?pwmpumpsidx:0][j].pw+'</div>');
+		var a = $('<a href="#pumpprogramedit" data-rel="dialog"/>');
+		sec.append(diva,divb,divc,divd);
+		a.append(sec);
+		var item = $('<li/>');
+		item.append(a);
+		$('#pumpprogramlist').append(item);
+	}
+	$('#pumpprogramlist').listview('refresh');
+}
+function savePumpProgram(){
+	updateprogramlist();
+	$('#pumpprogramedit').dialog('close');
+}
 function getphdata() {
 	$.getJSON('phval.json',function (data) {
 		$('#phval').val(data.phval);
 		$('#sonarval').val(data.sonarval);
 	}).always(function () {
-			if ($('#csetupmisc').hasClass('ui-btn-active')) {
+			if (csitem==6) {
 				setTimeout(getphdata, 1000);
 			}
 		});
@@ -1569,54 +2022,52 @@ function loadlog() {
 			logpath="";
 		});
 }
-function createoutletcontent() {
-	$('#csetupcontent').empty().html("<label for=\"selectrec\" class=\"select\">Name:</label>\n"+
-		"<select name=\"selectmenu\" id=\"selectrec\" data-mini=\"true\"></select>\n"+
-		"<label for=\"initoff\">Off:</label>\n"+
-		"<input type=\"text\" name=\"initoff\" id=\"initoff\" value=\"\" data-mini=\"true\" />\n"+
-		"<label for=\"ontime\">On:</label>\n"+
-		"<input type=\"text\" name=\"ontime\" id=\"ontime\" value=\"\" data-mini=\"true\" />\n"+
-		"<label for=\"offtime\">Off:</label>\n"+
-		"<input type=\"text\" name=\"offtime\" id=\"offtime\" value=\"\"  data-mini=\"true\"/>\n"+
-		"<label for=\"cycletime\">Cycle:</label>\n"+
-		"<input type=\"text\" name=\"cycletime\" id=\"cycletime\" value=\"\" readonly data-mini=\"true\"/>\n"+
-		"<label for=\"days\" class=\"select\">Days:</label>\n"+
-		"<select name=\"days\" id=\"days\" multiple data-native-menu=\"false\" data-mini=\"true\">\n"+
-		"<option value=\"1\">Sun</option>\n"+
-		"<option value=\"2\">Mon</option>\n"+
-		"<option value=\"3\">Tue</option>\n"+
-		"<option value=\"4\">Wed</option>\n"+
-		"<option value=\"5\">Thu</option>\n"+
-		"<option value=\"6\">Fri</option>\n"+
-		"<option value=\"7\">Sat</option>\n"+
-		"</select>\n"+
-		"<label for=\"mode\" class=\"select\">Mode:</label>\n"+
-		"<select name=\"mode\" id=\"mode\" data-mini=\"true\">\n"+
-		"<option value=\"0\">Auto</option>\n"+
-		"<option value=\"1\" disabled>Manual</option>\n"+
-		"<option value=\"2\">Disabled</option>\n"+
-		"<option value=\"3\" disabled>Macro</option>\n"+
-		"</select>\n");
-	$.mobile.initializePage();
-}
 function saveaction() {
 	var i=parseInt(logpath);
-	action[i].outlet=$('#editoutlet').val();
-	action[i].initoff=$('#editoff').val();
-	action[i].ontime=$('#editon').val();
+	action[i].out=$('#editoutlet').val();
+	action[i].iof=$('#editoff').val();
+	action[i].ont=$('#editon').val();
 	$('#editaction').dialog('close');
 	$('#selectmacro').trigger('change');
 }
 function saveconfig() {
 	$.mobile.loading('show', {text:'Saving config...', textVisible:true});
+	var datastr;
+	var name;
+	switch (csitem){
+	case 0:
+		name="outlets";
+		datastr = '{"outlets":'+JSON.stringify(config.outlets)+'}';
+		break;
+	case 1:
+		name="macros";
+		datastr = '{"macros":'+JSON.stringify(config.macros)+'}';
+		break;
+	case 2:
+		name="actions";
+		datastr = '{"actions":'+JSON.stringify(config.actions)+'}';
+		break;
+	case 3:
+		name="pwm pumps";
+		datastr = '{"pumps":'+JSON.stringify(config.pumps)+'}';
+		break;
+	case 4:
+		break;
+	case 5:
+		break;
+	case 6:
+		name="misc";
+		datastr = '{"misc":'+JSON.stringify(config.misc)+'}';
+		break;
+	}
 	$.ajax("config.json", {
-		data:JSON.stringify(config),
+		data:datastr,
 		contentType:"application/json",
 		type:'POST'}).always(function () {
 			$.mobile.loading('hide');
 		}).done(function () {
 			console.log("saveconfig done");
-			alert("config updated successfully");
+			alert("config "+name+" updated successfully");
 			history.back();
 		}).fail(function (jqXHR, textStatus, errorThrown) {
 			console.log(textStatus);
@@ -1632,7 +2083,6 @@ function macropage() {
 	$.mobile.loading('show', {text:initstring, textVisible:true});
 	$.getJSON("config.json",function (data) {
 		config=data.config;
-		$('#csetupoutlet').trigger('click');
 	}).fail(function (jqXHR, textStatus, errorThrown) {
 			console.log(textStatus);
 			if (textStatus==='parseerror') {

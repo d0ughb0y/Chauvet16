@@ -1,14 +1,23 @@
+/*
+ * Copyright (c) 2013 by Jerry Sy aka d0ughb0y
+ * mail-to: j3rry5y@gmail.com
+ * Commercial use of this software without
+ * permission is absolutely prohibited.
+*/
 TinyWebServer::PathHandler handlers[] = {
   {"/", TinyWebServer::GET, &index_handler},
   {"/upload/" "*", TinyWebServer::PUT, &secure_put_handler},
   {"/delete/" "*", TinyWebServer::GET, &delete_handler},
   {"/cgi-bin/status.xml", TinyWebServer::GET, &apex_status_handler},
-  {"/cgi-bin/status.json" "*", TinyWebServer::GET, &apex_status_json_handler},
+  {"/cgi-bin/status.json", TinyWebServer::GET, &apex_status_json_handler},
   {"/cgi-bin/files.json" "*", TinyWebServer::GET, &apex_filesjson_handler},
   {"/cgi-bin/outlog.xml" "*", TinyWebServer::GET, &apex_outlog_handler},
   {"/cgi-bin/datalog.xml" "*", TinyWebServer::GET, &apex_datalog_handler},
   {"/config.json" , TinyWebServer::ANY, &apex_config_handler},
   {"/phval.json", TinyWebServer::ANY, &apex_phval_handler},
+  {"/pwmpumpdata.json",TinyWebServer::GET, &apex_pwmpumpdata_handler},
+  {"/pwmwavedef.json",TinyWebServer::GET, &apex_pwmwavedef_handler},
+  {"/pwmset.json",TinyWebServer::POST, &apex_pwmset_handler},
   {"/cgi-bin/status.cgi" , TinyWebServer::POST, &apex_command_handler},
   {"/" "*", TinyWebServer::GET, &file_handler},
   {NULL}
@@ -217,9 +226,9 @@ void sendEmail() {
     client << F("DATA\r\n");
     if(!eRcv(client)) return;
     client << F("\r\n");
-    client << F("Temp:") << getTemp() << "\r\n";
-    client << F("pH:") <<getph() << "\r\n";
-    client << F("Top Off water level:") << (uint8_t)getSonarPct() << "%\r\n.\r\n";
+    client << F("Temp:") << getTemp() << F("\r\n");
+    client << F("pH:") <<getph() << F("\r\n");
+    client << F("Top Off water level:") << (uint8_t)getSonarPct() << F("%\r\n.\r\n");
     if(!eRcv(client)) return;
     client << F("QUIT\r\n");    
     if(!eRcv(client)) return;
@@ -344,15 +353,15 @@ boolean IsDST(time_t t)
   te.Hour = 0;
   te.Minute = 0;
   te.Second = 0;
-  time_t dstStart,dstEnd, current;
+  time_t dstStart,dstEnd;
   dstStart = makeTime(te);
   dstStart = nextSunday(dstStart);
   dstStart = nextSunday(dstStart); //second sunday in march
-  dstStart += 2*SECS_PER_HOUR;//2AM
+  dstStart += 2*SECS_PER_DAY;
   te.Month=11;
   dstEnd = makeTime(te);
   dstEnd = nextSunday(dstEnd); //first sunday in november
-  dstEnd += SECS_PER_HOUR; //1AM
+  dstEnd += SECS_PER_DAY;
   return (t>=dstStart && t<dstEnd);
 }
 #endif
@@ -408,9 +417,12 @@ unsigned long getNtpTime(EthernetUDP Udp, IPAddress timeServer)
 }
 
 void logNetworkAccess(TinyWebServer &web_server) {
+  char* path = (char*)web_server.get_path();
+  if (strcmp_P(path,PSTR("/pwmpumpdata.json"))==0 ||
+   strcmp_P(path,PSTR("/phval.json"))==0) return; 
   uint8_t remoteip[4];
   EthernetClient& client = web_server.get_client();
   client.getRemoteIP(remoteip);
-  logMessage(remoteip, (char*)web_server.get_path());
+  logMessage(remoteip, path);
 }
 

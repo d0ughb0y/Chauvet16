@@ -1,4 +1,9 @@
-
+/*
+ * Copyright (c) 2013 by Jerry Sy aka d0ughb0y
+ * mail-to: j3rry5y@gmail.com
+ * Commercial use of this software without
+ * permission is absolutely prohibited.
+*/
 void initOutlets() {
   DDRA = DDRC = 0xFF;
   PORTA = 0xFF;
@@ -8,14 +13,13 @@ void initOutlets() {
   logMessage(F("Outlet Timers initialized"));
 }
 
-inline void outletHandlerA() { 
+inline uint16_t outletHandlerA() { 
   static uint8_t p = 0;
   static uint8_t q = 0;
   static uint8_t i = 0;
   static boolean checkmacros = true;
   static unsigned long starttime = 0;
-  boolean skip = true;
-  
+
   if (checkmacros) {
     if (q==0)
       starttime=micros();
@@ -36,18 +40,12 @@ inline void outletHandlerA() {
       if (i<MAXMACROACTIONS && actions[i].outlet != End) {
         uint8_t idx= actions[i].outlet;
         if ((idx < MAXOUTLETS && (conf.outletRec[idx].mode==_macro || 
-          conf.outletRec[idx].mode==_auto)) || idx==Feeder) {       
+          conf.outletRec[idx].mode==_auto)) || idx==Feeder || idx==Pump0) {       
           if (deviceTime>actions[i].initoff &&
             deviceTime<=(actions[i].initoff+actions[i].ontime)) {
-              if (!isOutletOn(idx)){
-                _outletOn(idx);
-                skip=false;
-              }
+              _outletOn(idx);
             } else {
-              if (isOutletOn(idx)) {
-                _outletOff(idx);
-                skip=false;
-              }
+              _outletOff(idx);
             }
           if (idx<MAXOUTLETS) {
             if (deviceTime >= conf.macrosRec[q].ontime) {
@@ -66,6 +64,7 @@ inline void outletHandlerA() {
         _ActiveMacro=4;
         _MacroTime=0;
         _MacroCountDown=0; 
+        FeedModeOFF();
       } else {
         _MacroCountDown = conf.macrosRec[q].ontime - deviceTime;
       }
@@ -80,41 +79,39 @@ inline void outletHandlerA() {
     if (conf.outletRec[p].mode == _macro && _ActiveMacro>=4 ) {
       conf.outletRec[p].mode=_auto;
       _MacroCountDown=0; 
+      FeedModeOFF();
     }
     if (conf.outletRec[p].mode == _auto && total>0) {
       time_t currSecs = elapsedSecsToday(now2()) % (total);
       if (conf.outletRec[p].days & _BV(weekday(now2())) &&
         currSecs >= conf.outletRec[p].initoff && 
         currSecs < (conf.outletRec[p].initoff+conf.outletRec[p].ontime)) {
-        if (!isOutletOn(p)) {  
-          _outletOn(p);
-          skip=false;
-        }
+        _outletOn(p);
       } else {
-        if (isOutletOn(p)) {
-          _outletOff(p);
-          skip=false;
-        }
+        _outletOff(p);
       }
     }
     p++;
     if (p>=MAXOUTLETS) p=0;
     checkmacros = (p==0);
     if (p==0) {
-      unsigned long diff = 1000000 - (micros()-starttime);
-      if (diff > 64){ //if mostly skipped and cycle completes in <1sec
-        OCR4A += diff/64;  //return in diff to 1 second
-        return;
-      }
+      //microseconds elapsed since q=0
+      unsigned long elapsed = micros()-starttime;
+      if (elapsed<1000000) {
+        unsigned long diff = 1000000 - elapsed;
+        uint16_t modval = (diff/1020);
+        if (modval<10 || modval>900)
+          return 10;
+        else
+          return modval;
+      } else 
+        return 10;
     }
   }
-  if (skip) //if no switch change, return in 1ms
-    OCR4A += CYCLESKIP;
-  else  //if switch changed, return in 500ms
-    OCR4A += CYCLETIMEA;
+  return 50;
 }
 
-inline void outletHandlerB() { //once per minute handler
+inline void outletHandlerB() { //once per second handler
   lightToggle();
   time_t timenow = now2();
   int secnow = second(timenow);
@@ -128,11 +125,12 @@ inline void outletHandlerB() { //once per minute handler
     }
     #endif
     if (minnow%10==0 && !logSensorsFlag) {
-       logSensorsFlag = true; 
+      logSensorsFlag = true; 
+      updatePWMPumps();
     }
   }
   //check if network is still up at 1,21,41 mins past the hour (not a busy time)
-  if ((minnow+1)%20==1) { 
+  if ((minnow+1)%20==1 && secnow==15) { 
     netCheckFlag=true;
   }
   if (secnow%LCD_MSG_CYCLE_SECS==0) {
@@ -143,25 +141,7 @@ inline void outletHandlerB() { //once per minute handler
     checkTempISR();
     checkAlarm();
   }
-  static uint8_t lastATO2 = true;
-  uint8_t ato1 = getATO1();
-  uint8_t ato2 = getATO2();
-  float ph = getph();
-
-  if (ato2!=lastATO2) {
-    if (ato2 || ato1) {// open, pin high
-      _outletOff(Kalk); //turn off both kalk and ato
-    } else { //closed, pin low
-      if (isOutletOn(Return) && ph < 8.7 && conf.outletRec[Kalk].mode == _auto) {
-        _outletOn(Kalk);//on if rtn is on, ph not high, and kalk outlet on auto
-      }
-    }
-  }
-  lastATO2=ato2;
-  if (ph>=8.7 || ato1) {
-    _outletOff(Kalk);
-  }
-  OCR4B += CYCLETIMEB;
+  checkATO();
 }
 
 void _outlogentry(uint8_t p, boolean state) {
@@ -184,7 +164,9 @@ void _outletOn(uint8_t p){
     }
   } else if (p==Feeder) {
     feed();
-  } else {
+  } else if (p==Pump0) {
+    FeedModeOFF();
+  }else {
     if (!(PORTC & _BV(p-8))) {
       PORTC |= _BV(p-8);
       _outlogentry(p,true);
@@ -199,7 +181,9 @@ void _outletOff(uint8_t p) {
       _outlogentry(p,false);
     }
   } else if (p==Feeder) {
-  } else {
+  } else if (p==Pump0) {
+     FeedModeON(); 
+  }else {
     if (PORTC & _BV(p-8)) {
       PORTC &= ~_BV(p-8);
       _outlogentry(p,false);

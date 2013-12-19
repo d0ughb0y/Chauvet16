@@ -1,18 +1,25 @@
+/*
+ * Copyright (c) 2013 by Jerry Sy aka d0ughb0y
+ * mail-to: j3rry5y@gmail.com
+ * Commercial use of this software without
+ * permission is absolutely prohibited.
+*/
 #define CONTROLLER_NAME "Jerry's Reef" //change this to your controller name
 #define NTPSERVER 193,193,193,107  //pool.ntp.org
 #define LOCAL_IP 192,168,1,15 //change this to a local fixed ip address
 #define ROUTER_IP 192,168,1,1 //change this to your router ip address
 #define ROUTER_PORT 80 //usually port 80 for the ip configuration web page
-//#define _HEATER
-#define _FAN
+#define _TEMP  //comment out if no temp probe
+#define _PH  //comment out if no ph probe or ph stamp
+#define _HEATER
+//#define _FAN
 #define _SONAR
 #define _FEEDER
-//#define _X10
 #define RTC_ADDR 0x68
 #define LCD_ADDR 0x20
 #define LCD_ROWS 2
 #define LCD_COLS 16
-#define LCD_NUM_MSGS 4
+#define LCD_NUM_MSGS 4+MAXPWMPUMPS/2
 #define LCD_MSG_CYCLE_SECS 2
 #define LCD_EN 4
 #define LCD_RW 5
@@ -49,13 +56,13 @@
 #define MAXMACROACTIONS 6  //fixed for now, can be made longer if needed
 #define EEPROMSIG 0xA0 //change this everytime you want the eeprom defaults to change
 //define OUTLET names here, order is fixed
-#define OUTLET1 "Koralia1"
-#define OUTLET2 "Koralia2"
-#define OUTLET3 "Koralia3"
-#define OUTLET4 "Koralia4"
-#define OUTLET5 "Skimmer"
+#define OUTLET1 "WP25"
+#define OUTLET2 "Unused2"
+#define OUTLET3 "WP25B"
+#define OUTLET4 "Pump"
+#define OUTLET5 "Heater"
 #define OUTLET6 "Kalk"
-#define OUTLET7 "Fan"
+#define OUTLET7 "Skimmer"
 #define OUTLET8 "Return"
 #define OUTLET9 "Unused"
 #define OUTLET10 "Unused"
@@ -71,32 +78,79 @@
 #define MACRO3 "All Pumps On"
 #define MACRO4 "All Pumps Off"
 
-#define OUTLETDEFS Koralia1, Koralia2, Koralia3, Koralia4, Skimmer, Kalk, Fan, Return,\
+#define OUTLETDEFS WP25, Unused2, WP25B, Pump, Heater, Kalk, Skimmer, Return,\
                    Unused9, Unused10, Unused11, Unused12, Unused13, Unused14, Unused15, Unused16
 //define the default outlet program here. outlets must appear in exact order defined in outlet names definition
 //program outletname, initial off time, on time, off time, days active, mode
-#define OUTLETSDEFAULT {{OUTLET1,0,1200,900,0xff,_auto},\
-                        {OUTLET2,300,1200,600,0xff,_auto},\
-                        {OUTLET3,600,1200,300,0xff,_auto},\
-                        {OUTLET4,900,1200,0,0xff,_auto},\
-                        {OUTLET5,0,SECS_PER_DAY,0,0xff,_auto},\
+#define OUTLETSDEFAULT {{OUTLET1,0,SECS_PER_DAY,0,0xff,_auto},\
+                        {OUTLET2,0,0,0,0xff,_auto},\
+                        {OUTLET3,0,SECS_PER_DAY,0,0xff,_auto},\
+                        {OUTLET4,0,SECS_PER_DAY,0,0xff,_auto},\
+                        {OUTLET5,0,0,0,0xff,_auto},\
                         {OUTLET6,0,0,0,0xff,_auto},\
-                        {OUTLET7,0,0,0,0xff,_auto},\
+                        {OUTLET7,0,SECS_PER_DAY,0,0xff,_auto},\
                         {OUTLET8,0,SECS_PER_DAY,0,0xff,_auto}}      
 #define MACROSDEFAULT {{MACRO1,0,1,0,0xff,_disabled},\
                        {MACRO2,15*SECS_PER_HOUR,240,SECS_PER_DAY-15*SECS_PER_HOUR-240,0xff,_auto},\
                        {MACRO3, 0,10*SECS_PER_MIN,0,0xff,_disabled},\
                        {MACRO4,10*SECS_PER_MIN,0,0,0xff,_disabled}}                    
 #define ACTIONSDEFAULT {{{Feeder,0,2},{End,0,0}, {End,0,0}, {End,0,0}, {End,0,0}, {End,0,0}},\
-                        {{Koralia1,240,0},{Koralia2,240,0},{Koralia3,240,0},{Koralia4,240,0},{Return,150,90},{Feeder,30,2}},\
-                        {{Koralia1,0,600},{Koralia2,0,600},{Koralia3,0,600},{Koralia4,0,600},{End,0,0}, {End,0,0}},\
-                        {{Koralia1,600,0},{Koralia2,600,0},{Koralia3,600,0},{Koralia4,600,0},{End,0,0}, {End,0,0}}}
-                        
-                       
+                        {{Pump0,240,0},{Return,150,90},{Feeder,30,2}, {End,0,0}, {End,0,0}, {End,0,0}},\
+                        {{WP25,0,600}, {Pump0,600,0}, {End,0,0}, {End,0,0}, {End,0,0}, {End,0,0}},\
+                        {{WP25,600,0}, {End,0,0}, {End,0,0}, {End,0,0}, {End,0,0}, {End,0,0}}}
+//controls 1-2 pwm pumps                        
+#define _PWMA
+//uncomment if you have 3 or 4 pumps
+//#define _PWMB
+#if defined(_PWMB)
+#define MAXPWMPUMPS 4
+#elif !defined(_PWMB)
+#define MAXPWMPUMPS 2
+#endif
+//change wavemode 6x per day at the followiing time (hours)
+#define MAXINTERVALS 6
+#define INTERVALS  {0,6,9,12,18,22}
+
+//below are the settings I use on my pair of wp-25
+//I set the default program to run pumps on H1 at 50% speed.
+//change the program by specifying the {syncmode,wavemode,level,pulsewidth}
+//in that order, 6x per pump. 
+//valid level values are from 48-255, pulsewidth from 0-10
+//if syncmode is not master, then the rest of the parameters don't need to be specified
+#define PUMP0 {{_master,H1,128,0},{_master,W2,192,10},{_master,ELSE,192,10},{_master,W1,255,4},{_master,W3,255,10},{_master,H1,128,0}}
+#define PUMP1 {{_sync},{_antisync},{_master,ELSE,192,10},{_antisync},{_antisync},{_sync}}
+//#define PUMP0 {{_master,H1,128,0},{_master,H1,128,0},{_master,H1,128,0},{_master,H1,128,0},{_master,H1,128,0},{_master,H1,128,0}}
+//#define PUMP1 {{_master,H1,128,0},{_master,H1,128,0},{_master,H1,128,0},{_master,H1,128,0},{_master,H1,128,0},{_master,H1,128,0}}
+#define PUMP2 {{_master,H1,128,0},{_master,H1,128,0},{_master,H1,128,0},{_master,H1,128,0},{_master,H1,128,0},{_master,H1,128,0}}
+#define PUMP3 {{_master,H1,128,0},{_master,H1,128,0},{_master,H1,128,0},{_master,H1,128,0},{_master,H1,128,0},{_master,H1,128,0}}
+#define CUSTOMPATTERN {128,180,220,228,220,180,188,196,200,196,188,160,\
+                       168,176,180,176,168,140,148,150,148,144,136,128,\
+                       128,177,218,246,255,246,218,177}     
+#define CUSTOMPATTERNSTEPS 32
+
 /////////////////////////////////
 //   typedefs
 /////////////////////////////////
-typedef enum {_auto, _manual, _disabled, _macro };
+enum {_auto, _manual, _disabled, _macro };
+//pump 0 is always master
+//pumps 1,2,3 can run in sync or antisync with respect to pump 0
+enum {_master,_sync,_antisync};
+
+//function that returns 8 bit value for the given step over the resolution of the wave pattern
+typedef uint8_t(*PatternFP)(uint8_t);
+
+typedef struct {
+  char       name[5];
+  uint8_t    resolution;
+  PatternFP  _getLevel;
+} WaveDef_t;
+
+typedef struct {
+  uint8_t   syncMode;
+  uint8_t   waveMode;
+  uint8_t   level;//48-255
+  uint8_t   pulseWidth;//0-10
+} PumpDef_t;
 
 typedef struct {
   char     name[14];
@@ -123,6 +177,7 @@ typedef struct {
   ORec_t outletRec[MAXOUTLETS];
   ORec_t macrosRec[MAXMACROS];  
   MacroActions_t actions[MAXMACROS][MAXMACROACTIONS];
+  PumpDef_t pump[MAXPWMPUMPS][MAXINTERVALS];
   float htrlow;
   float htrhigh;
   float fanlow;

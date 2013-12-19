@@ -1,9 +1,12 @@
-#define CYCLETIMEB 15624 //1s
-#define CYCLETIMEA 1500 //~100ms
-#define CYCLESKIP 15 //1ms
-#define CYCLE1MS 15 //1ms
-
+/*
+ * Copyright (c) 2013 by Jerry Sy aka d0ughb0y
+ * mail-to: j3rry5y@gmail.com
+ * Commercial use of this software without
+ * permission is absolutely prohibited.
+*/
 volatile static uint16_t beepcount[6];
+volatile static boolean buzzerbusy = false;
+volatile boolean timerEnabled=false;
 
 inline void enablePCINT(){
   PCICR |= (1<<PCIE2);
@@ -13,25 +16,13 @@ inline void disablePCINT(){
   PCICR &= ~(1<<PCIE2);
 }
 
-//All three Timer4 registers are used by this controller
-//This means you cannot use Digital Pins 6,7 and 8 for PWM
-//You can still use those Pins for IO
-//Timer4 Register A - used by outlet program scheduler
-//Timer4 Register B - used for misc timed tasks
-//Timer4 Register C - used for buzzer
-void setupTimers(){
-  TCCR4A = 0;
-  TCCR4B = _BV(CS42) | _BV(CS40);  //div 1024  64us / count Normal mode
-  OCR4A = CYCLETIMEA;   
-  OCR4B = CYCLETIMEB; //1 second
-  OCR4C = CYCLE1MS;
-  TIMSK4 = 0;
-  DDRE |= _BV(PE3);
-  PORTE &= ~_BV(PE3);
+inline void initTimer() {
+  OCR1C=128;
+  TIMSK1 |= _BV(OCIE1C);  
 }
 
-inline void startOutletTimers() {
-  TIMSK4 =  _BV(OCIE4A) | _BV(OCIE4B); //enable interrupts    
+void startTimer() {
+  timerEnabled=true;
 }
 
 inline void chirp() {
@@ -62,7 +53,7 @@ inline void beepFail() {
 
 void beepx(uint8_t first, uint8_t second, uint8_t third,
   uint8_t endpause, uint16_t cyclepause) {
-  if (TIMSK4 & _BV(OCIE4C) !=0) return;
+  if (buzzerbusy) return;
   uint8_t SaveSREG = SREG;
   cli();
   beepcount[0]=first;
@@ -70,18 +61,17 @@ void beepx(uint8_t first, uint8_t second, uint8_t third,
   beepcount[2]=second;
   beepcount[4]=third;
   beepcount[5]=cyclepause;
-  TIMSK4 |= _BV(OCIE4C);
-  OCR4C=TCNT4+CYCLE1MS;
+  buzzerbusy=true;
   SREG=SaveSREG;
 }
 
 inline void beepoff() {
-  TIMSK4 &= ~_BV(OCIE4C); 
-  PORTE &= ~_BV(PE3);
+  buzzerbusy=false;
+  PORTF&=~_BV(PF0);
 }
 
 void alarmOn() {
- if (TIMSK4 & _BV(OCIE4C) !=0) return;
+ if (buzzerbusy) return;
  if (conf.soundalert) {
    uint8_t saveSREG=SREG;
    cli();
@@ -91,8 +81,7 @@ void alarmOn() {
    beepcount[3]=50;
    beepcount[4]=200;
    beepcount[5]=2000;
-   TIMSK4 |= _BV(OCIE4C); 
-   OCR4C=TCNT4+CYCLE1MS;
+   buzzerbusy=true;
    SREG=saveSREG; 
  }
 }
@@ -102,11 +91,6 @@ ISR(PCINT2_vect) {
   static uint8_t lastPins;
   uint8_t mask = pins ^ lastPins;
   lastPins = pins;
-#ifdef _X10 
-  if (mask & _BV(PK1)) { //x10 clock
-    x10Handler(pins);
-  }
-#endif
 #ifdef _FEEDER
   if (mask & _BV(PK2)) { //feeder
     feederHandler(pins);
@@ -117,43 +101,56 @@ ISR(PCINT2_vect) {
     sonarHandler(pins);
   }
 #endif
-//#ifdef _IO
-//  if (mask & _BV(PK6)) { //IO
-//    io1Handler(pins);
-//  }
-//  if (mask & _BV(PK7)) { //IO
-//    io2Handler(pins);
-//  }
-//#endif
 }
 
-ISR(TIMER4_COMPA_vect) { //once per second handler
-  outletHandlerA();
+ISR(TIMER1_COMPC_vect) { //interrupts every 1.02 ms
+  static uint16_t counter = 0;
+  static uint16_t outletmod = 10;
+  //call 1ms tasks, make sure tasks executes in under 100us
+  buzzerHandler();
+  //ppumpHandler(); //perform dosing or water change
+  if (!timerEnabled) return;
+
+  if (counter%outletmod==0) {//10ms
+    //call 10ms tasks, make sure tasks execute in under 1 ms
+    outletmod=outletHandlerA();
+    //after last outlet is processed, we make the next call after 1 full second
+  }
+  if (counter++%980==0) {//1second
+    counter=1;
+    //call 1 second tasks
+    outletHandlerB();
+  }  
 }
 
-ISR(TIMER4_COMPB_vect) { //once per minute handler
-  outletHandlerB();
+void initBuzzer(){
+  DDRD |= _BV(PD7);
+  PORTD &= ~_BV(PD7);  
+  buzzerbusy=false;
 }
 
-ISR(TIMER4_COMPC_vect) { //buzzer
+inline void buzzerHandler(){
+  //buzzer pin D38 PD7
   static uint8_t state = 0;
   static uint16_t counter = 0;
-  
+  if (!buzzerbusy) {
+    state=0;
+    counter=0;
+    return;
+  }
   if (counter++ < beepcount[state]) {
     if (!(state%2))
-      PORTE |= _BV(PE3);
+      PORTD |= _BV(PD7);
   } else {
     if (state==5 && beepcount[5]==0) {
-      TIMSK4 &= ~_BV(OCIE4C);  
+      buzzerbusy=false;
     }
     counter=0;
     state++;
     if (state>5) state=0;
-    PORTE &= ~_BV(PE3);
+    PORTD &= ~_BV(PD7);
   }
-  OCR4C+=CYCLE1MS;
 }
-
 //////////////////////////////////////////
 //   ATO
 //////////////////////////////////////////
@@ -173,64 +170,86 @@ inline uint8_t getATO2() {
   return PINK & _BV(PK4);
 }
 
-////////////////////////////////
-//  GENERIC IO
-////////////////////////////////
-//#define ENABLEIO1 PCMSK2 |= (1<<PCINT22)
-//#define ENABLEIO2 PCMSK2 |= (1<<PCINT23)
-#define IO1ON PORTK|=_BV(PK6)
-#define IO1OFF PORTK&=~_BV(PK6)
-#define IO2ON PORTK|=_BV(PK7)
-#define IO2OFF PORTK&=~_BV(PK7)
-
-void initIO(){
-  //IO1 PK6 PCINT22
-  //IO2 PK7 PCINT23
-  DDRK &= ~(_BV(PK6)|_BV(PK7));
-  IO1ON;
-  IO2ON;
+void checkATO(){
+  //this routine is for ATO using KALK reactor.
+  //if you do not use KALK, just replace Kalk with the ATO pump
+  //and remove the ph test condition
+  if (conf.outletRec[Kalk].mode == _auto) {
+    if (getATO2()) {// open, pin high
+      _outletOff(Kalk);
+    } else { //closed, pin low
+      if (isOutletOn(Return) && phavg<8.7) {
+        _outletOn(Kalk);
+      }
+    }
+  }
+  if (getATO1() || phavg>=8.7) {//safety override to turn off kalk
+    _outletOff(Kalk);    
+  }
 }
 
-inline uint8_t getIO1(){
+////////////////////////////////
+//  PERISTALTIC PUMPS
+////////////////////////////////
+void initPeristalticPumps(){
+  //PG0
+  //PG2
+  DDRG |= _BV(PG0)|_BV(PG2);
+  ppump0Off();
+  ppump1Off();
+}
+
+inline void ppump0On() {
+  PORTG|=_BV(PG0);
+}
+
+inline void ppump0Off() {
+  PORTG&=~_BV(PG0);
+}
+
+inline void ppump1On() {
+  PORTG|=_BV(PG2);
+}
+
+inline void ppump1Off() {
+  PORTG&=~_BV(PG2);
+}
+
+inline uint8_t getppump0(){
   return PINK & _BV(PK6);
 }
 
-inline uint8_t getIO2() {
+inline uint8_t getppump1() {
   return PINK & _BV(PK7);
 }
 
 ////////////////////////////////////
 //  FEEDER
 ////////////////////////////////////
-#define feedOutPin 49 //PL0  PORTL
-#define feedInPin A10 //PK2 PCINT18
-#define DISABLEFEEDER PCMSK2 &= ~(1<<PCINT18)
-#define ENABLEFEEDER  PCMSK2 |= (1<<PCINT18)
-
+//#define feedOutPin 49 //PL0  PORTL
+//#define feedInPin A10 //PK2 PCINT18
 
 void initFeeder() {
-  pinMode(feedInPin,INPUT); 
-  digitalWrite(feedInPin,HIGH);
-  pinMode(feedOutPin,OUTPUT);
-  digitalWrite(feedOutPin,HIGH); //turn feeder off
-  //disable PCINT2
-  //  PCICR |= (1<<PCIE0);
-#ifdef _FEEDER
-  ENABLEFEEDER;
-#endif 
+  DDRK &= ~_BV(PK2);
+  PORTK |= _BV(PK2);
+  DDRL |= _BV(PL0);
+  PORTL |= _BV(PL0);
+  PCMSK2 |= (1<<PCINT18);
 }
 
 inline void feed(){
   if (!(~PORTL & _BV(PL0))) {
     PORTL &= ~_BV(PL0);
     _outlogentry(Feeder,true);
+  } else {
+    PORTL |= _BV(PL0);
   }
 }
  
 inline void feederHandler(uint8_t pins) {
-  static time_t last_int_time = 0;
-  time_t int_time=millis();
-  if ((time_t)(int_time-last_int_time)>=1000) {
+  static unsigned long last_int_time = 0;
+  unsigned long int_time=micros();
+  if ((int_time-last_int_time)>=2000000) {
     if (pins & _BV(PK2)) {
       if (~PORTL & _BV(PL0)) {
         PORTL |= _BV(PL0); 
@@ -241,58 +260,85 @@ inline void feederHandler(uint8_t pins) {
   last_int_time=int_time;
 }
 
-//////////////////////////////
-//    X10
-//////////////////////////////
-#define x10ClkPin A9 //PK1 PCINT17
-#define x10DatPin 48
-
-#define ENABLEX10 PCMSK2 |= (1<<PCINT17)
-#define DISABLEX10 PCMSK2 &= ~(1<<PCINT17)
-boolean x10transmitting = false;
-volatile uint16_t x10Data;
-
-void initX10(){
-  pinMode(x10ClkPin,INPUT);
-  pinMode(x10DatPin,OUTPUT); 
-  digitalWrite(x10ClkPin,HIGH);
-  digitalWrite(x10DatPin,HIGH);
-  #ifdef _X10
-  ENABLEX10;
-  #endif
-}
-
-void write(uint8_t houseCode,uint8_t numberCode) {
-  if (x10transmitting) return;
-  x10Data = 0;
-  ENABLEX10;
-}
-
-inline void x10Handler(uint8_t pins) {
-  if (pins & _BV(PK1)) {
-    lightOn();
-  } 
-  else {
-    lightOff();
-  }
-}
-
 ///////////////////////////////////////////////
 //    PWM
 //////////////////////////////////////////////
+//these are standard arduino PWM
+//use analogWrite to set PWM duty cycle from main loop
+//these will work with your LED lights routine
+//add op amp circuit if you need 10v PWM
+//unused PWM pump pins can be used here for a total of up to 12 PWM lines
 #define PWM1 2
 #define PWM2 3
-boolean up = true;
-int fadeValue = 0;
+//#define PWM3 5
+//#define PWM4 6
+//#define PWM5 7
+//#define PWM6 8
+//#define PWM7 9
+//#define PWM8 46
+//#ifndef _PWMB
+//#define PWM9 44
+//#define PWM10 45
+//#endif
+//#ifndef _PWMA
+//#define PWM11 11
+//#define PWM12 12
+//#endif
 
 void initPWM() {
+  #ifdef PWM1
   pinMode(PWM1,OUTPUT);
-  pinMode(PWM2,OUTPUT); 
   analogWrite(PWM1,0);
+  #endif
+  #ifdef PWM2
+  pinMode(PWM2,OUTPUT); 
   analogWrite(PWM2,0);
+  #endif
+  #ifdef PWM3
+  pinMode(PWM3,OUTPUT);
+  analogWrite(PWM3,0);
+  #endif
+  #ifdef PWM4
+  pinMode(PWM4,OUTPUT); 
+  analogWrite(PWM4,0);
+  #endif
+  #ifdef PWM5
+  pinMode(PWM5,OUTPUT);
+  analogWrite(PWM5,0);
+  #endif
+  #ifdef PWM6
+  pinMode(PWM6,OUTPUT); 
+  analogWrite(PWM6,0);
+  #endif
+  #ifdef PWM7
+  pinMode(PWM7,OUTPUT);
+  analogWrite(PWM7,0);
+  #endif
+  #ifdef PWM8
+  pinMode(PWM8,OUTPUT); 
+  analogWrite(PWM8,0);
+  #endif
+  #ifdef PWM9
+  pinMode(PWM9,OUTPUT);
+  analogWrite(PWM9,0);
+  #endif
+  #ifdef PWM10
+  pinMode(PWM10,OUTPUT); 
+  analogWrite(PWM10,0);
+  #endif
+  #ifdef PWM11
+  pinMode(PWM11,OUTPUT);
+  analogWrite(PWM11,0);
+  #endif
+  #ifdef PWM12
+  pinMode(PWM12,OUTPUT); 
+  analogWrite(PWM12,0);
+  #endif
 }
 
 void testPWM(){
+  static boolean up = true;
+  static int fadeValue = 0;
   
   analogWrite(PWM1, fadeValue);         
   analogWrite(PWM2, fadeValue);             
@@ -324,8 +370,6 @@ void testPWM(){
 #define DURATION_TO_CM 58
 #define DURATION_TO_IN 148
 #define SONAR_MAX 50 //400
-#define ENABLESONAR PCMSK2 |= _BV(PCINT21)
-#define DISABLESONAR PCMSK2 &= ~_BV(PCINT21)
 #define SONARPINOUT DDRK |= _BV(PK5) 
 #define SONARPININ DDRK &= ~_BV(PK5)
 
@@ -336,10 +380,7 @@ void initSonar() {
   pinMode(sonarTPin,OUTPUT); 
   digitalWrite(sonarEPin,HIGH);
   digitalWrite(sonarTPin,LOW);
-#ifdef _SONAR
-  ENABLESONAR;
-#endif
-
+  PCMSK2 |= _BV(PCINT21);
 }
 
 inline void sonarHandler(uint8_t pins) {
@@ -358,12 +399,14 @@ inline void sonarHandler(uint8_t pins) {
 void updateSonar()
 {
   static uint32_t sum=0;
-  if (sum)
-    sum = (sum - sonaravg) + sonarDistance;
-  else {
-    sum = sonarDistance*8;
+  if (sonarDistance>0) {
+    if (sum)
+      sum = (sum - sonaravg) + sonarDistance;
+    else {
+      sum = sonarDistance*8;
+    }
+    sonaravg = sum /8;
   }
-  sonaravg = sum >> 3;
 //  SONARPINOUT;
 //  delayMicroseconds(2);
   SONAR_TRIGGER_LO
@@ -383,10 +426,11 @@ uint16_t getSonar() {
   cli();
   uint16_t tmp = sonaravg;
   SREG=saveSREG;
-  if (tmp>highest || (highest - tmp)>2) {
-    highest = tmp;
-  }
-  return highest;
+//  if (tmp>highest || (highest - tmp)>2) {
+//    highest = tmp;
+//  }
+//  return highest;
+  return tmp;
 }
 
 uint8_t getSonarPct() {
