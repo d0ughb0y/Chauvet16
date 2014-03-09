@@ -142,6 +142,11 @@ void getwavedef(Client& client) {
 inline void setpumpauto(uint8_t channel, uint8_t val) {
   cli();
   _pumpAuto[channel]=val;
+  if (channel==0 && val==1) {
+    for (uint8_t ch=1;ch<MAXPWMPUMPS;ch++) {
+      _pumpAuto[ch]=val;
+    }
+  }
   updatePWMPumps();
   sei();  
 }
@@ -157,6 +162,13 @@ inline void setwavemode(uint8_t channel, uint8_t val) {
   cli();
   _waveMode[channel]=val;
   _pumpAuto[channel]=0;
+  if (channel==0 && val==Feed) {
+    for (uint8_t ch=1;ch<MAXPWMPUMPS;ch++) {
+      _waveMode[ch]=val;
+      _syncMode[ch]=_sync;
+      _pumpAuto[ch]=0;
+    }
+  }
   sei();
 }
 
