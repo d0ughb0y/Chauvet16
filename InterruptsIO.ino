@@ -174,18 +174,16 @@ void checkATO(){
   //this routine is for ATO using KALK reactor.
   //if you do not use KALK, just replace Kalk with the ATO pump
   //and remove the ph test condition
-  if (conf.outletRec[Kalk].mode == _auto) {
-    if (getATO2()) {// open, pin high
-      _outletOff(Kalk);
-    } else { //closed, pin low
-      if (isOutletOn(Return) && phavg<8.7) {
-        _outletOn(Kalk);
-      }
-    }
+  if (conf.outletRec[Kalk].mode == _auto && !getATO2()
+    && !getATO1() && isOutletOn(Return) && phavg<8.7
+#ifdef _SONAR
+      && sonaravg<conf.sonaralertval
+#endif
+    ) {
+      _outletOn(Kalk);
+      return;
   }
-  if (getATO1() || phavg>=8.7) {//safety override to turn off kalk
-    _outletOff(Kalk);    
-  }
+  _outletOff(Kalk);
 }
 
 ////////////////////////////////
