@@ -357,11 +357,11 @@ boolean IsDST(time_t t)
   dstStart = makeTime(te);
   dstStart = nextSunday(dstStart);
   dstStart = nextSunday(dstStart); //second sunday in march
-  dstStart += 2*SECS_PER_DAY;
+  dstStart += 2*SECS_PER_HOUR;
   te.Month=11;
   dstEnd = makeTime(te);
   dstEnd = nextSunday(dstEnd); //first sunday in november
-  dstEnd += SECS_PER_DAY;
+  dstEnd += SECS_PER_HOUR;
   return (t>=dstStart && t<dstEnd);
 }
 #endif
