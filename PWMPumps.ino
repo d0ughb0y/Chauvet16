@@ -250,8 +250,8 @@ uint8_t getCurrentLevel(uint8_t interval, uint8_t channel) {
   if (conf.pump[channel][step].syncMode!=_master) {
      l1 = conf.pump[0][step].level; 
   }
-  uint16_t tnow = elapsedSecsToday(now2())/SECS_PER_MIN;
-  return l0+((tnow-t0)*(l1-l0))/(t1-t0);
+  int tnow = elapsedSecsToday(now2())/SECS_PER_MIN;
+  return (uint8_t)map(tnow,t0,t1,l0,l1);
 }
 
 void pwmhandler(uint8_t _channel) {
