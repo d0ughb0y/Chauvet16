@@ -177,7 +177,7 @@ void checkATO(){
   if (conf.outletRec[Kalk].mode == _auto) {
     if (!getATO2()&& !getATO1() && isOutletOn(Return) && phavg<8.7
 #ifdef _SONAR
-        && sonaravg<conf.sonaralertval
+        && sonaravg<conf.sonaralertval*10
 #endif
       ) {
         _outletOn(Kalk);
@@ -366,6 +366,7 @@ void testPWM(){
 #define SONAR_TRIGGER_LO PORTL &= ~_BV(PL2);
 //#define SONAR_TRIGGER_HI PORTL |= _BV(PK5);
 //#define SONAR_TRIGGER_LO PORTL &= ~_BV(PK5);
+#define DURATION_TO_MM 6
 #define DURATION_TO_CM 58
 #define DURATION_TO_IN 148
 #define SONAR_MAX 50 //400
@@ -390,7 +391,7 @@ inline void sonarHandler(uint8_t pins) {
  } else {
    unsigned long duration = micros()-starttime;
    if (duration<=maxval)
-     sonarDistance = duration/DURATION_TO_CM;  
+     sonarDistance = duration/DURATION_TO_MM;  
 //   DISABLESONAR;
  }   
 }
@@ -402,9 +403,9 @@ void updateSonar()
     if (sum)
       sum = (sum - sonaravg) + sonarDistance;
     else {
-      sum = sonarDistance*8;
+      sum = sonarDistance*256;
     }
-    sonaravg = sum /8;
+    sonaravg = sum /256;
   }
 //  SONARPINOUT;
 //  delayMicroseconds(2);
@@ -433,8 +434,8 @@ uint16_t getSonar() {
 }
 
 uint8_t getSonarPct() {
-  uint16_t numerator = conf.sonarlow-getSonar();
+  uint16_t numerator = conf.sonarlow*10-getSonar();
   uint16_t denominator = conf.sonarlow - conf.sonarhigh;
-  return numerator*100/denominator; 
+  return numerator*10/denominator; 
 }
 

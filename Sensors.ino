@@ -152,8 +152,11 @@ void checkTempISR(){
 
 void checkAlarm() {
   if ((tempinit && (getTemp()>=conf.alerttemphigh || getTemp()<=conf.alerttemplow)) ||
-    (phinit && (phavg>=conf.alertphhigh || phavg<=conf.alertphlow)) ||
-    (conf.sonaralert && sonaravg>conf.sonaralertval)) {
+    (phinit && (phavg>=conf.alertphhigh || phavg<=conf.alertphlow)) 
+#ifdef _SONAR    
+    || (conf.sonaralert && sonaravg>conf.sonaralertval*10)
+#endif    
+    ) {
       if (!alarm) {
         alarmOn();
         emailFlag=true;
