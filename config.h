@@ -78,24 +78,39 @@
 #define MACRO3 "All Pumps On"
 #define MACRO4 "All Pumps Off"
 
+#define SUN _BV(1)
+#define MON _BV(2)
+#define TUE _BV(3)
+#define WED _BV(4)
+#define THU _BV(5)
+#define FRI _BV(6)
+#define SAT _BV(7)
+#define EVERYDAY 0xFE
+#define INVCYCLE _BV(0)
+#define NORMALCYCLE 0
+
 #define OUTLETDEFS WP25, Unused2, WP25B, Pump, Heater, Kalk, Skimmer, Return,\
                    Unused9, Unused10, Unused11, Unused12, Unused13, Unused14, Unused15, Unused16
 //define the default outlet program here. outlets must appear in exact order defined in outlet names definition
 //program outletname, initial off time, on time, off time, days active, mode
-#define OUTLETSDEFAULT {{OUTLET1,0,SECS_PER_DAY,0,0xff,_auto},\
-                        {OUTLET2,0,0,0,0xff,_auto},\
-                        {OUTLET3,0,SECS_PER_DAY,0,0xff,_auto},\
-                        {OUTLET4,0,SECS_PER_DAY,0,0xff,_auto},\
-                        {OUTLET5,0,0,0,0xff,_auto},\
-                        {OUTLET6,0,0,0,0xff,_auto},\
-                        {OUTLET7,0,SECS_PER_DAY,0,0xff,_auto},\
-                        {OUTLET8,0,SECS_PER_DAY,0,0xff,_auto}}      
-#define MACROSDEFAULT {{MACRO1,0,1,0,0xff,_disabled},\
-                       {MACRO2,15*SECS_PER_HOUR,240,SECS_PER_DAY-15*SECS_PER_HOUR-240,0xff,_auto},\
-                       {MACRO3, 0,10*SECS_PER_MIN,0,0xff,_disabled},\
-                       {MACRO4,10*SECS_PER_MIN,0,0,0xff,_disabled}}                    
-#define ACTIONSDEFAULT {{{Feeder,0,2},{End,0,0}, {End,0,0}, {End,0,0}, {End,0,0}, {End,0,0}},\
-                        {{Pump0,240,0},{Return,150,90},{Feeder,30,2}, {End,0,0}, {End,0,0}, {End,0,0}},\
+//days active can be set by ORing the days or use EVERYDAY
+//example, for MWF, set as MON|WED|FRY
+//if outlet state is reversed OR INVCYCLE to days active value
+//example EVERYDAY|INVCYCLE
+#define OUTLETSDEFAULT {{OUTLET1,0,SECS_PER_DAY,0,EVERYDAY,_auto},\
+                        {OUTLET2,0,0,0,EVERYDAY,_auto},\
+                        {OUTLET3,0,SECS_PER_DAY,0,EVERYDAY,_auto},\
+                        {OUTLET4,0,SECS_PER_DAY,0,EVERYDAY,_auto},\
+                        {OUTLET5,0,0,0,EVERYDAY,_auto},\
+                        {OUTLET6,0,0,0,EVERYDAY,_auto},\
+                        {OUTLET7,0,SECS_PER_DAY,0,EVERYDAY,_auto},\
+                        {OUTLET8,0,SECS_PER_DAY,0,EVERYDAY,_auto}}
+#define MACROSDEFAULT {{MACRO1,0,10,0,0xff,_disabled},\
+                       {MACRO2,15*SECS_PER_HOUR,240,SECS_PER_DAY-15*SECS_PER_HOUR-240,EVERYDAY,_auto},\
+                       {MACRO3, 0,10*SECS_PER_MIN,0,EVERYDAY,_disabled},\
+                       {MACRO4,10*SECS_PER_MIN,0,0,EVERYDAY,_disabled}}
+#define ACTIONSDEFAULT {{{Feeder,5,1},{End,0,0}, {End,0,0}, {End,0,0}, {End,0,0}, {End,0,0}},\
+                        {{Feeder,30,210},{Return,150,90}, {Pump0,240,0}, {End,0,0}, {End,0,0}, {End,0,0}},\
                         {{WP25,0,600}, {Pump0,600,0}, {End,0,0}, {End,0,0}, {End,0,0}, {End,0,0}},\
                         {{WP25,600,0}, {End,0,0}, {End,0,0}, {End,0,0}, {End,0,0}, {End,0,0}}}
 //controls 1-2 pwm pumps                        

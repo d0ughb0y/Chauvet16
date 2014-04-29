@@ -460,6 +460,8 @@
 			<option value="2">Disabled</option>
 			<option value="3" disabled>Macro</option>
 		</select>
+		<label for="inverse">Inv Cycle:</label>
+		<input type="checkbox" name="inverse" id="inverse" value="" data-mini="true"/>
 		</div>
 		<div id="contentactions">
 			<label for="selectmacro" class="select">Name:</label>
@@ -1633,6 +1635,7 @@ $('#selectrec').on('change', function (e, ui) {
 	}
 	$('#days').val(sdays).selectmenu('refresh');
 	$('#mode').val(macros[i].m).selectmenu('refresh');
+	$('#inverse').prop('checked',  macros[i].d&0x01).checkboxradio('refresh');
 });
 $('#selectmacro').on('change', function (e) {
 	var i=parseInt($(this).val());
@@ -1664,6 +1667,13 @@ $('#days').on('change', function (e) {
 	});
 	var sel=parseInt($('#selectrec').val());
 	macros[sel].d=d;
+});
+$('#inverse').on('change', function (e) {
+	var sel=parseInt($('#selectrec').val());
+  if (this.checked)
+		macros[sel].d|=1;
+	else
+    macros[sel].d&=0xFE;
 });
 $('#mode').on('change', function (e) {
 	var sel=parseInt($('#selectrec').val());
@@ -1745,7 +1755,7 @@ $('#csform').on('pagebeforecreate', function(e) {
 	  $('#pumpnav').navbar();
 	}
 }).on('pagehide', function(e, data) {
-	if (data.nextPage[0].id=='pumpprogramedit') return;
+	if (data.nextPage[0].id=='pumpprogramedit' || data.nextPage[0].id=='editaction') return;
 	csitem=-1;
 	pwmpumpsidx=0;
 }).on('pagebeforeshow', function (e,data) {
@@ -1781,6 +1791,7 @@ $('#csform').on('pagebeforecreate', function(e) {
 		$('#selectrec').val('0').selectmenu('refresh').trigger('change');
 		break;
 	case 2:
+		if (data.prevPage[0].id=='editaction') break;
 		$('#contentactions').show();
 		$('#contentmisc').hide();
 		$('#contentpumps').hide();
@@ -2028,7 +2039,8 @@ function saveaction() {
 	action[i].iof=$('#editoff').val();
 	action[i].ont=$('#editon').val();
 	$('#editaction').dialog('close');
-	$('#selectmacro').trigger('change');
+	i = $('#selectmacro').val();
+	$('#selectmacro').val(i).trigger('change');
 }
 function saveconfig() {
 	$.mobile.loading('show', {text:'Saving config...', textVisible:true});

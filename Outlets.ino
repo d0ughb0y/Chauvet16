@@ -86,9 +86,15 @@ inline uint16_t outletHandlerA() {
       if (conf.outletRec[p].days & _BV(weekday(now2())) &&
         currSecs >= conf.outletRec[p].initoff && 
         currSecs < (conf.outletRec[p].initoff+conf.outletRec[p].ontime)) {
-        _outletOn(p);
+          if (conf.outletRec[p].days&INVCYCLE)//check if inverse logic
+            _outletOff(p);
+          else
+            _outletOn(p);
       } else {
-        _outletOff(p);
+          if (conf.outletRec[p].days&INVCYCLE)//check if inverse logic
+            _outletOn(p);
+          else
+            _outletOff(p);
       }
     }
     p++;

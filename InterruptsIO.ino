@@ -240,8 +240,6 @@ inline void feed(){
   if (!(~PORTL & _BV(PL0))) {
     PORTL &= ~_BV(PL0);
     _outlogentry(Feeder,true);
-  } else {
-    PORTL |= _BV(PL0);
   }
 }
  
