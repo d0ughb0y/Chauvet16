@@ -208,6 +208,7 @@ inline void webprocess() {
 ///////////////////////////////
 void sendEmail() {
   if (!conf.emailalert) return;
+  logMessage(F("Sending email alert."));
   EthernetClient& client = web.get_client();
   if (client.connect(SMTPSERVER, SMTPPORT)){
     if(!eRcv(client)) return;
@@ -221,10 +222,19 @@ void sendEmail() {
     if(!eRcv(client)) return;
     client << F("MAIL FROM:<") << EMAILFROM << F(">\r\n");  
     if(!eRcv(client)) return;
-    client << F("RCPT TO:<") << EMAILTO << F(">\r\n");
-    if(!eRcv(client)) return;
+    char rcpts[strlen(EMAILTO)+1];
+    strcpy(rcpts,EMAILTO);
+    char* sendto = strtok(rcpts,",");
+    while (sendto!=NULL) {
+      client << F("RCPT TO:<") << sendto << F(">\r\n");
+      if(!eRcv(client)) return;
+      sendto = strtok(NULL,",");
+    }
     client << F("DATA\r\n");
     if(!eRcv(client)) return;
+    client << F("From:") << EMAILFROM << F("\r\n");
+    client << F("To:") << EMAILTO << F("\r\n");
+    client << F("Subject: Alert from ") << CONTROLLER_NAME << F("\r\n"); 
     client << F("\r\n");
     client << F("Temp:") << getTemp() << F("\r\n");
     client << F("pH:") <<getph() << F("\r\n");
