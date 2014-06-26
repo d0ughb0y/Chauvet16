@@ -33,6 +33,7 @@ TinyWebServer web = TinyWebServer(handlers,headers);
   byte mac[] = {
     0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED    };
   IPAddress ip(LOCAL_IP);
+  IPAddress router(ROUTER_IP);
 
 boolean netCheck() {
   static IPAddress router(ROUTER_IP); //change the ip to your router ip address
@@ -47,7 +48,7 @@ boolean netCheck() {
 }
 
 void resetNetwork() {
-  Ethernet.begin(mac,ip);
+  Ethernet.begin(mac,ip,router,router);
   web.begin();
   chirp();
   logMessage(F("Ethernet and Webserver reset."));
@@ -55,7 +56,7 @@ void resetNetwork() {
 
 void initNetwork() {
   //init ethernet shield
-  Ethernet.begin(mac,ip);
+  Ethernet.begin(mac,ip,router,router);
   initClock();
   logMessage(F("System initializing..."));
   if (netCheck()) {
@@ -340,6 +341,25 @@ void initClock() {
   tz = IsDST(now())?(STDTZOFFSET+1):STDTZOFFSET;
   #endif
 }
+
+void updateRTC(){
+  //check if RTC is present
+  Wire.beginTransmission(RTC_ADDR);
+  uint8_t error = Wire.endTransmission();
+  if (!error) {
+    unsigned long ntptime = getNtpTime(Udp, timeServer); //get standard time
+    if (ntptime>0){
+      #ifdef AUTODST
+      if (IsDST(ntptime)) 
+      {
+        ntptime += SECS_PER_HOUR;
+      }
+      #endif
+      RTC.set(ntptime);
+    }
+  }
+}
+
 #ifdef AUTODST
 void autoDST(time_t t) {
   if (IsDST(t)==isDst) return;
