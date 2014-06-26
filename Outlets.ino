@@ -148,7 +148,7 @@ inline void outletHandlerB() { //once per second handler
     checkAlarm();
   }
   if (hrnow==0 && minnow==0 && secnow==45) {//45 seconds past midnight, do ntp sync
-    updateRTC();
+    updateRTCFlag=true;
   }
   checkATO();
 }

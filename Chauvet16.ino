@@ -49,6 +49,7 @@ volatile boolean emailFlag = false;
 volatile boolean logalarmFlag = false;
 volatile boolean logSensorsFlag = false;
 volatile boolean netCheckFlag = false;
+volatile boolean updateRTCFlag = false;
 volatile uint16_t sonaravg = 0;
 volatile uint8_t displaymode = 0;
 volatile float phavg=0;
@@ -154,6 +155,10 @@ void loop() {
     if (netCheckFlag) {
       netCheck();
       netCheckFlag=false; 
+    }
+    if (updateRTCFlag) {
+      updateRTC();
+      updateRTCFlag=false; 
     }
     updateTemp();
     updatePh();
