@@ -47,9 +47,10 @@ boolean netCheck() {
   }
 }
 
+EthernetUDP Udp;
 void resetNetwork() {
   Ethernet.begin(mac,ip,router,router);
-  UDP.begin(7777);
+  Udp.begin(7777);
   web.begin();
   chirp();
   logMessage(F("Ethernet and Webserver reset."));
@@ -58,7 +59,7 @@ void resetNetwork() {
 void initNetwork() {
   //init ethernet shield
   Ethernet.begin(mac,ip,router,router);
-  UDP.begin(7777);
+  Udp.begin(7777);
   initClock();
   logMessage(F("System initializing..."));
   if (netCheck()) {
@@ -288,7 +289,6 @@ void efail(EthernetClient& client)
 boolean isDst = false;
 #endif
 IPAddress timeServer(NTPSERVER);
-EthernetUDP Udp;
 
 void initClock() {
   unsigned long ntptime = getNtpTime(Udp, timeServer); //get standard time
