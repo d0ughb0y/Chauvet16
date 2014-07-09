@@ -47,7 +47,6 @@ boolean netCheck() {
   }
 }
 
-EthernetUDP Udp;
 void resetNetwork() {
   Ethernet.begin(mac,ip,router,router);
   web.begin();
@@ -395,11 +394,11 @@ boolean IsDST(time_t t)
 #endif
 unsigned long getNtpTime(IPAddress timeServer)
 {
-
+  EthernetUDP Udp;
   const int NTP_PACKET_SIZE= 48; // NTP time stamp is in the first 48 bytes of the message
   byte packetBuffer[ NTP_PACKET_SIZE]; //buffer to hold incoming and outgoing packets 
-  Udp.begin(7777);
 
+  Udp.begin(7777);
   // set all bytes in the buffer to 0
   memset(packetBuffer, 0, NTP_PACKET_SIZE); 
   // Initialize values needed to form NTP request
@@ -413,12 +412,6 @@ unsigned long getNtpTime(IPAddress timeServer)
   packetBuffer[13]  = 0x4E;
   packetBuffer[14]  = 49;
   packetBuffer[15]  = 52;
-
-  // all NTP fields have been given values, now
-  // you can send a packet requesting a timestamp: 		   
-  //    Udp.beginPacket(timeServer, 123); //NTP requests are to port 123
-  //    Udp.write(packetBuffer,NTP_PACKET_SIZE);
-  //    Udp.endPacket(); 
 
   // wait to see if a reply is available
   int retries = 3;
