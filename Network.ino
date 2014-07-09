@@ -50,7 +50,6 @@ boolean netCheck() {
 EthernetUDP Udp;
 void resetNetwork() {
   Ethernet.begin(mac,ip,router,router);
-  Udp.begin(7777);
   web.begin();
   chirp();
   logMessage(F("Ethernet and Webserver reset."));
@@ -59,7 +58,6 @@ void resetNetwork() {
 void initNetwork() {
   //init ethernet shield
   Ethernet.begin(mac,ip,router,router);
-  Udp.begin(7777);
   initClock();
   logMessage(F("System initializing..."));
   if (netCheck()) {
@@ -291,7 +289,7 @@ boolean isDst = false;
 IPAddress timeServer(NTPSERVER);
 
 void initClock() {
-  unsigned long ntptime = getNtpTime(Udp, timeServer); //get standard time
+  unsigned long ntptime = getNtpTime(timeServer); //get standard time
   if (ntptime>0) {
     setTime(ntptime);
     #ifdef AUTODST
@@ -347,7 +345,7 @@ void updateRTC(){
   Wire.beginTransmission(RTC_ADDR);
   uint8_t error = Wire.endTransmission();
   if (!error) {
-    unsigned long ntptime = getNtpTime(Udp, timeServer); //get standard time
+    unsigned long ntptime = getNtpTime(timeServer); //get standard time
     if (ntptime>0){
       #ifdef AUTODST
       if (IsDST(ntptime)) 
@@ -395,12 +393,12 @@ boolean IsDST(time_t t)
   return (t>=dstStart && t<dstEnd);
 }
 #endif
-unsigned long getNtpTime(EthernetUDP Udp, IPAddress timeServer)
+unsigned long getNtpTime(IPAddress timeServer)
 {
 
   const int NTP_PACKET_SIZE= 48; // NTP time stamp is in the first 48 bytes of the message
   byte packetBuffer[ NTP_PACKET_SIZE]; //buffer to hold incoming and outgoing packets 
-
+  Udp.begin(7777);
 
   // set all bytes in the buffer to 0
   memset(packetBuffer, 0, NTP_PACKET_SIZE); 
