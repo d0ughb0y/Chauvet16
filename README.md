@@ -1,6 +1,5 @@
 Chauvet16
 =========
-
 Chauvet16 Aquarium Controller
 
 Download the files and copy them into an arduino sketch folder named Chauvet16.
@@ -9,6 +8,10 @@ The index.htm file you will need to copy into an SD card that goes into the SD c
 
     curl -0 -v -T index.htm http://user:password@<your controller ip>:<port>/upload/index.htm
     
+Beginning with v20140805, you will need to gzip the index.htm to file index.gz and upload that as well whenver you edit index.htm. The command to upload is
+
+   curl -0 -v -T index.gz http://user:password@<your controller ip>:<port>/upload/index.gz
+
 You can download curl for pretty much any platform here. 
 http://curl.haxx.se/download.html
 
