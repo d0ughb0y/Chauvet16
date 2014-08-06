@@ -89,6 +89,7 @@ public:
 
   void send_content_type(MimeType mime_type);
   void send_content_type(const char* content_type);
+  void send_content_type(const __FlashStringHelper *ifsh);
 
   // Call this method to indicate the end of the headers.
   inline void end_headers() { client_.println(); }

@@ -14,7 +14,6 @@ void initUtils() {
 
 inline void lightToggle() {
   PINB |= _BV(PB7);
-  PING |= _BV(PG0);
 }
 
 inline void lightOn() {
@@ -37,6 +36,9 @@ char* freeRam () {
 //   EEPROM
 ////////////////////////////////////////
 #include <avr/eeprom.h>
+#define EEPROM_END 0x1000
+#define DOSERBLOCKSIZE sizeof(dosedvolume)*MAXDOSERS
+#define DCADDR EEPROM_END-DOSERBLOCKSIZE
 
 void readEEPROM() {
   eeprom_read_block((void*)&conf, (void*)0, sizeof(conf));
@@ -44,6 +46,14 @@ void readEEPROM() {
 
 void writeEEPROM() {
   eeprom_write_block((const void*)&conf, (void*)0, sizeof(conf));
+}
+
+void readDoserStatus(){
+  eeprom_read_block((void*)&dosedvolume, (void*)(DCADDR), DOSERBLOCKSIZE);
+}
+
+void writeDoserStatus( ){
+  eeprom_write_block((const void*)&dosedvolume, (void*)(DCADDR), DOSERBLOCKSIZE);
 }
 
 void initializeConf() {
@@ -89,6 +99,16 @@ void initializeConf() {
       conf.pump[i][j].pulseWidth=defaultpump[i][j].pulseWidth;
     }
   }    
+  DoserDef_t doserdefault[] = {DOSERDEFAULT};
+  for (int i=0;i<MAXDOSERS;i++) {
+     strcpy((char*)conf.doser[i].name, doserdefault[i].name);
+     conf.doser[i].dailydose = doserdefault[i].dailydose;
+     conf.doser[i].dosesperday = doserdefault[i].dosesperday;
+     conf.doser[i].interval = doserdefault[i].interval;
+     conf.doser[i].starttime = doserdefault[i].starttime;
+     conf.doser[i].rate = doserdefault[i].rate;
+     conf.doser[i].fullvolume=doserdefault[i].fullvolume;
+  }
   conf.fanlow = 79.0;
   conf.fanhigh = 79.7;
   conf.htrlow = 78.3;
@@ -155,10 +175,71 @@ void p(const __FlashStringHelper *ifsh) {
   delay(800);
 }
 
-void psensors() {
-  if (!lcdpresent) return;
+boolean psensors() {
+  static uint8_t state = 0;
+  static uint8_t x=0;  //sensors printed so far, print 2 at a time
+  if (!lcdpresent) return true;
   lcd.setCursor(0,1);
-  lcd <<  F("T:") << getTemp() << F(" pH:") << getph() << F(" ");
+  if (x>=maxsensors) {
+    x=0;
+    state=0;
+  }
+  switch (state) {
+  case 0:
+#ifdef _TEMP
+#if MAXTEMP==1
+    lcd << F("T:") << getTemp(0) << F(" ");
+    x++;
+#else
+    static int tindex = 0;
+    while (tindex<MAXTEMP)  {
+      lcd << F("T") << tindex << F(":") << getTemp(tindex) << F(" ");
+      x++;
+      tindex++;
+      if (x%2==0) return x>=maxsensors;
+    };
+    tindex=0;
+#endif
+#endif
+    state=1;
+case 1:
+#ifdef _PH
+#if MAXPH==1
+  lcd << F("pH:") << getph()  << F(" ");
+  x++;
+  if (x%2==0) return x>=maxsensors;
+#else
+  static int pindex = 0;
+  while (pindex<MAXPH)  {
+    lcd << F("pH") << pindex << F(":") << getph()  << F(" ");
+    x++;
+    pindex++;
+    if (x%2==0) return x>=maxsensors;
+  };
+  pindex=0;
+#endif
+#endif
+  state=2;
+ case 2:
+#ifdef _COND
+ lcd << F("C:") << "getCond()";
+ x++;
+ if (x%2==0) return x>=maxsensors;
+#endif
+  state=3;
+  case 3:
+#ifdef _ORP
+    lcd << F("O:") << "getOrp()";
+    x++;
+    if (x%2==0) return x>=maxsensors;
+#endif
+    state=0;
+  }
+  if (x>=maxsensors) {
+    x=0;
+    return true;
+  } else
+    return false;
 }
 
 void ptime(time_t t) {
@@ -285,7 +366,6 @@ void logOutlet() {
   uint8_t lhead=_head;
   time_t ts = _outlog[ltail].timestamp;
   sei();
-  if (now2()-ts < 5) {return;} //postpone
   if (lhead != ltail) {
     char buffer[20];
     boolean inoutlog = false;
@@ -295,6 +375,10 @@ void logOutlet() {
         fileout_ << F("<record><date>") << buffer << F("</date><name>");
         if (_outlog[ltail].changed==Feeder) {
           fileout_ << F("Feeder");
+        } else if (_outlog[ltail].changed==Doser0) {
+          fileout_ << F("Doser0");
+        } else if (_outlog[ltail].changed==Doser1) {
+          fileout_ << F("Doser1");
         } else {
           fileout_ << (const char*)conf.outletRec[_outlog[ltail].changed].name;
         }
@@ -319,17 +403,36 @@ void logOutlet() {
 void logSensors() {
   char buffer[20];
   if (logSetup(now2(),buffer,"SEN","txt")) {
-    fileout_ << F("<record><date>") << buffer << F("</date><probe><name>Temp</name><value>");
-    fileout_ << setprecision(1);
-    fileout_ << getTemp()<< F("</value></probe><probe><name>pH</name><value>");
-    fileout_ << setprecision(2);
-    fileout_ << (getph()<10.0?" ":"") << getph() << F("</value></probe></record>");
-    fileout_ << F("\n");
+    fileout_ << F("<record><date>") << buffer << F("</date>");
+#ifdef _TEMP
+    for (int i=0;i<MAXTEMP;i++) {
+      fileout_ << F("<probe><name>") << tempname[i] << F("</name><value>");
+      fileout_ << setprecision(1) << getTemp(i)<< F("</value></probe>");
+    }
+#endif
+#ifdef _PH
+    for (int i=0;i<MAXPH;i++) {
+      fileout_ << F("<probe><name>") << phname[i] << F("</name><value>");
+      fileout_ << setprecision(2);
+      fileout_ << (getph()<10.0?" ":"") << getph(i) << F("</value></probe>");
+    }
+#endif
+#ifdef _COND
+      fileout_ << F("<probe><name>Cond</name><value>");
+      fileout_ << setprecision(1);
+      fileout_ << getCond() << F("</value></probe>");
+#endif
+#ifdef _ORP
+      fileout_ << F("<probe><name>Orp</name><value>");
+      fileout_ << setprecision(0);
+      fileout_ << getOrp() << F("</value></probe>");
+#endif
+    fileout_ << F("</record>\n");
     fileout_.close();
   }
 }
 
-void logMessage(const __FlashStringHelper *msg, char* str) {
+void logMessage(const __FlashStringHelper *msg,const char* str) {
   char buffer[20];
   if (logSetup(now2(),buffer, "LOG","log")) {
     fileout_ << buffer << F(" ") << msg << F(" ") << str  << F("\n");
@@ -350,7 +453,7 @@ void logMessage(const __FlashStringHelper *msg, int n) {
   logMessage(msg, itoa(n,num, 10));
 }
 
-void logMessage(uint8_t ip[], char* msg) {
+void logMessage(uint8_t ip[], const char* msg) {
   char buffer[20];
   if (logSetup(now2(),  buffer, "LOG", "log")) {
      fileout_ << buffer << F(" ") << (int)ip[0] << F(".") << (int)ip[1] << F(".") << (int)ip[2];
@@ -425,7 +528,7 @@ char* getdatestring(const time_t t, char* buffer) {
   *buffer = 0;
   return ret;
 }
-void getfiles(Client& client, char* rootstr) {
+void getfiles(EthernetClient& client, char* rootstr) {
   char fn[13];
   if (sd.chdir(rootstr)) {
     client << F("{\"files\":[\n");
@@ -435,22 +538,22 @@ void getfiles(Client& client, char* rootstr) {
       first=false;
       dir_t d;
       file_.dirEntry(&d);
-      client << F("{\"name\":\"");
+      client << F("{\"n\":\"");
       file_.getFilename(fn);
       client << fn;
-      client << F("\",\"date\":\"");
-      uint8_t x = FAT_MONTH(d.lastWriteDate);
-      client << (x<10?"0":"") << x << F("/");
-      x = FAT_DAY(d.lastWriteDate);
-      client << (x<10?"0":"") << x << F("/") << FAT_YEAR(d.lastWriteDate);
-      client << F("\",\"time\":\"");
-      x = FAT_HOUR(d.lastWriteTime);
-      client << (x<10?"0":"") << x << F(":");
-      x = FAT_MINUTE(d.lastWriteTime);
-      client << (x<10?"0":"") << x << F(":");
-      x = FAT_SECOND(d.lastWriteTime);
-      client << (x<10?"0":"") << x;
-      client << F("\",\"size\":\"");
+//      client << F("\",\"d\":\"");
+//      uint8_t x = FAT_MONTH(d.lastWriteDate);
+//      client << (x<10?"0":"") << x << F("/");
+//      x = FAT_DAY(d.lastWriteDate);
+//      client << (x<10?"0":"") << x << F("/") << FAT_YEAR(d.lastWriteDate);
+//      client << F("\",\"t\":\"");
+//      x = FAT_HOUR(d.lastWriteTime);
+//      client << (x<10?"0":"") << x << F(":");
+//      x = FAT_MINUTE(d.lastWriteTime);
+//      client << (x<10?"0":"") << x << F(":");
+//      x = FAT_SECOND(d.lastWriteTime);
+//      client << (x<10?"0":"") << x;
+      client << F("\",\"s\":\"");
       if (!file_.isDir())
         client << file_.fileSize();
       else

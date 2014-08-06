@@ -30,7 +30,7 @@ volatile uint32_t debug1=0;
 volatile uint32_t debug2=0;
 LiquidCrystal_I2C lcd(LCD_ADDR,LCD_EN,LCD_RW,LCD_RS,LCD_D4,LCD_D5,LCD_D6,LCD_D7,LCD_BACKLIGHT,NEGATIVE);
 
-enum outlet {OUTLETDEFS, Feeder=20, Pump0=30, Pump1=31, Pump2=32, Pump3=33, PPump0=40, PPump1=41, End=255};
+enum outlet {OUTLETDEFS, Feeder=20, Doser0=23, Doser1=24, Pump0=30, Pump1=31, Pump2=32, Pump3=33, PPump0=40, PPump1=41, End=255};
 
 volatile uint8_t _ActiveMacro = 4;
 volatile time_t _MacroTime = 0;
@@ -53,17 +53,31 @@ volatile boolean updateRTCFlag = false;
 volatile uint16_t sonaravg = 0;
 volatile uint8_t displaymode = 0;
 volatile float phavg=0;
-
+volatile uint8_t maxsensors = 0;
+#ifdef _TEMP
+char tempname[][8] = TEMPNAME;
+#endif
+#ifdef _PH
+char phname[][8] = PHNAME;
+#endif
+#ifdef _DOSER
+volatile boolean doseractive[MAXDOSERS];
+volatile uint32_t dosercounter[MAXDOSERS];
+volatile uint32_t dosercountmatch[MAXDOSERS];
+volatile uint32_t dosedvolume[MAXDOSERS];
+volatile boolean updateDoserStatusFlag = false;
+volatile boolean dosercalibrating = false;
+volatile uint16_t calibrationcount = 0;
+#endif
 void setup() {
   initBuzzer();
   initTimer();
   beep();
   initializeEEPROM();
-  #ifdef _FEEDER
+  #if defined(_FEEDER) || defined(_FEEDER_V2)
   initFeeder();
   #endif
   initATO();
-  initPeristalticPumps();
   #ifdef _SONAR
   initSonar();
   #endif
@@ -74,6 +88,9 @@ void setup() {
   initSensors(); //temp and ph
   initOutlets();
   initPWM();
+  #ifdef _DOSER
+  initDosers();
+  #endif
   #ifdef _PWMA
   initPWMPumps();
   #endif
@@ -115,7 +132,9 @@ void loop() {
     static uint8_t lastdisplaymode = 255;
     if (displaymode!=lastdisplaymode) {
       switch (displaymode) { //switch 2nd line every 5 secs
-        case 0: psensors();
+        case 0: if (!psensors()) {
+                  displaymode=255;
+                }
                 break;
         case 1: poutlets();
                 break;
@@ -160,7 +179,10 @@ void loop() {
       updateRTC();
       updateRTCFlag=false; 
     }
-    updateTemp();
+    if (updateDoserStatusFlag) {
+      writeDoserStatus();
+      updateDoserStatusFlag=false;
+    }
     updatePh();
     updateSonar();
     logOutlet();
@@ -168,6 +190,7 @@ void loop() {
     profile(false);
   }
   //do every cycle  
+  updateTemp(); //this takes 500us
   webprocess(); 
 }
 

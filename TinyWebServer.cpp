@@ -220,74 +220,80 @@ boolean TinyWebServer::process_headers() {
 }
 
 void TinyWebServer::process() {
-  client_ = server_.available();
-  if (!client_.connected() || !client_.available()) {
-    return;
-  }
-
-  boolean is_complete = get_line(buffer, sizeof(buffer));
-  if (!buffer[0]) {
-    return;
-  }
-#if DEBUG
-  Serial << F("TWS:New request: ");
-  Serial.println(buffer);
-#endif
-  if (!is_complete) {
-    // The requested path is too long.
-    send_error_code(414);
-    client_.stop();
-    return;
-  }
-
-  char* request_type_str = get_field(buffer, 0);
-  request_type_ = UNKNOWN_REQUEST;
-  if (!strcmp("GET", request_type_str)) {
-    request_type_ = GET;
-  } else if (!strcmp("POST", request_type_str)) {
-    request_type_ = POST;
-  } else if (!strcmp("PUT", request_type_str)) {
-    request_type_ = PUT;
-  } 
-  path_ = get_field(buffer, 1);
-
-  // Process the headers.
-  if (!process_headers()) {
-    // Malformed header line.
-    send_error_code(417);
-    client_.stop();
-  }
-  // Header processing finished. Identify the handler to call.
-
-  boolean should_close = true;
-  boolean found = false;
-  for (int i = 0; handlers_[i].path; i++) {
-    int len = strlen(handlers_[i].path);
-    boolean exact_match = !strcmp(path_, handlers_[i].path);
-    boolean regex_match = false;
-    if (handlers_[i].path[len - 1] == '*') {
-      regex_match = !strncmp(path_, handlers_[i].path, len - 1);
-    }
-    if ((exact_match || regex_match)
-	&& (handlers_[i].type == ANY || handlers_[i].type == request_type_)) {
-      found = true;
-      should_close = (handlers_[i].handler)(*this);
+  static uint8_t state = 0;
+  static uint8_t handleridx = 0;
+  switch (state) {
+    case 0: {
+      client_ = server_.available();
+      if (!client_.connected() || !client_.available()) {
+        return;
+      }
+      boolean is_complete = get_line(buffer, sizeof(buffer));
+      if (!buffer[0]) {
+        return;
+      }
+      if (!is_complete) {
+        // The requested path is too long.
+        send_error_code(414);
+        client_.stop();
+        return;
+      }
+      state=1;}
       break;
-    }
+    case 1: {
+      char* request_type_str = get_field(buffer, 0);
+      request_type_ = UNKNOWN_REQUEST;
+      if (!strcmp("GET", request_type_str)) {
+        request_type_ = GET;
+      } else if (!strcmp("POST", request_type_str)) {
+        request_type_ = POST;
+      } else if (!strcmp("PUT", request_type_str)) {
+        request_type_ = PUT;
+      }
+      path_ = get_field(buffer, 1);
+      free(request_type_str);
+      state = 2;}
+      break;
+    case 2:
+      // Process the headers.
+      if (!process_headers()) {
+        // Malformed header line.
+        send_error_code(417);
+        client_.stop();
+        state=5; //??
+        return;
+      }
+      state=3;
+      break;
+    case 3:
+      // Header processing finished. Identify the handler to call.
+      for (int i = 0; handlers_[i].path; i++) {
+        int len = strlen_P(handlers_[i].path);
+        boolean exact_match = !strcmp_P(path_, handlers_[i].path);
+        boolean regex_match = false;
+        if (pgm_read_byte(handlers_[i].path+len-1)=='*') {
+          regex_match = !strncmp_P(path_, handlers_[i].path, len - 1);
+        }
+        if ((exact_match || regex_match)
+          && (handlers_[i].type == ANY || handlers_[i].type == request_type_)) {
+          handleridx=i;
+          state=4;
+          return;
+        }
+      }
+        send_error_code(404);
+        state=5;
+      break;
+    case 4:
+      (handlers_[handleridx].handler)(*this); //this takes the longest
+      state=5;
+      break;
+    case 5:
+      client_.stop(); //we always close
+      free(path_);
+      state=0;
+      break;
   }
-
-  if (!found) {
-    send_error_code(404);
-    // (*this) << F("URL not found: ");
-    // client_->print(path_);
-    // client_->println();
-  }
-  if (should_close) {
-    client_.stop();
-  }
-
-  free(path_);
-  free(request_type_str);
 }
 
 boolean TinyWebServer::is_requested_header(const char** header) {
@@ -295,7 +301,7 @@ boolean TinyWebServer::is_requested_header(const char** header) {
     return false;
   }
   for (int i = 0; headers_[i].header; i++) {
-    if (!strcmp(*header, headers_[i].header)) {
+    if (!strcmp_P(*header, headers_[i].header)) {
       *header = headers_[i].header;
       return true;
     }
@@ -358,6 +364,11 @@ void TinyWebServer::send_content_type(const char* content_type) {
   client_.println(content_type);
 }
 
+void TinyWebServer::send_content_type(const __FlashStringHelper *ifsh) {
+  client_ << content_type_msg;
+  client_ << ifsh << "\r\n";
+}
+
 const char* TinyWebServer::get_path() { return path_; }
 
 const TinyWebServer::HttpRequestType TinyWebServer::get_type() {
@@ -368,8 +379,10 @@ const char* TinyWebServer::get_header_value(const char* name) {
   if (!headers_) {
     return NULL;
   }
+  char tmp[strlen_P(name)+1];
+  strcpy_P(tmp, name);
   for (int i = 0; headers_[i].header; i++) {
-    if (!strcmp(headers_[i].header, name)) {
+    if (!strcmp_P(tmp, headers_[i].header)) {
       return headers_[i].value;
     }
   }
@@ -613,7 +626,7 @@ size_t read_fast(TinyWebServer& web_server, Client& client, uint8_t* buffer, int
 }
 
 boolean put_handler(TinyWebServer& web_server) {
-  const char* length_str = web_server.get_header_value("Content-Length");
+  const char* length_str = web_server.get_header_value(PSTR("Content-Length"));
   long length = atol(length_str);
   uint32_t start_time = 0;
   boolean watchdog_start = false;
@@ -657,7 +670,7 @@ boolean put_handler(TinyWebServer& web_server) {
   if (put_handler_fn) {
     (*put_handler_fn)(web_server, END, NULL, 0);
   }
-	web_server.get_client().println("HTTP/1.1 200 OK");
+  client << F("HTTP/1.1 200 OK\r\n");
 //  web_server.send_error_code(200);
   web_server.end_headers();
   return true;

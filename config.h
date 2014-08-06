@@ -9,12 +9,48 @@
 #define LOCAL_IP 192,168,1,15 //change this to a local fixed ip address
 #define ROUTER_IP 192,168,1,1 //change this to your router ip address
 #define ROUTER_PORT 80 //usually port 80 for the ip configuration web page
+//////////////////////////////////////////////////
+// DS18B20 Temperature Sensor Section
+// Due to limited memory on Arduino,
+// I do not recommend using more than 2 sensors
+//////////////////////////////////////////////////
 #define _TEMP  //comment out if no temp probe
+#define MAXTEMP 2 //number of temp sensors, 1 or 2
+#define TEMPNAME {"Temp","Ambient"}
+//edit the next line with your temp sensor address. make sure the number of addresses match the MAXTEMP value
+#define TEMPADDR {0x28, 0xdf, 0x5d, 0x89, 0x05, 0x00, 0x00, 0xf8},{0x28, 0xde, 0x18, 0x5a, 0x05, 0x00, 0x00, 0x7d}
+//////////////////////////////////////////////////
+// End DS18B20 Temperature Sensor Section
+//////////////////////////////////////////////////
+//////////////////////////////////////////////////
+// Atlas Stamps Sensor Section
+// Make sure you do not exceed 3 sensors
+// As there are only 3 available Serial ports
+//////////////////////////////////////////////////
 #define _PH  //comment out if no ph probe or ph stamp
-#define _HEATER
-//#define _FAN
+#define MAXPH 1 //number of ph stamps
+#define PHNAME {"pH"}
+//edit the next line with your ph sensor address, make sure the number of addresses match the MAXPH value
+#define PHADDR {Serial1}
+//uncomment the next 2 lines if you have Atlas Conductivity sensor and make sure the addr has the right serial port
+//#define _COND
+//#define CONDADDR Serial2
+//uncomment the next 2 lines if you have Atlas Orp sensor and make sure the addr has the right serial port
+//#define _ORP
+//#define ORPADDR Serial3
+////////////////////////////////////////////////////
+// End Atlas Stamps Sensor Section
+////////////////////////////////////////////////////
+#define _DOSER
+//default values  name (7 characters max), ml per day, times per day (0=disabled), interval (0=divide equally),
+//starttime (minutes since midnight), calibration value (0=uncalibrated), full volume in ml
+#define DOSERDEFAULT {"Cal",300,24,0,0,0,3800},{"Alk", 300,24,0,10,0,3800}
+#define MAXDOSERS 2
+//#define _HEATER
+#define _FAN
 #define _SONAR
-#define _FEEDER
+//#define _FEEDER
+#define _FEEDER_V2
 #define RTC_ADDR 0x68
 #define LCD_ADDR 0x20
 #define LCD_ROWS 2
@@ -47,6 +83,7 @@
 #define SMTPPASSWORD "cGFzc3dvcmQ="
 #define EMAILFROM "user@host.com"
 #define EMAILTO "8005551212@txt.att.net"
+
 #define SD_CS 4
 #define ETHER_CS 10
 #define OUTLOGSZ 6  //size of circular queue for outlet log
@@ -58,9 +95,9 @@
 //define OUTLET names here, order is fixed
 #define OUTLET1 "WP25"
 #define OUTLET2 "Unused2"
-#define OUTLET3 "WP25B"
+#define OUTLET3 "LED"
 #define OUTLET4 "Pump"
-#define OUTLET5 "Heater"
+#define OUTLET5 "Fan"
 #define OUTLET6 "Kalk"
 #define OUTLET7 "Skimmer"
 #define OUTLET8 "Return"
@@ -89,7 +126,7 @@
 #define INVCYCLE _BV(0)
 #define NORMALCYCLE 0
 
-#define OUTLETDEFS WP25, Unused2, WP25B, Pump, Heater, Kalk, Skimmer, Return,\
+#define OUTLETDEFS WP25, Unused2, LED, Pump, Fan, Kalk, Skimmer, Return,\
                    Unused9, Unused10, Unused11, Unused12, Unused13, Unused14, Unused15, Unused16
 //define the default outlet program here. outlets must appear in exact order defined in outlet names definition
 //program outletname, initial off time, on time, off time, days active, mode
@@ -98,19 +135,19 @@
 //if outlet state is reversed OR INVCYCLE to days active value
 //example EVERYDAY|INVCYCLE
 #define OUTLETSDEFAULT {{OUTLET1,0,SECS_PER_DAY,0,EVERYDAY,_auto},\
-                        {OUTLET2,0,0,0,EVERYDAY,_auto},\
+                        {OUTLET2,0,0,0,EVERYDAY|INVCYCLE,_auto},\
                         {OUTLET3,0,SECS_PER_DAY,0,EVERYDAY,_auto},\
-                        {OUTLET4,0,SECS_PER_DAY,0,EVERYDAY,_auto},\
+                        {OUTLET4,0,15*SECS_PER_MIN,3*SECS_PER_HOUR-15*SECS_PER_MIN,EVERYDAY,_auto},\
                         {OUTLET5,0,0,0,EVERYDAY,_auto},\
                         {OUTLET6,0,0,0,EVERYDAY,_auto},\
-                        {OUTLET7,0,SECS_PER_DAY,0,EVERYDAY,_auto},\
+                        {OUTLET7,0,3*SECS_PER_HOUR,SECS_PER_HOUR,EVERYDAY,_auto},\
                         {OUTLET8,0,SECS_PER_DAY,0,EVERYDAY,_auto}}
 #define MACROSDEFAULT {{MACRO1,0,10,0,0xff,_disabled},\
-                       {MACRO2,15*SECS_PER_HOUR,240,SECS_PER_DAY-15*SECS_PER_HOUR-240,EVERYDAY,_auto},\
+                       {MACRO2,15*SECS_PER_HOUR,240,SECS_PER_DAY-15*SECS_PER_HOUR-240,SUN|TUE|THU|SAT,_auto},\
                        {MACRO3, 0,10*SECS_PER_MIN,0,EVERYDAY,_disabled},\
                        {MACRO4,10*SECS_PER_MIN,0,0,EVERYDAY,_disabled}}
 #define ACTIONSDEFAULT {{{Feeder,5,1},{End,0,0}, {End,0,0}, {End,0,0}, {End,0,0}, {End,0,0}},\
-                        {{Feeder,30,210},{Return,150,90}, {Pump0,240,0}, {End,0,0}, {End,0,0}, {End,0,0}},\
+                        {{Feeder,30,1},{Return,150,90}, {Pump0,240,0}, {End,0,0}, {End,0,0}, {End,0,0}},\
                         {{WP25,0,600}, {Pump0,600,0}, {End,0,0}, {End,0,0}, {End,0,0}, {End,0,0}},\
                         {{WP25,600,0}, {End,0,0}, {End,0,0}, {End,0,0}, {End,0,0}, {End,0,0}}}
 //controls 1-2 pwm pumps                        
@@ -168,6 +205,16 @@ typedef struct {
 } PumpDef_t;
 
 typedef struct {
+  char     name[8];
+  uint16_t dailydose; //volume per day, all volume units in ml
+  uint8_t  dosesperday; //divide by this over 24 hour perdiod, choices are 1,2,4,6,12,24,48,96,144,240
+  uint8_t  interval; //0=auto, spread evenly over 24 hours, otherwise interval in minutes, up to 255
+  uint16_t starttime; //use this for non even interval, otherwise defaults to midnight
+  uint16_t rate; //calibration value, ticks per ml of liquid, 1 tick=1.024ms, 980 ticks = 1 sec.
+  uint16_t fullvolume;
+} DoserDef_t;
+
+typedef struct {
   char     name[14];
   time_t   initoff;
   time_t   ontime;
@@ -193,6 +240,7 @@ typedef struct {
   ORec_t macrosRec[MAXMACROS];  
   MacroActions_t actions[MAXMACROS][MAXMACROACTIONS];
   PumpDef_t pump[MAXPWMPUMPS][MAXINTERVALS];
+  DoserDef_t doser[2];
   float htrlow;
   float htrhigh;
   float fanlow;

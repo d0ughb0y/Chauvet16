@@ -8,7 +8,7 @@
 	<meta charset="utf-8">
 	<title></title>
 	<link rel="stylesheet" href="http://code.jquery.com/mobile/1.3.2/jquery.mobile-1.3.2.min.css"/>
-	<script src="http://code.jquery.com/jquery-1.9.1.min.js"></script>
+	<script src="http://code.jquery.com/jquery-1.11.1.min.js"></script>
 	<script src="http://omnipotent.net/jquery.sparkline/2.1.2/jquery.sparkline.min.js"></script>
 	<script type="text/javascript">
 		$(document).bind("mobileinit", function () {
@@ -42,12 +42,6 @@
 		#outloglist .ui-block-b { width: 35%; }
 		#outloglist .ui-block-c { width: 10%; }
     #loglist .ui-li { font-size: small; }
-    #csform label.ui-select, #csform label.ui-input-text {
-       width: 20% !important; display: inline-block !important;
-    }
-    #csform .ui-select, #csform .ui-input-text {
-			width: 70% !important; display: inline-block !important;
-		}
 		.tooltip {
 			display: none;
 			font-size: 10pt;
@@ -106,20 +100,39 @@
 			height: 15px;
 			font-size: small;
 		}
-		#perc {
-			width: 120px;
+		.doser {
+			height: 45px;
+		}
+		.doser_bar {
+			width:70%;
+			height:30px;
+			float: right;
+		}
+		.doser_info {
+			height:15px;
+			font-size:small;
+			text-align: center;
+		}
+		.doser_name {
+			width:30px;
+			height: 30px;
+			font-size: large;
+			float: left;
+		}
+		.perc {
+			/*width: 120px;*/
 			height: 20px;
 			border: 1px solid blue;
 			position: relative;
 		}
-		#perc_in {
+		.perc_in {
 			position: absolute;
 			background: #0FF;
 			top: 0;
 			left: 0;
 			height: 100%;
 		}
-		#perc_txt {
+		.perc_txt {
 			position: absolute;
 			top: 0;
 			left: 0;
@@ -130,7 +143,7 @@
 			z-index: 100;
 		}
 	</style>
-	<script src="http://code.jquery.com/mobile/1.3.1/jquery.mobile-1.3.1.min.js"></script>
+	<script src="http://code.jquery.com/mobile/1.3.2/jquery.mobile-1.3.2.min.js"></script>
 	<meta content="width=device-width, minimum-scale=1, maximum-scale=1" name="viewport"/>
 	<meta name="apple-mobile-web-app-capable" content="yes"/>
 	<meta name="apple-mobile-web-app-status-bar-style" content="black"/>
@@ -162,7 +175,7 @@
 			</div>
 			<div data-role="collapsible" data-collapsed-icon="arrow-r" data-expanded-icon="arrow-d"	data-inset="false"id="DosersBar">
 				<h2>Dosing Pumps</h2>
-				<ul data-role="listview" id="Dosers"><li>Coming soon ...</li></ul>
+				<ul data-role="listview" id="Dosers"></ul>
 			</div>
 			<div data-role="collapsible" data-collapsed-icon="arrow-r" data-expanded-icon="arrow-d"	data-inset="false"id="LEDsBar">
 				<h2>LEDs</h2>
@@ -440,12 +453,20 @@
 	<div data-role="content">
 		<div id="contentoutlets">
 			<label for="selectrec" class="select">Name:</label>
-			<select name="selectmenu" id="selectrec" data-mini="true"></select> <label for="initoff">Off:</label>
-			<input type="text" name="initoff" id="initoff" value="" data-mini="true"/> <label for="ontime">On:</label>
-			<input type="text" name="ontime" id="ontime" value="" data-mini="true"/> <label for="offtime">Off:</label>
-			<input type="text" name="offtime" id="offtime" value="" data-mini="true"/> <label for="cycletime">Cycle:</label>
-			<input type="text" name="cycletime" id="cycletime" value="" readonly data-mini="true"/>
-			<label for="days" class="select">Days:</label>
+			<select name="selectmenu" id="selectrec" data-mini="true"></select>
+			<label for="initoff">Initial Off Time (hh:mm:ss):</label>
+			<input type="text" name="initoff" id="initoff" value=""	data-mini="true"
+				pattern="^([01][0-9]|2[0-4]):[0-5][0-9]:[0-5][0-9]$"/>
+			<label for="ontime">On Time	(hh:mm:ss):</label>
+			<input type="text" name="ontime" id="ontime" value="" data-mini="true"
+				pattern="^([01][0-9]|2[0-4]):[0-5][0-9]:[0-5][0-9]$"/>
+			<label for="offtime">Off Time	(hh:mm:ss):</label>
+			<input type="text" name="offtime" id="offtime" value="" data-mini="true"
+				pattern="^([01][0-9]|2[0-4]):[0-5][0-9]:[0-5][0-9]$"/>
+			<label for="cycletime">Cycle Time (hh:mm:ss):</label>
+			<input type="text" name="cycletime" id="cycletime" value="" readonly data-mini="true"
+				pattern="^([01][0-9]|2[0-4]):[0-5][0-9]:[0-5][0-9]$"/>
+			<label for="days" class="select">Active Days:</label>
 			<select name="days" id="days" multiple data-native-menu="false" data-mini="true">
 				<option value="1">Sun</option>
 				<option value="2">Mon</option>
@@ -454,13 +475,15 @@
 				<option value="5">Thu</option>
 				<option value="6">Fri</option>
 				<option value="7">Sat</option>
-			</select> <label for="mode" class="select">Mode:</label> <select name="mode" id="mode" data-mini="true">
+			</select>
+			<label for="mode" class="select">Mode:</label>
+			<select name="mode" id="mode" data-mini="true">
 			<option value="0">Auto</option>
 			<option value="1" disabled>Manual</option>
 			<option value="2">Disabled</option>
 			<option value="3" disabled>Macro</option>
 		</select>
-		<label for="inverse">Inv Cycle:</label>
+		<label for="inverse">Inverse Cycle:</label>
 		<input type="checkbox" name="inverse" id="inverse" value="" data-mini="true"/>
 		</div>
 		<div id="contentactions">
@@ -483,7 +506,58 @@
 			</div>
 		</div>
 		<div id="contentdosers">
-			<h1>Coming Soon...</h1>
+			<div data-role="navbar" id="dosernav" data-mini="true">
+				<ul>
+					<li><a href="#" class="ui-btn-active-ui-state-persist" id="dosernav0">Doser 0</a> </li>
+					<li><a href="#" id="dosernav1">Doser 1</a> </li>
+				</ul>
+			</div>
+			<div data-role="content">
+				<div data-role="fieldcontain" data-mini="true">
+					<label for="_dosername" data-mini="true" style="width:80%">Name:</label>
+					<input data-mini="true" type="text" name="_dosername" id="_dosername" maxlength="7"	pattern="[a-zA-Z0-9]+"/>
+				</div>
+				<div data-role="fieldcontain" data-mini="true">
+					<label for="_doserdd" data-mini="true">Daily Dose (ml):</label>
+					<input data-mini="true" type="number" name="_doserdd" id="_doserdd" min="1"/>
+				</div>
+				<div data-role="fieldcontain" data-mini="true">
+					<label for="_doserdpd" data-mini="true">Doses per Day:</label>
+					<select id="_doserdpd" name="_doserdpd" data-mini="true">
+						<option value="0">Disabled</option>
+						<option value="1">1</option>
+						<option value="2">2</option>
+						<option value="4">4</option>
+						<option value="6">6</option>
+						<option value="12">12</option>
+						<option value="24">24</option>
+						<option value="48">48</option>
+						<option value="96">96</option>
+						<option value="144">144</option>
+					</select>
+				</div>
+				<div data-role="fieldcontain" data-mini="true">
+					<label for="_doserint" data-mini="true">Interval:</label>
+					<select id="_doserint" data-mini="true" name="_doserint">
+						<option value="0">Auto</option>
+						<option value="30">30</option>
+						<option value="60">60</option>
+						<option value="120">120</option>
+						<option value="240">240</option>
+					</select>
+				</div>
+				<div data-role="fieldcontain" data-mini="true">
+					<label for="_doserst" data-mini="true">Start Time (hh:mm):</label>
+					<input data-mini="true" type="time" name="_doserst" id="_doserst" min="0" max="1439"/>
+				</div>
+				<div data-role="fieldcontain" data-mini="true">
+					<label for="_doserfv" data-mini="true">Full Volume (ml):</label>
+					<input data-mini="true" type="number" name="_doserfv" id="_doserfv" min="1"/>
+				</div>
+				<h4 style="text-align: center">Calibrate</h4>
+				<a href="#_dosercalibrate" data-rel="dialog" data-role="button" id="dcalstart" data-mini="true" data-theme="c">Start
+					Calibration</a>
+			</div>
 		</div>
 		<div id="contentleds">
 			<h1>Coming Soon...</h1>
@@ -603,6 +677,41 @@
 		</div>
 	</div>
 </div>
+<div data-role="page" id="doserpage">
+	<div data-role="header" data-position="fixed" data-tap-toggle="false">
+		<h1 id="dosername"></h1>
+	</div>
+	<div data-role="content" id="dosercontent">
+		<div data-role="fieldcontain" data-mini="true">
+		<label for="_dosevolume" data-mini="true">Volume to dose (min 0.1ml):</label>
+		<input type="text"  pattern="[0-9.]+" name="_dosevolume" id="_dosevolume" data-mini="true" value=""/>
+		<button onclick="doserCommand('mdose');" data-mini="true">Manual Dose</button>
+		</div>
+		<div data-role="fieldcontain" data-mini="true">
+		<label for="_setdosedvolume" data-mini="true">Dosed Volume in ml:</label>
+		<input type="number" name="_setdosedvolume" id="_setdosedvolume" data-mini="true" value=""/>
+		<button onclick="doserCommand('setdv');" data-mini="true">Set</button>
+		</div>
+	</div>
+</div>
+<div data-role="page" id="_dosercalibrate">
+	<div data-role="header">
+		<h1 id="_dosercalibratehdr"></h1>
+	</div>
+	<div data-role="content">
+		<label for="_dosercalvol">Calibration Volume (ml):</label>
+		<input type="number" name="_dosercalvol" id="_dosercalvol" value="5" data-mini="true" min="1" max="5"/>
+		<label for="_dosercaltotaltime">Current Total Time Units:</label>
+		<input type="number" name="_dosercaltotaltime" id="_dosercaltotaltime" value="0" data-mini="true" readonly/>
+		<label for="_dosercaltime" data-mini="true">ON Time Units (1 unit=1.02ms, min=98, max=5000):</label>
+		<input type="number" name="_dosercaltime" id="_dosercaltime" value="" min="100" max="5000" step="1"	data-mini="true"/>
+		<button onclick="doserCommand('cstart');" data-mini="true" id="_dosercalstart">Start</button>
+		<button onclick="doserCommand('cadj');" data-mini="true" id="_dosercaladjust">+Dose</button>
+		<button onclick="doserCommand('csave');" data-mini="true" id="_dosercalsave">Save</button>
+		<button onclick="doserCommand('ctest');" data-mini="true" id="_dosercaltest">Test</button>
+		<button onclick="doserCommand('cabort');" data-mini="true" id="_dosercalabort">Cancel</button>
+	</div>
+</div>
 <script type="text/javascript">
 var retry=0;
 var maxretries=localStorage.getItem('httpretries');
@@ -631,6 +740,10 @@ var pwmpumpsidx=0;
 var pwmpumpspgmitem=-1;
 var wavedef=[];
 var csitem=-1;
+var inputsopen=false;
+var dosersopen=false;
+var dosers = [];
+var doseridx=0;
 $("#page").on('pageinit',function(e){
  initHome();
 }).on('pagebeforeshow',function(e){
@@ -686,28 +799,41 @@ $('#pwmpage').on('pageinit', function(e){
 	}
 	pwmpagechange(e);
 });
+$('#doserpage').on('pageinit', function(e){
+
+}).on('pagebeforeshow', function(e){
+	 $('#dosername').html(dosers[doseridx].n);
+	 $('#_dosevolume').val(5);
+	 $('#_setdosedvolume').val(0);
+}).on('pageshow', function (e){
+
+}).on('pagebeforehide', function(e){
+	lastupdatetime= new Date(0);
+}).on('change', function(e,ui) {
+
+});
 function pwmpagechange(e) {
 	var tmp=e.target.value;
 	if (e.target.id=='level') {
 		if (tmp==100) tmp=255; else  tmp=parseInt(tmp)*255/100;
 		tmp=tmp.toFixed(0);
-		if (tmp==pwmpumpsconfig[pwmpumpsidx].level)return;
-		pwmpumpsconfig[pwmpumpsidx].level=tmp;
+		if (tmp==pwmpumpsconfig[pwmpumpsidx].l)return;
+		pwmpumpsconfig[pwmpumpsidx].l=tmp;
 	} else if (e.target.id=='pulsewidth') {
-		if (tmp==pwmpumpsconfig[pwmpumpsidx].pulseWidth) return;
-		pwmpumpsconfig[pwmpumpsidx].pulseWidth=tmp;
+		if (tmp==pwmpumpsconfig[pwmpumpsidx].pw) return;
+		pwmpumpsconfig[pwmpumpsidx].pw=tmp;
 	} else if (e.target.id=='wavemode') {
-		if (tmp==pwmpumpsconfig[pwmpumpsidx].waveMode) return;
-		pwmpumpsconfig[pwmpumpsidx].waveMode=tmp;
+		if (tmp==pwmpumpsconfig[pwmpumpsidx].wm) return;
+		pwmpumpsconfig[pwmpumpsidx].wm=tmp;
 	} else if (e.target.id=='syncmode') {
-		if (tmp==pwmpumpsconfig[pwmpumpsidx].syncMode) return;
-		pwmpumpsconfig[pwmpumpsidx].syncMode=tmp;
+		if (tmp==pwmpumpsconfig[pwmpumpsidx].sm) return;
+		pwmpumpsconfig[pwmpumpsidx].sm=tmp;
 	} else if (e.target.id=='pumpauto') {
-		if (tmp==pwmpumpsconfig[pwmpumpsidx].pumpAuto) return;
-		pwmpumpsconfig[pwmpumpsidx].pumpAuto=tmp;
+		if (tmp==pwmpumpsconfig[pwmpumpsidx].pa) return;
+		pwmpumpsconfig[pwmpumpsidx].pa=tmp;
 	} else if (e.target.id=='pumpmanual') {
-		if (tmp==pwmpumpsconfig[pwmpumpsidx].pumpAuto) return;
-		pwmpumpsconfig[pwmpumpsidx].pumpAuto=tmp;
+		if (tmp==pwmpumpsconfig[pwmpumpsidx].pa) return;
+		pwmpumpsconfig[pwmpumpsidx].pa=tmp;
 	} else return;
 	$.ajax('pwmset.json', {
 		data:"{\"channel\":\""+pwmpumpsidx+"\",\""+e.target.id+"\":\""+tmp+"\"}",
@@ -801,7 +927,16 @@ $('#OutletsBar').on('expand',function (e) {
 		}
 	});
 $('#InputsBar').on('expand', function (e) {
+	inputsopen=true;
 	setTimeout(updateStatus, 0);
+}).on('collapse', function (e){
+	inputsopen=false;
+});
+$('#DosersBar').on('expand', function (e){
+	dosersopen=true;
+	setTimeout(updateStatus, 0);
+}).on('collapse', function (e){
+	dosersopen=false;
 });
 $('#PWMPumpsBar').on('expand',function(e){
 	if (!pwmpumpsopen) {
@@ -853,6 +988,9 @@ $('#PWMPumps').on('orientationchange', function(e){
 }).on('click', 'li a', function(e){
 	pwmpumpsidx = $(this).closest('li').index();
 });
+$('#Dosers').on('click', 'li a', function(e){
+	doseridx = $(this).closest('li').index();
+});
 $('#csetupitemlist').on('click','li a', function(e){
 	csitem = $(this).closest('li').index();
 })
@@ -869,7 +1007,7 @@ function getpwmpumpdata() {
 		for (var i in data.pwmpumpdata) {
 			var x = data.pwmpumpdata[i].data;
 			$(".pump"+i+"_gr").sparkline(x, { type: 'bar', height:"100%",chartRangeMin:"0",chartRangeMax:"255",barWidth:pwmbarwidth,	barSpacing:"1",
-				disableInteraction:true, barColor:(pwmpumpsconfig[i].pumpAuto=='1'?'blue':'gray')});
+				disableInteraction:true, barColor:(pwmpumpsconfig[i].pa=='1'?'blue':'gray')});
 		}
 	}).always(function(){
 		if (pwmpumpsopen && $.mobile.activePage[0].id=='page'){
@@ -914,18 +1052,29 @@ function getsensordata(callback) {
 	$.get("/cgi-bin/datalog.xml?sdate="+sdate+"&days=31",function (data) {
 		var records=data.getElementsByTagName("record");
 		if (records.length>0&&sensordata.names.length==0) {
-			var names=records[0].getElementsByTagName("name");
+			var names=records[records.length-1].getElementsByTagName("name");
 			for (var i=0; i<names.length; i++) {
 				sensordata.names.push(names[i].childNodes[0].nodeValue);
 			}
 		}
 		$.each(records, function (i, rec) {
 			var probes=rec.getElementsByTagName("probe");
-			var rec={'date':rec.getElementsByTagName("date")[0].childNodes[0].nodeValue, data:[]};
-			$.each(probes, function (j, probe) {
-				rec.data.push(probe.getElementsByTagName("value")[0].childNodes[0].nodeValue);
-			});
-			sensordata.record.push(rec);
+			var newrec={'date':rec.getElementsByTagName("date")[0].childNodes[0].nodeValue, data:[]};
+
+			for (var i=0; i<sensordata.names.length; i++){
+				var found=false;
+				$.each(probes, function(j,probe){
+					if (probe.getElementsByTagName("name")[0].childNodes[0].nodeValue==sensordata.names[i]){
+						newrec.data.push(probe.getElementsByTagName("value")[0].childNodes[0].nodeValue);
+						found=true;
+						return false;
+					}
+				});
+				if (!found){
+					newrec.data.push(NaN);
+				}
+			}
+			sensordata.record.push(newrec);
 		});
 		if (typeof callback=="function") callback();
 	}).fail(function (jqXHR, textStatus, errorThrown) {
@@ -1156,6 +1305,12 @@ function updateStatus(spark) {
 				clearTimeout(updatewavefunction);
 				updatewavefunction=setTimeout("getpwmpumpdata();",0);
 			}
+			if (inputsopen) {
+				animateATO();
+			}
+			if (dosersopen){
+				animateDoser();
+			}
 			return;
 		}
 		lastupdatetime=currenttime;
@@ -1233,6 +1388,9 @@ function renderPage(f) {
 	for (var i in a.pstat.inputs) {
 		var input=a.pstat.inputs[i];
 		$('#'+input.did).html(getInputHtml(input));
+		if (inputsopen && input.did==="base_I1"){
+			animateATO();
+		}
 	}
 	for (var i in a.pstat.outlets) {
 		var outlet=a.pstat.outlets[i];
@@ -1275,24 +1433,37 @@ function renderPage(f) {
 		if (tooltiptxt!="")
 			$('#'+outlet.n).attr('tooltip', tooltiptxt).addClass('outlettext');
 		$('#'+outlet.n).attr('style', c);
-		pwmpumpsconfig=a.pstat.pwmpumps;
-		for (var i in a.pstat.pwmpumps){
-			var pump =a.pstat.pwmpumps[i];
-			if (i>0 && pump.syncMode!=0) {
-				$('#pump'+i+'_waveMode').html(getWaveName(a.pstat.pwmpumps[0].waveMode));
-				$('#pump'+i+'_foot').html('pulse width='+getPulseWidth(a.pstat.pwmpumps[0].pulseWidth)+' ms period ='+' '+getPeriod(a.pstat.pwmpumps[0])+' ms');
-				$('#pump'+i+'_speed').html(getSpeedPCT(a.pstat.pwmpumps[0].level));
-			} else {
-				$('#pump'+i+'_waveMode').html(getWaveName(pump.waveMode));
-				$('#pump'+i+'_foot').html('pulse width'+'='+getPulseWidth(pump.pulseWidth)+' ms period = '+getPeriod(pump)+' ms');
-				$('#pump'+i+'_speed').html(getSpeedPCT(pump.level));
-			}
-			$('#pump'+i+'_syncMode').html(getSyncModeName(pump.syncMode,false));
+	}
+	pwmpumpsconfig=a.pstat.pwmpumps;
+	for (var i in a.pstat.pwmpumps){
+		var pump =a.pstat.pwmpumps[i];
+		if (i>0 && pump.sm!=0) {
+			$('#pump'+i+'_waveMode').html(getWaveName(a.pstat.pwmpumps[0].wm));
+			$('#pump'+i+'_foot').html('pulse width='+getPulseWidth(a.pstat.pwmpumps[0].pw)+' ms period ='+' '+getPeriod(a.pstat.pwmpumps[0])+' ms');
+			$('#pump'+i+'_speed').html(getSpeedPCT(a.pstat.pwmpumps[0].l));
+		} else {
+			$('#pump'+i+'_waveMode').html(getWaveName(pump.wm));
+			$('#pump'+i+'_foot').html('pulse width'+'='+getPulseWidth(pump.pw)+' ms period = '+getPeriod(pump)+' ms');
+			$('#pump'+i+'_speed').html(getSpeedPCT(pump.l));
 		}
-		if (pwmpumpsopen) {
-			clearTimeout(updatewavefunction);
-			updatewavefunction=setTimeout("getpwmpumpdata();",0);
-		}
+		$('#pump'+i+'_syncMode').html(getSyncModeName(pump.sm,false));
+	}
+	if (pwmpumpsopen) {
+		clearTimeout(updatewavefunction);
+		updatewavefunction=setTimeout("getpwmpumpdata();",0);
+	}
+	for (var i in a.pstat.dosers){
+		var doser=f.pstat.dosers[i];
+		var fullvol = parseInt(doser.fv);
+		var dosedvol = parseInt(doser.dv);
+		var remainingvol = fullvol - dosedvol/100.0;
+		$('#doser_'+i).width(remainingvol/fullvol*100+"%");
+		$('#doser_txt_'+i).html(remainingvol+" ml");
+		$('#doser_foot_'+i).html("Daily "+doser.dd+" ml "+doser.dpd+"x Dosed "+dosedvol/100.0+" ml Full "+fullvol+" ml");
+	}
+	dosers = a.pstat.dosers;
+	if (dosersopen){
+			animateDoser();
 	}
 }
 function getSparkData() {
@@ -1303,8 +1474,14 @@ function getSparkData() {
 		var max_=0.0;
 		var min_=1000.0;
 		var total_=0.0;
+		var actualrecs_=0;
 		$.each(sensordata.record, function (j, rec) {
-			c.push(parseFloat(rec.data[i]));
+			if (isNaN(rec.data[i])) {
+				c.push(null);
+			  return true;
+			} else
+				c.push(parseFloat(rec.data[i]));
+			actualrecs_++;
 			if (c[j]>max_) {
 				max_=c[j];
 			}
@@ -1314,12 +1491,12 @@ function getSparkData() {
 			total_+=c[j];
 		});
 		$("."+sensorname+"_gr").sparkline(c, {width:"100%", height:"100%"});
-		$("#"+sensorname+"_mma").html("min:"+min_+"&nbsp;&nbsp;max:"+max_+"&nbsp;&nbsp;avg:"+parseFloat(total_/sensordata.record.length).toFixed(2));
-		if (!initialized) {
-			initialized=true;
-			lastupdatetime=new Date();
-			$.mobile.loading('hide');
-		}
+		$("#"+sensorname+"_mma").html("min:"+min_+"&nbsp;&nbsp;max:"+max_+"&nbsp;&nbsp;avg:"+parseFloat(total_/actualrecs_).toFixed(2));
+	}
+	if (!initialized) {
+		initialized=true;
+		lastupdatetime=new Date();
+		$.mobile.loading('hide');
 	}
 }
 function startPlay() {
@@ -1453,6 +1630,25 @@ function initPage() {
 			$('#PWMPumps').append(olist);
 		}
 		$('#PWMPumps').trigger('create').listview('refresh');
+		$('#Dosers').empty();
+		for (var i in f.pstat.dosers){
+			var doser=f.pstat.dosers[i];
+			var fullvol = parseInt(doser.fv);
+			var dosedvol = parseInt(doser.dv);
+			var remainingvol = fullvol - dosedvol/100.0;
+			var sec = $('<div></div>');
+			var divblocka = $('<div class="doser_name">'+doser.n+'</div>');
+			var divblockb = $('<div class="doser_bar"><div class="perc" style="width:100%"><div class="perc_in" id="doser_'+i+'" style="width:10%"/><div class="perc_txt" id="doser_txt_'+i+'"></div> </div> </div>');
+			var dummy=$('<div style="clear:both"/>');
+			sec.append(divblocka,divblockb,dummy);
+			var anc = $('<a href="#doserpage" data-identified="'+i+'" class="doser"></a>');
+			var doserfoot = $('<div class="doser_info" id="doser_foot_'+i+'"></div>');
+			anc.append(sec,doserfoot);
+			var olist=$('<li/>');
+			olist.append(anc);
+			$('#Dosers').append(olist);
+		}
+		$('#Dosers').trigger('create').listview('refresh');
 		$('#feed1').text("Feed A").button('enable').button('refresh');
 		$('#feed2').text("Feed B").button('enable').button('refresh');
 		$('#feed3').text("Feed C").button('enable').button('refresh');
@@ -1478,16 +1674,16 @@ function initPage() {
 }
 
 function updatepwmpagefields() {
-	var sm = pwmpumpsconfig[pwmpumpsidx].syncMode;
+	var sm = pwmpumpsconfig[pwmpumpsidx].sm;
 	$('#syncmode').val(sm).selectmenu(pwmpumpsidx==0?'disable':'enable').selectmenu('refresh');
-	$('#wavemode').val(pwmpumpsconfig[sm==0?pwmpumpsidx:0].waveMode).selectmenu(sm==0?'enable':'disable').selectmenu('refresh');
-	$('#pulsewidth').val(pwmpumpsconfig[sm==0?pwmpumpsidx:0].pulseWidth).slider(sm==0?'enable':'disable').slider('refresh');
-	var pct = pwmpumpsconfig[sm==0?pwmpumpsidx:0].level;
+	$('#wavemode').val(pwmpumpsconfig[sm==0?pwmpumpsidx:0].wm).selectmenu(sm==0?'enable':'disable').selectmenu('refresh');
+	$('#pulsewidth').val(pwmpumpsconfig[sm==0?pwmpumpsidx:0].pw).slider(sm==0?'enable':'disable').slider('refresh');
+	var pct = pwmpumpsconfig[sm==0?pwmpumpsidx:0].l;
 	if (pct==255) pct=100; else pct=pct*100/255;
 	pct=pct.toFixed(0);
 	$('#level').val(pct).slider(sm==0?'enable':'disable').slider('refresh');
-	$('#pumpauto').prop('checked', pwmpumpsconfig[pwmpumpsidx].pumpAuto==1).checkboxradio("refresh");
-	$('#pumpmanual').prop('checked', pwmpumpsconfig[pwmpumpsidx].pumpAuto==0).checkboxradio("refresh");
+	$('#pumpauto').prop('checked', pwmpumpsconfig[pwmpumpsidx].pa==1).checkboxradio("refresh");
+	$('#pumpmanual').prop('checked', pwmpumpsconfig[pwmpumpsidx].pa==0).checkboxradio("refresh");
 }
 
 function getWaveDef() {
@@ -1497,7 +1693,7 @@ function getWaveDef() {
 }
 
 function getPeriod(n) {
-	return getPulseWidth(n.pulseWidth)*parseInt(wavedef[parseInt(n.waveMode)].res);
+	return getPulseWidth(n.pw)*parseInt(wavedef[parseInt(n.wm)].res);
 }
 
 function getPulseWidth(n) {
@@ -1521,10 +1717,102 @@ function getSpeedPCT(n) {
 	var x= parseInt(n)*100/255;
 	return x.toFixed(0)+"%";
 }
-
+function  animateATO() {
+	var bw = $("#ato_in").width();
+	var pw = $("#ato_in").parent().width();
+	$("#ato_in").width("100%");
+	$("#ato_txt").html("100%");
+	$("#ato_in").animate({width:""+bw+"px"},{duration:"long",step:function(now, tween){
+		$("#ato_txt").html(Math.round(now/pw*100)+"%");
+	}});
+}
+function animateDoser(){
+	for (var i in dosers){
+		var doser= dosers[i];
+		var fullvol = parseInt(doser.fv);
+		var dosedvol = parseInt(doser.dv);
+		var remainingvol = fullvol - dosedvol/100.0;
+		$('#doser_'+i).width("100%");
+		$('#doser_txt_'+i).html(remainingvol.toFixed(2)+" ml");
+		$("#doser_"+i).animate({width:""+remainingvol/fullvol*100.0+"%"},{duration:"long",step:function(now,tween){
+			  var i = parseInt(tween.elem.id.charAt(6));
+				var num = now/100.0*parseInt(dosers[i].fv);
+				$('#doser_txt_'+i).html(num.toFixed(2)+" ml");
+		}});
+	}
+}
+function doserCommand(cmd){
+	var nval = "";
+	if (cmd=='mdose') {
+		nval = parseFloat($('#_dosevolume').val())*10;
+	} else if (cmd=='setdv') {
+		nval = $(_setdosedvolume).val();
+	} else if (cmd=='csave'){
+		nval = $('#_dosercalvol').val();
+	} else if (cmd=='cadj'){
+		nval = $('#_dosercaltime').val();
+	} else if (cmd=='ctest'){
+		nval = parseFloat($('#_dosercalvol').val())*10;
+		cmd="mdose";
+	}
+	$.mobile.loading('show');
+	$.ajax('doser.json', {
+		data:"{\"cmd\":\""+cmd+"\",\"idx\":\""+doseridx+"\",\"v\":\""+nval+"\"}",
+		contentType:'application/json',
+		type:'POST'}).always(function () {
+		}).done(function (data) {
+			dosers=data.dosers;
+			$.mobile.loading('hide');
+			if (cmd!='cstart' && cmd!='cabort' && cmd!='cadj')
+				alert("Doser command sent.");
+			if (cmd=='cstart') {
+				$('#_dosercalvol').val(5);
+				$('#_dosercaltime').val(980);
+				$('#_dosercaltotaltime').val(0);
+				$('#_dosercalstart').button('disable');
+				$('#_dosercaladjust').button('enable');
+				$('#_dosercalsave').button('disable');
+				$('#_dosercaltest').button('disable');
+				$('#_dosercalabort').button('enable');
+			} else if (cmd=='cabort'){
+				$('#_dosercalvol').val(5);
+				$('#_dosercaltime').val(980);
+				$('#_dosercaltotaltime').val(0);
+				$('#_dosercalstart').button('enable');
+				$('#_dosercaladjust').button('disable');
+				$('#_dosercalsave').button('disable');
+				$('#_dosercaltest').button('disable');
+				$('#_dosercalabort').button('disable');
+			} else if (cmd=='cadj'){
+				$('#_dosercalstart').button('disable');
+				$('#_dosercaladjust').button('enable');
+				$('#_dosercalsave').button('enable');
+				$('#_dosercaltest').button('disable');
+				$('#_dosercalabort').button('enable');
+				$('#_dosercaltotaltime').val(parseInt($('#_dosercaltotaltime').val())+parseInt($('#_dosercaltime').val()));
+			} else if (cmd=='csave'){
+				$('#_dosercalstart').button('enable');
+				$('#_dosercaladjust').button('disable');
+				$('#_dosercalsave').button('disable');
+				$('#_dosercaltest').button('enable');
+				$('#_dosercalabort').button('disable');
+			}
+		}).fail(function (jqXHR, textStatus, errorThrown) {
+			alert("Doser command error.");
+			console.log(textStatus);
+		});
+}
+function updateDoserSetupFields(){
+	$('#_dosername').val(config.dosers[doseridx].n);
+	$('#_doserdd').val(config.dosers[doseridx].dd);
+	$('#_doserdpd').val(config.dosers[doseridx].dpd).selectmenu('refresh');
+	$('#_doserint').val(config.dosers[doseridx].i).selectmenu('refresh');
+	$('#_doserst').val(minsToTime(config.dosers[doseridx].st));
+	$('#_doserfv').val(config.dosers[doseridx].fv);
+}
 function getInputHtml(a) {
 	if (a.did==="base_I1") {
-		Status='<div id="perc"><div id="perc_in" style="width:'+a.v+'%"/><div id="perc_txt">'+a.v+'%</div></div>';
+		Status='<div class="perc" style="width:120px" id="ato"><div class="perc_in" id="ato_in" style="width:'+a.v+'%"/><div class="perc_txt" id="ato_txt">'+a.v+'%</div></div>';
 	} else {
 		if (a.v==0) {
 			Status="Open".fontcolor("#090");
@@ -1613,8 +1901,10 @@ $('#csetup').on('pageinit', function (e) {
 	$('#contentleds').hide();
 	$('#contentoutlet').show();
 }).on('pageshow', function (e, data) {
-	if (data.prevPage[0].id=='page')
+	if (data.prevPage[0].id=='page') {
+		config={};
 		macropage();
+	}
 });
 $(document).on('tap', '.logfile, .outlogfile, .actionline', function (e) {
 	var listitem=$(this);
@@ -1740,6 +2030,24 @@ $('#sndalert').on('change', function (e) {
 $('#emailalert').on('change', function (e) {
 	config.misc.ema=this.checked;
 });
+$('#_dosername').on('change', function(e){
+	config.dosers[doseridx].n=$('#_dosername').val();
+})
+$('#_doserdd').on('change', function(e){
+	config.dosers[doseridx].dd=$('#_doserdd').val();
+})
+$('#_doserdpd').on('change', function(e){
+	config.dosers[doseridx].dpd=$('#_doserdpd').val();
+})
+$('#_doserint').on('change', function(e){
+	config.dosers[doseridx].i=$('#_doserint').val();
+})
+$('#_doserst').on('change', function(e){
+	config.dosers[doseridx].st=timeToMins($('#_doserst').val());
+})
+$('#_doserfv').on('change', function(e){
+	config.dosers[doseridx].fv=$('#_doserfv').val();
+})
 $('#pumpnav').on('click', 'li a', function(e){
 	pwmpumpsidx = $(this).closest('li').index();
 	updateprogramlist();
@@ -1749,15 +2057,43 @@ $('#pumpnav').on('click', 'li a', function(e){
 	$(this).addClass('ui-state-persist').addClass('ui-btn-active');
 //	e.preventDefault();
 });
+$('#dosernav').on('click', 'li a', function(e){
+	doseridx = $(this).closest('li').index();
+	updateDoserSetupFields();
+	$.each($('#dosernav').find('a'),function(i,obj){
+		$(this).removeClass('ui-state-persist').removeClass('ui-btn-active');
+	})
+	$(this).addClass('ui-state-persist').addClass('ui-btn-active');
+})
+$('#_dosercalibrate').on('pagebeforeshow', function(e){
+//	doserCommand('cstart');
+	$('#_dosercalibratehdr').html("Calibrate Doser "+doseridx);
+	$('#_dosercalvol').val(5);
+	$('#_dosercaltime').val(980);
+	$('#_dosercaltotaltime').val(0);
+	$('#_dosercalstart').button('enable');
+	$('#_dosercaladjust').button('disable');
+	$('#_dosercalsave').button('disable');
+	$('#_dosercaltest').button('disable');
+	$('#_dosercalabort').button('disable');
+}).on('pagebeforehide', function(e){
+	doserCommand('cabort');
+})
 $('#csform').on('pagebeforecreate', function(e) {
 	if (config.pumps.length>2) {
 		$('#pumpnav').append("<li><a id='pumpnav2'>Pump 2</a> </li>").append("<li><a id='pumpnav3'>Pump 3</a> </li>");
 	  $('#pumpnav').navbar();
+	} else if (config.pumps.length==0) {
+		$('#contentpumps').html("<h1>No pumps defined.</h1>")
+	}
+	if (config.dosers.length==0){
+		$('#contentdosers').html("<h1>No dosers defined.</h1>")
 	}
 }).on('pagehide', function(e, data) {
 	if (data.nextPage[0].id=='pumpprogramedit' || data.nextPage[0].id=='editaction') return;
 	csitem=-1;
 	pwmpumpsidx=0;
+	doseridx=0;
 }).on('pagebeforeshow', function (e,data) {
 	switch (csitem) {
 	case 0:
@@ -1824,6 +2160,7 @@ $('#csform').on('pagebeforecreate', function(e) {
 		$('#contentmisc').hide();
 		$('#contentpumps').hide();
 		$('#contentdosers').show();
+		$('#dosernav'+doseridx).trigger('click');
 		$('#contentleds').hide();
 		$('#contentoutlets').hide();
 		$('#csformhdr').html("Dosers Setup");
@@ -1981,21 +2318,21 @@ function createPage(id, files) {
 	p.appendTo($.mobile.pageContainer);
 	$.mobile.initializePage();
 	$.each(files, function (i, file) {
-		var list=$('<li  class="filelist" path="'+basepath+file.name+'"/>');
-		var filesize=parseInt(file.size, 10);
+		var list=$('<li  class="filelist" path="'+basepath+file.n+'"/>');
+		var filesize=parseInt(file.s, 10);
 		if (filesize== -1) {
-			var l=$('<a href="#'+id+file.name+'-" class="direntry">'+file.name+'</a>');
+			var l=$('<a href="#'+id+file.n+'-" class="direntry">'+file.n+'</a>');
 			list.append(l);
 		} else {
-			var divblocka=$('<div >'+file.name+'</div>');
-			var divblockb=$('<div class="ui-li-aside">'+file.size+'</div>');
+			var divblocka=$('<div >'+file.n+'</div>');
+			var divblockb=$('<div class="ui-li-aside">'+file.s+'</div>');
 			total+=filesize;
-			if (file.name.indexOf('.LOG')!= -1) {
+			if (file.n.indexOf('.LOG')!= -1) {
 				var a=$('<a href="#log"/>');
 				a.append(divblocka, divblockb);
 				list.addClass('logfile');
 				list.append(a);
-			} else if (pagesel.indexOf('-OUT')==0&&file.name.indexOf('.TXT')!= -1) {
+			} else if (pagesel.indexOf('-OUT')==0&&file.n.indexOf('.TXT')!= -1) {
 				var a=$('<a href="#outlog"/>');
 				a.append(divblocka, divblockb);
 				list.addClass('outlogfile');
@@ -2064,6 +2401,8 @@ function saveconfig() {
 		datastr = '{"pumps":'+JSON.stringify(config.pumps)+'}';
 		break;
 	case 4:
+		name="dosers";
+		datastr = '{"dosers":'+JSON.stringify(config.dosers)+'}';
 		break;
 	case 5:
 		break;
@@ -2117,8 +2456,18 @@ function macropage() {
 			retry=0;
 		});
 }
+function minsToTime(mins) {
+	return checkTime(Math.floor(mins/60))+":"+checkTime(mins%60);
+}
 function secsToTime(secs) {
 	return checkTime(Math.floor(secs/3600))+":"+checkTime(Math.floor((secs%3600)/60))+":"+checkTime((secs%3600)%60);
+}
+function timeToMins(time) {
+	var mins=0;
+	$.each(time.split(":"), function (i, rec) {
+		mins+=parseInt(rec)*Math.pow(60, 1-i);
+	});
+	return mins;
 }
 function timeToSecs(time) {
 	var secs=0;

@@ -4,28 +4,51 @@
  * Commercial use of this software without
  * permission is absolutely prohibited.
 */
+const char path0[] PROGMEM= "/";
+const char path1[] PROGMEM = "/cgi-bin/status.json";
+const char path2[] PROGMEM = "/cgi-bin/datalog.xml" "*";
+const char path3[] PROGMEM = "/pwmwavedef.json";
+const char path4[] PROGMEM = "/pwmpumpdata.json";
+const char path5[] PROGMEM = "/cgi-bin/status.xml";
+const char path6[] PROGMEM = "/cgi-bin/outlog.xml" "*";
+const char path7[] PROGMEM = "/cgi-bin/files.json" "*";
+const char path8[] PROGMEM = "/config.json";
+const char path9[] PROGMEM = "/phval.json";
+const char path10[] PROGMEM = "/pwmset.json";
+const char path11[] PROGMEM = "/doser.json";
+const char path12[] PROGMEM = "/cgi-bin/status.cgi";
+const char path13[] PROGMEM = "/upload/" "*";
+const char path14[] PROGMEM = "/delete/" "*";
+const char path15[] PROGMEM = "/" "*";
+const char head0[]  PROGMEM = "Content-Length";
+const char head1[]  PROGMEM = "Authorization";
+const char head2[]  PROGMEM = "Accept-Encoding";
+
+
 TinyWebServer::PathHandler handlers[] = {
-  {"/", TinyWebServer::GET, &index_handler},
-  {"/upload/" "*", TinyWebServer::PUT, &secure_put_handler},
-  {"/delete/" "*", TinyWebServer::GET, &delete_handler},
-  {"/cgi-bin/status.xml", TinyWebServer::GET, &apex_status_handler},
-  {"/cgi-bin/status.json", TinyWebServer::GET, &apex_status_json_handler},
-  {"/cgi-bin/files.json" "*", TinyWebServer::GET, &apex_filesjson_handler},
-  {"/cgi-bin/outlog.xml" "*", TinyWebServer::GET, &apex_outlog_handler},
-  {"/cgi-bin/datalog.xml" "*", TinyWebServer::GET, &apex_datalog_handler},
-  {"/config.json" , TinyWebServer::ANY, &apex_config_handler},
-  {"/phval.json", TinyWebServer::ANY, &apex_phval_handler},
-  {"/pwmpumpdata.json",TinyWebServer::GET, &apex_pwmpumpdata_handler},
-  {"/pwmwavedef.json",TinyWebServer::GET, &apex_pwmwavedef_handler},
-  {"/pwmset.json",TinyWebServer::POST, &apex_pwmset_handler},
-  {"/cgi-bin/status.cgi" , TinyWebServer::POST, &apex_command_handler},
-  {"/" "*", TinyWebServer::GET, &file_handler},
+  {path0, TinyWebServer::GET, &index_handler},
+  {path1, TinyWebServer::GET, &apex_status_json_handler},
+  {path2, TinyWebServer::GET, &apex_datalog_handler},
+  {path3,TinyWebServer::GET, &apex_pwmwavedef_handler},
+  {path4,TinyWebServer::GET, &apex_pwmpumpdata_handler},
+  {path5, TinyWebServer::GET, &apex_status_handler},
+  {path6, TinyWebServer::GET, &apex_outlog_handler},
+  {path7, TinyWebServer::GET, &apex_filesjson_handler},
+  {path8, TinyWebServer::ANY, &apex_config_handler},
+  {path9, TinyWebServer::ANY, &apex_phval_handler},
+  {path10,TinyWebServer::POST, &apex_pwmset_handler},
+  {path11,TinyWebServer::ANY,&apex_doser_handler},
+  {path12 , TinyWebServer::POST, &apex_command_handler},
+  {path13, TinyWebServer::PUT, &secure_put_handler},
+  {path14, TinyWebServer::GET, &delete_handler},
+  {path15, TinyWebServer::GET, &file_handler},
   {NULL}
 };
 
 const char* headers[] = {
-  "Content-Length",
-  "Authorization",
+  head0,
+  head1,
+  head2,
   NULL
 };
 
@@ -80,6 +103,7 @@ void send_file_name(TinyWebServer& web_server) {
 
 void send_file_name(TinyWebServer& web_server, char* fullpath) {
   char* fn;
+  EthernetClient& client = web_server.get_client();
   if (!fullpath) {
     web_server.send_error_code(404);
     web_server << F("Could not parse URL");
@@ -93,8 +117,24 @@ void send_file_name(TinyWebServer& web_server, char* fullpath) {
     if ((f==fullpath?sd.chdir():sd.chdir(fullpath))) {
       fn = f+1;
       if (file_.open(fn,O_READ)) {
-        web_server.send_error_code(200);
+        client << F("HTTP/1.1 200 OK\r\n");
         web_server.send_content_type(mime_type);
+        if (strcmp_P(fullpath,PSTR("/INDEX.HTM"))==0) {
+          const char* compress = web_server.get_header_value(PSTR("Accept-Encoding"));
+          if (compress!=NULL && strstr_P(compress,PSTR("gzip")) && strstr_P(compress,PSTR("deflate"))) {
+            file_.close();
+            if (file_.open("INDEX.GZ",O_READ))
+              client << F("Content-Encoding: gzip\r\n");
+            else {
+              file_.close();
+              file_.open(fn,O_READ);
+            }
+          }
+        }
+        client << F("Cache-Control: no-cache\r\n");
+        client << F("Content-Length: ");
+        client.println(file_.fileSize(),DEC);
+        client << F("Connection: close\r\n");
         web_server.end_headers();
         web_server.send_file(file_);
       } else {
@@ -119,9 +159,9 @@ boolean delete_handler(TinyWebServer& web_server) {
     char* fn = f+1;
     if ((file_.open(fn) && file_.rmRfStar()) || sd.remove(fn)) {
       web_server.send_error_code(200);
-      web_server.send_content_type("text/plain");
+      web_server.send_content_type(F("text/plain"));
       web_server.end_headers();
-      Client& client = web_server.get_client();
+      EthernetClient& client = web_server.get_client();
       client << F("File/Directory deleted!");
     } else {
       web_server.send_error_code(404);
@@ -134,10 +174,11 @@ boolean delete_handler(TinyWebServer& web_server) {
 
 boolean check_auth(TinyWebServer& web_server) {
   logNetworkAccess(web_server);
-  const char* value = web_server.get_header_value("Authorization");
+  const char* value = web_server.get_header_value(PSTR("Authorization"));
   if (value==NULL || (value!=NULL && strcmp(value+6,BASICAUTH))) {//admin:password
-    web_server.get_client().println(F("HTTP/1.1 401"));
-    web_server.get_client().println(F("WWW-Authenticate: Basic realm=\"\""));  
+    EthernetClient& client=web_server.get_client();
+    client << F("HTTP/1.1 401\r\n");
+    client << F("WWW-Authenticate: Basic realm=\"\"\r\n");
     web_server.end_headers();
     logMessage(F("Access denied."));
     if (value!=NULL)
@@ -237,9 +278,33 @@ void sendEmail() {
     client << F("To:") << EMAILTO << F("\r\n");
     client << F("Subject: Alert from ") << CONTROLLER_NAME << F("\r\n"); 
     client << F("\r\n");
-    client << F("Temp:") << getTemp() << F("\r\n");
-    client << F("pH:") <<getph() << F("\r\n");
-    client << F("Top Off water level:") << (uint8_t)getSonarPct() << F("%\r\n.\r\n");
+#ifdef _TEMP
+    for (int i=0;i<MAXTEMP;i++) {
+      client << tempname[i] << ": " << getTemp(i) << F("\r\n");
+    }
+#endif
+#ifdef _PH
+    for (int i=0;i<MAXPH;i++) {
+      client << phname[i] << ": " << getph(i) << F("\r\n");
+    }
+#endif
+#ifdef _COND
+    client << F("Cond: ") << getCond() << F("\r\n");
+#endif
+#ifdef _ORP
+  client << F("Orp: ") << getOrp() << F("\r\n");
+#endif
+#ifdef _SONAR
+    client << F("Top Off water level: ") << (uint8_t)getSonarPct() << F("%\r\n.\r\n");
+#endif
+#ifdef _DOSER
+  for (int i=0;i<MAXDOSERS;i++) {
+    client << F("Doser ") << i << F(": \r\n");
+    client << F("  ") << (const char*)conf.doser[i].name << F("\r\n");
+    client << F("  Dosed Volume: ") << dosedvolume[i]/100.0 << F("\r\n");
+    client << F("  Remaining Volume:") << conf.doser[i].fullvolume -dosedvolume[i]/100.0 << F("\r\n");
+  }
+#endif
     if(!eRcv(client)) return;
     client << F("QUIT\r\n");    
     if(!eRcv(client)) return;

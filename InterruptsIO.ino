@@ -108,9 +108,13 @@ ISR(TIMER1_COMPC_vect) { //interrupts every 1.02 ms
   static uint16_t outletmod = 10;
   //call 1ms tasks, make sure tasks executes in under 100us
   buzzerHandler();
-  //ppumpHandler(); //perform dosing or water change
   if (!timerEnabled) return;
-
+#ifdef _DOSER
+  doserHandler();
+#endif
+#ifdef _FEEDER_V2
+  feedHandler();
+#endif
   if (counter%outletmod==0) {//10ms
     //call 10ms tasks, make sure tasks execute in under 1 ms
     outletmod=outletHandlerA();
@@ -188,38 +192,158 @@ void checkATO(){
 }
 
 ////////////////////////////////
-//  PERISTALTIC PUMPS
+//  Doser PUMPS
 ////////////////////////////////
-void initPeristalticPumps(){
-  //PG0
-  //PG2
+void initDosers(){
+  //PG0 Digital 39
+  //PG2 Digital 41
+  readDoserStatus();
   DDRG |= _BV(PG0)|_BV(PG2);
-  ppump0Off();
-  ppump1Off();
-}
-
-inline void ppump0On() {
-  PORTG|=_BV(PG0);
-}
-
-inline void ppump0Off() {
   PORTG&=~_BV(PG0);
-}
-
-inline void ppump1On() {
-  PORTG|=_BV(PG2);
-}
-
-inline void ppump1Off() {
   PORTG&=~_BV(PG2);
+  if (conf.doser[0].rate==0||conf.doser[1].rate==0) {
+    p(F("Configure Doser."));
+    logMessage(F("Please configure doser pumps before using."));
+  } else {
+    p(F("Dosers OK.      "));
+    logMessage(F("Doser pumps initialized."));
+    logMessage(F("Doser0 dosed volume since reset is "),dosedvolume[0]/100.0);
+    logMessage(F("Doser1 dosed volume since reset is "),dosedvolume[1]/100.0);
+  }
+  cli();
+  for (int i=0;i<MAXDOSERS;i++){
+    doseractive[i]=false;
+    dosercounter[i]=dosercountmatch[i]=0ul;
+  }
+  updateDoserStatusFlag=false;
+  calibrationcount=0;
+  sei();
 }
 
-inline uint8_t getppump0(){
-  return PINK & _BV(PK6);
+inline void doserHandler(){
+  for (int i=0;i<MAXDOSERS;i++) {
+    if (doseractive[i]) {
+      if (++dosercounter[i]==dosercountmatch[i]) {
+       doserOff(i);
+      }
+    }
+  }
 }
 
-inline uint8_t getppump1() {
-  return PINK & _BV(PK7);
+inline void doserOn(uint8_t i, uint32_t countmatch) {
+  if (isDoserOn(i) || dosercalibrating) return;
+  uint8_t SaveREG=SREG;
+  cli();
+  if (dosedvolume[i]>conf.doser[i].fullvolume*100ul) {
+    SREG=SaveREG;
+    return;
+  }
+  dosercounter[i]=0;
+  dosercountmatch[i]=countmatch;
+  if (i==0) {
+    PORTG|=_BV(PG0);
+  } else {
+    PORTG|=_BV(PG2);
+  }
+  doseractive[i]=true;
+  _outlogentry((i==0?Doser0:Doser1),true);
+  SREG=SaveREG;
+}
+
+inline void doserOff(uint8_t i) {
+    if (dosercalibrating) return calstop(i);
+    if (isDoserOn(i)) {
+    uint8_t SaveSREG=SREG;
+    cli();
+    doseractive[i]=false;
+    if (i==0) {
+      PORTG&=~_BV(PG0);
+    } else  {
+      PORTG&=~_BV(PG2);
+    }
+    _outlogentry((i==0?Doser0:Doser1),false);
+    //set log
+    if (conf.doser[i].rate>0)
+      dosedvolume[i]+=100ul*dosercounter[i]/conf.doser[i].rate;
+    dosercountmatch[i]=0;
+    dosercounter[i]=0;
+    if (updateDoserStatusFlag==false) {
+      updateDoserStatusFlag=true;
+    }
+    SREG=SaveSREG;
+  }
+}
+
+inline boolean isDoserOn(uint8_t i){
+  if (i==0)
+    return PORTG & _BV(PG0);
+  else
+    return PORTG & _BV(PG2);
+}
+
+void manualDoseOn(uint8_t i, uint16_t vol) {
+  if (conf.doser[i].rate==0 || dosercalibrating) return;
+  doserOn(i, vol/10.0 * conf.doser[i].rate);
+}
+
+void calstart(uint8_t i) {
+  cli();
+  calibrationcount=0;
+  dosercountmatch[i] = 0;
+  dosercounter[i] = 0;
+  dosercalibrating=true;
+  logMessage(F("Doser "),i);
+  logMessage(F("Calibration start."));
+  sei();
+}
+
+
+void calstop(uint8_t i) {
+  uint8_t SaveSREG = SREG;
+  cli();
+  doseractive[i]=false;
+  if (i==0) {
+    PORTG&=~_BV(PG0);
+  } else  {
+    PORTG&=~_BV(PG2);
+  }
+  calibrationcount+=dosercounter[i];
+  dosercounter[i]=dosercountmatch[i]=0;
+  SREG = SaveSREG;
+}
+
+void caladjust(uint8_t i,uint32_t addcount) {
+  cli();
+  dosercountmatch[i] = addcount;
+  dosercounter[i] = 0;
+  if (i==0) {
+    PORTG|=_BV(PG0);
+  } else {
+    PORTG|=_BV(PG2);
+  }
+  doseractive[i]=true;
+  sei();
+}
+
+void calsave(uint8_t i, uint16_t vol) {
+  conf.doser[i].rate = calibrationcount/vol;
+  calibrationcount=0;
+  dosercalibrating=false;
+  writeEEPROM();  
+  logMessage(F("Doser "),i);
+  logMessage(F("Calibration End. Dose rate = "),(int)conf.doser[i].rate);
+}
+
+void getdoserstatus(EthernetClient& client, uint8_t i) {
+  client << F("{\"n\":\"") << (const char*)conf.doser[i].name << F("\",\"dd\":\"") << conf.doser[i].dailydose;
+  client << F("\",\"dpd\":\"") << conf.doser[i].dosesperday << F("\",\"i\":\"") << conf.doser[i].interval;
+  client << F("\",\"st\":\"") << conf.doser[i].starttime;
+  uint8_t saveSREG = SREG;
+  cli();
+  client << F("\",\"dv\":\"") << dosedvolume[i] << F("\",\"fv\":\"") << conf.doser[i].fullvolume;
+  client << F("\",\"s\":\"") << (isDoserOn(i)?F("on"):F("off"));
+  SREG=saveSREG;
+  client << F("\"}") << (i<MAXDOSERS-1?F(","):F(""));
 }
 
 ////////////////////////////////////
@@ -227,7 +351,7 @@ inline uint8_t getppump1() {
 ////////////////////////////////////
 //#define feedOutPin 49 //PL0  PORTL
 //#define feedInPin A10 //PK2 PCINT18
-
+#ifdef _FEEDER
 void initFeeder() {
   DDRK &= ~_BV(PK2);
   PORTK |= _BV(PK2);
@@ -256,7 +380,37 @@ inline void feederHandler(uint8_t pins) {
   } 
   last_int_time=int_time;
 }
+#endif
+//////////////////////////////////////////////
+//  FEEDER V2
+//////////////////////////////////////////////
+#ifdef _FEEDER_V2
+volatile uint8_t feed2counter=0;
 
+void initFeeder(){
+  //use A10 PK2 only
+  //set PK2 to tristate mode
+  DDRK &= ~_BV(PK2);//input
+  PORTK &= ~_BV(PK2);//no pullup
+}
+
+inline void feed() {
+  DDRK |= _BV(PK2);//output
+  PORTK |= _BV(PK2);//high
+  feed2counter=100;
+  _outlogentry(Feeder,true);
+}
+
+inline void feedHandler(){
+  if (feed2counter>0) {
+    if (--feed2counter==0) {
+      PORTK &= ~_BV(PK2);//low
+      DDRK &= ~_BV(PK2);//input
+      _outlogentry(Feeder,false);
+    }
+  }
+}
+#endif
 ///////////////////////////////////////////////
 //    PWM
 //////////////////////////////////////////////

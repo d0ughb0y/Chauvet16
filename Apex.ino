@@ -4,19 +4,21 @@
  * Commercial use of this software without
  * permission is absolutely prohibited.
 */
-FLASH_STRING(apex_hwsw,"hardware=\"1.0\" software=\"4.20_1B13\">\n\t<hostname>");
-FLASH_STRING(apex_intro1,"</hostname>\n\t<serial>AC4:12345</serial>\n\t<timezone>");
+FLASH_STRING(apex_dummy,"");
+FLASH_STRING(apex_hwsw,"hardware=\"1.0\" software=\"4.20_1B13\">\n<hostname>");
+FLASH_STRING(apex_intro1,"</hostname>\n<serial>AC4:12345</serial>\n<timezone>");
 FLASH_STRING(apex_intro2,"</timezone>\n");
 FLASH_STRING(apex_date1,"<date>");
-FLASH_STRING(apex_date2,"</date>\n\t");
-FLASH_STRING(apex_power,"<power><failed>none</failed><restored>none</restored></power>\n\t");
-FLASH_STRING(apex_temp1,"<probes>\n\t\t<probe><name>Temp</name><value>");
-FLASH_STRING(apex_temp2,"</value><type>Temp</type></probe>\n\t\t");
-FLASH_STRING(apex_ph1,"<probe><name>pH</name><value>");
-FLASH_STRING(apex_ph2,"</value><type>pH</type></probe>\n\t</probes>\n\t<outlets>\n");
+FLASH_STRING(apex_date2,"</date>\n");
+FLASH_STRING(apex_power,"<power><failed>none</failed><restored>none</restored></power>\n<probes>\n");
+FLASH_STRING(apex_xml_probe1,"<probe><name>");
+FLASH_STRING(apex_xml_probe2,"</name><value>");
+FLASH_STRING(apex_xml_probe3,"</value><type>");
+FLASH_STRING(apex_xml_probe4,"</type></probe>\n");
+FLASH_STRING(apex_xml_probe5,"</probes>\n<outlets>\n");
 FLASH_STRING(apex_status1,"<status ");
-FLASH_STRING(apex_status2,"\t</outlets>\n</status>");
-FLASH_STRING(apex_outlet1,"\t\t<outlet><name>"); //getname
+FLASH_STRING(apex_status2,"</outlets></status>");
+FLASH_STRING(apex_outlet1,"<outlet><name>"); //getname
 FLASH_STRING(apex_outlet2,"</name><outputID>");  //get order
 FLASH_STRING(apex_outlet3,"</outputID><state>"); //get state auto and on or off
 FLASH_STRING(apex_outlet4,"</state><deviceID>1_"); //hard coded device id
@@ -31,10 +33,13 @@ FLASH_STRING(apex_json1c,"\",\"software\":\"4.20_1B13\",\"hardware\":\"1.0\",\"s
 FLASH_STRING(apex_json2,"\",\"d\":");
 FLASH_STRING(apex_json3,",\"feed\":{\"name\":");
 FLASH_STRING(apex_json3a,",\"active\":");
-FLASH_STRING(apex_json3b,"},\"power\":{\"failed\":1367205445,\"restored\":1367205445},");
-FLASH_STRING(apex_json4,"\"probes\":[{\"did\":\"base_Temp\",\"t\":\"Temp\",\"n\":\"Temp\",\"v\":");
-FLASH_STRING(apex_json5,"},{\"did\":\"base_pH\",\"t\":\"pH\",\"n\":\"pH\",\"v\":");
-FLASH_STRING(apex_json6,"}],\"outlets\":[");
+FLASH_STRING(apex_json3b,"},\"power\":{\"failed\":1367205445,\"restored\":1367205445},\"probes\":[");
+FLASH_STRING(apex_json_probe1,"{\"did\":\"base_");
+FLASH_STRING(apex_json_probe2,"\",\"t\":\"");
+FLASH_STRING(apex_json_probe3,"\",\"n\":\"");
+FLASH_STRING(apex_json_probe4,"\",\"v\":");
+FLASH_STRING(apex_json_probe5,"}");
+FLASH_STRING(apex_json6,"],\"outlets\":[");
 FLASH_STRING(apex_json7,"{\"n\":\"");
 FLASH_STRING(apex_json8,"\",\"s\":\"");
 FLASH_STRING(apex_json9,"\",\"oid\":\"");
@@ -42,6 +47,7 @@ FLASH_STRING(apex_json10,"\",\"did\":\"1_");
 FLASH_STRING(apex_json11,"\"}");
 FLASH_STRING(apex_json12,"],\"inputs\":[");
 FLASH_STRING(apex_json12a,"],\"pwmpumps\":[");
+FLASH_STRING(apex_json_doser1,"],\"dosers\":[");
 FLASH_STRING(apex_json13,"]}}");
 
 boolean process_params(char* inputstring, char* params_[], uint8_t len) {
@@ -93,38 +99,52 @@ char* date2file(tmElements_t tm,char* base, char* buf) {
 }
 
 boolean apex_status_handler(TinyWebServer& webserver) {
-  if (!check_auth(webserver)) return true;
+// to use reeftronics service, comment out the next line
+//  if (!check_auth(webserver)) return true;
   char tmp[20];
   webserver.send_error_code(200);
-  webserver.send_content_type("text/xml");
+  webserver.send_content_type(F("text/xml"));
   webserver.end_headers();
-  Client& client = webserver.get_client();
+  EthernetClient& client = webserver.get_client();
 
-  client << apex_status1;
-  client << apex_hwsw << CONTROLLER_NAME << apex_intro1;
+  client << apex_status1 << apex_hwsw << CONTROLLER_NAME << apex_intro1;
   client << tz;
-  client << apex_intro2;
-  client << apex_date1;
-  client << getdatestring(now2(),tmp);
-  client << apex_date2;
-  client << apex_power;
-  client << apex_temp1;
-  client << dtostrf(getTemp(), 4, 1, (char*)tmp);
-  client << apex_temp2;
-  client << apex_ph1;
-  client << dtostrf(getph(), 5, 2, (char*)tmp);
-  client << apex_ph2;
+  client << apex_intro2 << apex_date1 << getdatestring(now2(),tmp);
+  client << apex_date2 << apex_power;
+#ifdef _TEMP
+  for (int i=0;i<MAXTEMP;i++) {
+    client << apex_xml_probe1 << tempname[i] << apex_xml_probe2 << dtostrf(getTemp(i), 4, 1, (char*)tmp);
+    client << apex_xml_probe3 << F("Temp") << apex_xml_probe4;
+  }
+  client.flush();
+#endif
+#ifdef _PH
+  for (int i=0;i<MAXPH;i++) {
+    client << apex_xml_probe1 << phname[i] << apex_xml_probe2 << dtostrf(getph(i), 5,2, (char*)tmp);
+    client << apex_xml_probe3 << F("pH") << apex_xml_probe4;
+  }
+  client.flush();
+#endif
+#ifdef _COND
+  client << apex_xml_probe1 << F("Cond") << apex_xml_probe2 << dtostrf(getCond(), 4,1, (char*)tmp);
+  client << apex_xml_probe3 << F("Cond") << apex_xml_probe4;
+#endif
+#ifdef _ORP
+  client << apex_xml_probe1 << F("Orp") << apex_xml_probe2 << dtostrf(getOrp(), 3,0, (char*)tmp);
+  client << apex_xml_probe3 << F("Orp") << apex_xml_probe4;
+#endif
+  client << apex_xml_probe5;
   //outlets
   for (int i=0;i<MAXOUTLETS;i++) {
     client << apex_outlet1;
     client << (char*)conf.outletRec[i].name;
     client << apex_outlet2;
-    client << i;
+    client  << i;
     client << apex_outlet3;
     client << getOutletState(i);
     client << apex_outlet4;
     client << i;
-    client << apex_outlet5;    
+    client  << apex_outlet5;
   }
   client << apex_status2;
   return true;
@@ -183,12 +203,11 @@ boolean apex_outlog_handler(TinyWebServer& webserver) {
   char path[21];
   char* fname;
   webserver.send_error_code(200);
-  webserver.send_content_type("text/xml");
+  webserver.send_content_type(F("text/xml"));
   webserver.end_headers();
-  Client& client = webserver.get_client();
+  EthernetClient& client = webserver.get_client();
 
-  client << apex_outlog1;
-  client << apex_hwsw << CONTROLLER_NAME << apex_intro1;
+  client << apex_outlog1 << apex_hwsw << CONTROLLER_NAME << apex_intro1;
   client << tz;
   client << apex_intro2;
   size_t s;
@@ -221,11 +240,10 @@ boolean apex_datalog_handler(TinyWebServer& webserver) {
   char path[21];
   char* fname;
   webserver.send_error_code(200);
-  webserver.send_content_type("text/xml");
+  webserver.send_content_type(F("text/xml"));
   webserver.end_headers();
-  Client& client = webserver.get_client();
-  client << apex_datalog1;
-  client << apex_hwsw << CONTROLLER_NAME << apex_intro1;
+  EthernetClient& client = webserver.get_client();
+  client << apex_datalog1 << apex_hwsw << CONTROLLER_NAME << apex_intro1;
   client << tz;
   client << apex_intro2;
   size_t s;
@@ -268,7 +286,7 @@ boolean apex_command_handler(TinyWebServer& webserver) {
   webserver.send_error_code(200);
   //  webserver.send_content_type("text/plain");
   webserver.end_headers();
-  Client& client = webserver.get_client();
+  EthernetClient& client = webserver.get_client();
   int i=0;
   while (client.available() && i<40) {
     parambuffer[i++]=(char)client.read();
@@ -328,9 +346,9 @@ boolean apex_command_handler(TinyWebServer& webserver) {
 boolean apex_status_json_handler(TinyWebServer& webserver) {
   if (!check_auth(webserver)) return true;
   webserver.send_error_code(200);
-  webserver.send_content_type("application/json");
+  webserver.send_content_type(F("application/json"));
   webserver.end_headers();
-  Client& client = webserver.get_client();
+  EthernetClient& client = webserver.get_client();
   client << apex_json1 << apex_json1b << CONTROLLER_NAME << apex_json1c << tz;
   client << apex_json2 << (now2()- tz*SECS_PER_HOUR);
   client << apex_json3;
@@ -338,10 +356,37 @@ boolean apex_status_json_handler(TinyWebServer& webserver) {
   client << apex_json3a;
   client << getFeedActive();
   client << apex_json3b;
-  client << apex_json4;
   char buffer[6];
-  client << dtostrf(getTemp(), 4, 1, buffer) << apex_json5;
-  client << dtostrf(getph(),5,2,buffer) << apex_json6;
+  int sensorcount = 0;
+#ifdef _TEMP
+  for (int i=0;i<MAXTEMP;i++) {
+    client << apex_json_probe1 << F("Temp") << i << apex_json_probe2 << F("Temp") << apex_json_probe3 << tempname[i];
+    client << apex_json_probe4 << dtostrf(getTemp(i),4,1,buffer) << apex_json_probe5;
+    if (++sensorcount<maxsensors)
+      client << F(",");
+  }
+#endif
+#ifdef _PH
+  for (int i=0;i<MAXPH;i++) {
+    client << apex_json_probe1 << F("pH") << i << apex_json_probe2 << F("pH") << apex_json_probe3 << phname[i];
+    client << apex_json_probe4 << dtostrf(getph(i),5,2,buffer) << apex_json_probe5;
+    if (++sensorcount<maxsensors)
+      client << F(",");
+  }
+#endif
+#ifdef _COND
+    client << apex_json_probe1 << F("Cond") << i << apex_json_probe2 << F("Cond") << apex_json_probe3 << F("Cond");
+    client << apex_json_probe4 << dtostrf(getCond(),4,1,buffer) << apex_json_probe5;
+    if (++sensorcount<maxsensors)
+      client << F(",");
+#endif
+#ifdef _ORP
+  client << apex_json_probe1 << F("Orp") << i << apex_json_probe2 << F("Orp") << apex_json_probe3 << F("Orp");
+  client << apex_json_probe4 << dtostrf(getOrp(),3,0,buffer) << apex_json_probe5;
+    if (++sensorcount<maxsensors)
+      client << F(",");
+#endif
+  client << apex_json6;
   for (int i=0;i<MAXOUTLETS;i++) {
     client << apex_json7 << (char*)conf.outletRec[i].name << apex_json8;
     client << getOutletState(i) << apex_json9 << i << apex_json10 << i << apex_json11;
@@ -349,8 +394,10 @@ boolean apex_status_json_handler(TinyWebServer& webserver) {
       client << F(",");
   }
   client << apex_json12; 
+#ifdef _SONAR
   client << F("{\"did\":\"base_I1\",\"n\":\"Top Off\",\"v\":");
   client << getSonarPct() << F("},");
+#endif
   client << F("{\"did\":\"base_I2\",\"n\":\"ATO Upper\",\"v\":");
   client << (getATO1()?0:1) << F("},");
   client << F("{\"did\":\"base_I3\",\"n\":\"ATO Lower\",\"v\":");
@@ -359,32 +406,158 @@ boolean apex_status_json_handler(TinyWebServer& webserver) {
   for (int i=0;i<MAXPWMPUMPS;i++) {
      getpumpinfo(client,i);
   }
+  client << apex_json_doser1;
+  for (int i=0;i<MAXDOSERS;i++) {
+    getdoserstatus(client,i);
+  }
   client << apex_json13 << F("\n");
   return true;  
 }
 
 boolean apex_error(TinyWebServer& webserver, const __FlashStringHelper* msg, int i) {
   webserver.send_error_code(400);
-  webserver.send_content_type("text/plain");
+  webserver.send_content_type(F("text/plain"));
   webserver.end_headers();
 //  webserver << F("Unable to update conf\n");
   webserver << msg << F(" ") << i << F("\n");
   beepFail();
   return true;   
 }
+
+boolean apex_doser_handler(TinyWebServer& webserver) {
+  if (!check_auth(webserver)) return true;
+  EthernetClient& client = webserver.get_client();
+  const char* hdrlen = webserver.get_header_value(PSTR("Content-Length"));
+  if (hdrlen==NULL) {
+    return apex_doser_get(webserver);
+  } else {
+    return apex_doser_post(webserver, atol(hdrlen));  
+  }    
+}
+
+boolean apex_doser_post(TinyWebServer& webserver, long postlen) {
+  //cmd don, doff, cstart, cstop, cadj, csave, cabort, mdose, setdv
+  //idx 0,1
+  //vol in ml
+  //{"cmd":"don";"idx":"0"}
+
+  EthernetClient& client = webserver.get_client();
+  char json[postlen+1];
+  char delims[] = "{}[],:\"";
+  int len=0;
+  int avail = postlen;
+  uint8_t* ptr = (uint8_t*)&json[0];
+  uint32_t start_time = 0;
+  boolean watchdog_start = false;
+  char command[7];
+  char idx[2];
+  char volume[6];
+
+  for (len=0;len<postlen && client.connected();) {
+    int ln = client.available()?client.read(ptr,avail):0;
+    if (!ln) {
+      if (watchdog_start) {
+        if (millis() - start_time > 10000) {
+          break;
+        }
+      } else {
+        start_time = millis();
+        watchdog_start = true;
+      }
+      continue;
+    }
+    len += ln;
+    ptr+=ln;
+    avail-=ln;
+  }
+  if (len!=postlen) return apex_error(webserver,F("len mismatch"),len);
+  json[postlen]=0;
+  char* name = strtok(json,delims);
+  while (name!=NULL) {
+    if (strcmp_P(name,PSTR("cmd"))==0) {
+      strcpy(command,strtok(NULL,delims));
+    } else if (strcmp_P(name,PSTR("idx"))==0) {
+      strcpy(idx,strtok(NULL,delims));
+    } else if (strcmp_P(name,PSTR("v"))==0) {
+      strcpy(volume,strtok(NULL,delims));
+    } else return apex_error(webserver,F("invalid json."),0);
+    name=strtok(NULL,delims);
+  }
+  if (idx==NULL) return apex_error(webserver,F("invalid json."),0);
+  int i = atoi(idx);
+  if (i<0 || i>MAXDOSERS-1) return apex_error(webserver,F("invalid idx."),i);
+  if (strcmp_P(command,PSTR("don"))==0){
+    doserOn(i,0);
+  } else if (strcmp_P(command,PSTR("doff"))==0) {
+    doserOff(i);
+  } else if (strcmp_P(command,PSTR("cstart"))==0) {
+    calstart(i);
+  } else if (strcmp_P(command,PSTR("cstop"))==0) {
+    calstop(i);
+  } else if (strcmp_P(command,PSTR("cadj"))==0) {
+    if (volume!=NULL) {
+      int vol = atoi(volume);
+      caladjust(i,vol);
+    } else
+      return apex_error(webserver,F("invalid json."),0);
+  } else if (strcmp_P(command,PSTR("csave"))==0) {
+    if (volume!=NULL && calibrationcount>0) {
+      int vol = atoi(volume);
+      if (vol>0)
+        calsave(i,vol);
+      else
+        return apex_error(webserver,F("Doser calibration save failed."),vol);
+    }
+  }  else if (strcmp_P(command,PSTR("cabort"))==0) {
+    calibrationcount=0;
+    dosercalibrating=false;
+  } else if (strcmp_P(command,PSTR("mdose"))==0) {
+    if (volume!=NULL) {
+      int vol = atoi(volume);
+      if (vol>0 && vol/10.0*conf.doser[i].rate < 15000UL * 60000UL / 1024)
+        manualDoseOn(i,vol);
+      else
+        return apex_error(webserver,F("Volume must result in Doser pump On time <=15 minutes."),vol);
+    } else return apex_error(webserver,F("invalid json."),0);
+  } else if (strcmp_P(command,PSTR("setdv"))==0) {
+    if (volume!=NULL) {
+      int vol = atoi(volume);
+      dosedvolume[i]=vol*100ul;
+      writeDoserStatus();
+    }
+  } else {
+    return apex_error(webserver,F("invalid json."),0);
+  }
+  return apex_doser_get(webserver);
+}
+
+boolean apex_doser_get(TinyWebServer& webserver) {
+  webserver.send_error_code(200);
+  webserver.send_content_type(F("application/json"));
+  webserver.end_headers();
+  EthernetClient& client = webserver.get_client();
+  client << F("{\"dosers\":[");
+  for (int i=0;i<MAXDOSERS;i++) {
+    getdoserstatus(client,i);
+  }
+  client << F("]}\r\n");
+  return true;
+}
+
 boolean apex_config_handler(TinyWebServer& webserver) {
   if (!check_auth(webserver)) return true;
-  Client& client = webserver.get_client();
-  const char* hdrlen = webserver.get_header_value("Content-Length");
+  EthernetClient& client = webserver.get_client();
+  const char* hdrlen = webserver.get_header_value(PSTR("Content-Length"));
   if (hdrlen==NULL) {
     return apex_config_get(webserver);
   } else {
     return apex_config_post(webserver, atol(hdrlen));  
   }  
 }
+
 boolean apex_config_post(TinyWebServer& webserver, long postlen) {
-  Client& client = webserver.get_client();
-  char json[postlen];
+  EthernetClient& client = webserver.get_client();
+  char json[postlen+1];
   char delims[] = "{}[],:\"";
   int len=0;
   int avail = postlen;
@@ -411,11 +584,13 @@ boolean apex_config_post(TinyWebServer& webserver, long postlen) {
     avail-=ln;
   }
   if (len!=postlen) return apex_error(webserver,F("len mismatch"),len);
+  json[postlen]=0;
   conf_t myconf;
   cli();
   memcpy((void*)&myconf,(void*)&conf,sizeof(conf_t));
   sei();
   char* name = strtok(json,delims);
+  if (strcmp_P(name,PSTR("config"))==0) name=strtok(NULL,delims);
   while (name!=NULL) {
     if (strcmp_P(name,PSTR("outlets"))==0) {
       for (int i=0;i<MAXOUTLETS;i++) {
@@ -476,6 +651,23 @@ boolean apex_config_post(TinyWebServer& webserver, long postlen) {
         }
       }  
       updatepwmpump=true;
+    } else if (strcmp_P(name,PSTR("dosers"))==0) {
+      for (int i=0;i<MAXDOSERS;i++) {
+        strtok(NULL,delims);
+        strcpy((char*)myconf.doser[i].name,strtok(NULL,delims));
+        strtok(NULL,delims);
+        myconf.doser[i].dailydose =atoi(strtok(NULL,delims));
+        strtok(NULL,delims);        
+        myconf.doser[i].dosesperday =(uint8_t)atoi(strtok(NULL,delims));
+        strtok(NULL,delims);        
+        myconf.doser[i].interval =(uint8_t)atoi(strtok(NULL,delims));
+        strtok(NULL,delims);        
+        myconf.doser[i].starttime =atoi(strtok(NULL,delims));
+        strtok(NULL,delims);
+        strtok(NULL,delims);//skip rate
+        strtok(NULL,delims);
+        myconf.doser[i].fullvolume=(uint16_t)atoi(strtok(NULL,delims));
+      }
     } else if (strcmp_P(name,PSTR("misc"))==0) {
       strtok(NULL,delims);
       myconf.htrlow =atof(strtok(NULL,delims));
@@ -518,18 +710,19 @@ boolean apex_config_post(TinyWebServer& webserver, long postlen) {
   sei();
   writeEEPROM();  
   webserver.send_error_code(200);
-  webserver.send_content_type("text/html");
+  webserver.send_content_type(F("text/html"));
   webserver.end_headers();
   client << F("OK");
   if (updatepwmpump) updatePWMPumps();
   beepOK();
   return true; 
 }
+
 boolean apex_config_get(TinyWebServer& webserver) {
   webserver.send_error_code(200);
-  webserver.send_content_type("application/json");
+  webserver.send_content_type(F("application/json"));
   webserver.end_headers();
-  Client& client = webserver.get_client();
+  EthernetClient& client = webserver.get_client();
   client << F("{\"config\":{\"outlets\":[");
   for (int i=0;i<MAXOUTLETS;i++) {
     client << F("{\"n\":\"") << (char*)conf.outletRec[i].name;
@@ -554,12 +747,12 @@ boolean apex_config_get(TinyWebServer& webserver) {
   for (int i=0;i<MAXMACROS;i++) {
     client << "[";
     for (int j=0;j<MAXMACROACTIONS;j++) {
-      client << "{\"out\":\"" << conf.actions[i][j].outlet;
-      client << "\",\"iof\":\"" << conf.actions[i][j].initoff;
-      client << "\",\"ont\":\"" << conf.actions[i][j].ontime << "\"}";
+      client << F("{\"out\":\"") << conf.actions[i][j].outlet;
+      client << F("\",\"iof\":\"") << conf.actions[i][j].initoff;
+      client << F("\",\"ont\":\"") << conf.actions[i][j].ontime << F("\"}");
       client << (j<MAXMACROACTIONS-1?",":"") << F("\n");
     }    
-    client << "]" << (i<MAXMACROS-1?",":"") << F("\n");
+    client << F("]") << (i<MAXMACROS-1?",":"") << F("\n");
   }  
   client << F("],\"pumps\":[\n");
   for (int i=0;i<MAXPWMPUMPS;i++) {
@@ -573,29 +766,40 @@ boolean apex_config_get(TinyWebServer& webserver) {
     }
     client << F("]") << (i<(MAXPWMPUMPS-1)?",":"");
   }
+  client << F("],\"dosers\":[\n");
+  for (int i=0;i<MAXDOSERS;i++) {
+    client << F("{\"n\":\"") << (char*)conf.doser[i].name;
+    client << F("\",\"dd\":\"") << conf.doser[i].dailydose;
+    client << F("\",\"dpd\":\"") << conf.doser[i].dosesperday;
+    client << F("\",\"i\":\"") << conf.doser[i].interval;
+    client << F("\",\"st\":\"") << conf.doser[i].starttime;
+    client << F("\",\"r\":\"") << conf.doser[i].rate;
+    client << F("\",\"fv\":\"") << conf.doser[i].fullvolume;
+    client << F("\"}") << (i<MAXDOSERS-1?",":"");
+  }
   client << F("],\n\"misc\":{\n");
-  client << F("\"hl\":\"") << conf.htrlow; 
-  client << F("\",\n\"hh\":\"") << conf.htrhigh; 
-  client << F("\",\n\"fl\":\"") << conf.fanlow; 
+  client << F("\"hl\":\"") << conf.htrlow;
+  client << F("\",\n\"hh\":\"") << conf.htrhigh;
+  client << F("\",\n\"fl\":\"") << conf.fanlow;
   client << F("\",\n\"fh\":\"") << conf.fanhigh;
-  client << F("\",\n\"sl\":\"") << conf.sonarlow; 
+  client << F("\",\n\"sl\":\"") << conf.sonarlow;
   client << F("\",\n\"sh\":\"") << conf.sonarhigh;
   client << F("\",\n\"sav\":\"") << conf.sonaralertval;
-  client << F("\",\n\"sa\":\"") << (conf.sonaralert?"true":"false");
+  client << F("\",\n\"sa\":\"") << (conf.sonaralert?F("true"):F("false"));
   client << F("\",\n\"atl\":\"") << conf.alerttemplow;
   client << F("\",\n\"ath\":\"") << conf.alerttemphigh;
   client << F("\",\n\"aphl\":\"") << conf.alertphlow;
   client << F("\",\n\"aphh\":\"") << conf.alertphhigh;
-  client << F("\",\n\"snda\":") << (conf.soundalert?"true":"false");
-  client << F(",\n\"ema\":") << (conf.emailalert?"true":"false");
+  client << F("\",\n\"snda\":") << (conf.soundalert?F("true"):F("false"));
+  client << F(",\n\"ema\":") << (conf.emailalert?F("true"):F("false"));
   client << F(",\n\"init\":\"")<< conf.initialized << F("\"}}}\n");
   return true;     
 }
 
 boolean apex_phval_handler(TinyWebServer& webserver) {
   if (!check_auth(webserver)) return true;
-  Client& client = webserver.get_client();
-  const char* hdrlen = webserver.get_header_value("Content-Length");
+  EthernetClient& client = webserver.get_client();
+  const char* hdrlen = webserver.get_header_value(PSTR("Content-Length"));
   if (hdrlen!=NULL) {
     int len = atol(hdrlen)+1;
     char json[len];
@@ -612,20 +816,20 @@ boolean apex_phval_handler(TinyWebServer& webserver) {
     strcpy((char*)calval,strtok(NULL,delims));
     if (calval[0]=='f') {
       calibrate4();
-      logMessage("calibrate 4");
+      logMessage(F("calibrate 4"));
     } else if (calval[0]=='s') {
       calibrate7();
-      logMessage("calibrate 7");
+      logMessage(F("calibrate 7"));
     } else if (calval[0]=='t') {
       calibrate10();
-      logMessage("calibrate 10");
+      logMessage(F("calibrate 10"));
     } else {
        return apex_error(webserver,F("incorrect calibrate command"),0);
     }
     beepOK();
   } 
   webserver.send_error_code(200);
-  webserver.send_content_type("application/json");
+  webserver.send_content_type(F("application/json"));
   webserver.end_headers();
   client << F("{\"phval\":\"") << getph() << F("\",\"sonarval\":\"");
   client << getSonar() << F("\"}");
@@ -634,16 +838,16 @@ boolean apex_phval_handler(TinyWebServer& webserver) {
 
 boolean apex_pwmpumpdata_handler(TinyWebServer& webserver) {
   if (!check_auth(webserver)) return true;
-  Client& client = webserver.get_client();
+  EthernetClient& client = webserver.get_client();
   webserver.send_error_code(200);
-  webserver.send_content_type("application/json");
+  webserver.send_content_type(F("application/json"));
   webserver.end_headers();
   client << F("{\"pwmpumpdata\":[");
   for (int i=0;i<MAXPWMPUMPS;i++) {
     client << F("{\"data\":[");
     getpwmdata(client,i);
     client << F("]}");
-    client << (i==(MAXPWMPUMPS-1)?"":",");  
+    client << (i==(MAXPWMPUMPS-1)?F(""):F(","));  
   }
   client << F("]}");
   return true; 
@@ -651,17 +855,17 @@ boolean apex_pwmpumpdata_handler(TinyWebServer& webserver) {
 
 boolean apex_pwmwavedef_handler(TinyWebServer& webserver) {
   if (!check_auth(webserver)) return true;
-  Client& client = webserver.get_client();
+  EthernetClient& client = webserver.get_client();
   webserver.send_error_code(200);
-  webserver.send_content_type("application/json");
+  webserver.send_content_type(F("application/json"));
   webserver.end_headers();
   getwavedef(client);
   return true;  
 }
 boolean apex_pwmset_handler(TinyWebServer& webserver) {
   if (!check_auth(webserver)) return true;
-  Client& client = webserver.get_client();
-  const char* hdrlen = webserver.get_header_value("Content-Length");
+  EthernetClient& client = webserver.get_client();
+  const char* hdrlen = webserver.get_header_value(PSTR("Content-Length"));
   if (hdrlen!=NULL) {
     int len = atol(hdrlen)+1;
     char json[len];
@@ -699,7 +903,7 @@ boolean apex_pwmset_handler(TinyWebServer& webserver) {
     }
   }  
   webserver.send_error_code(200);
-  webserver.send_content_type("application/json");
+  webserver.send_content_type(F("application/json"));
   webserver.end_headers();
 //return local pwm values
   getpumpinfo(client);
@@ -720,14 +924,14 @@ boolean apex_filesjson_handler(TinyWebServer& webserver) {
   char* root = params_[1];
 
   webserver.send_error_code(200);
-  webserver.send_content_type("application/json");
+  webserver.send_content_type(F("application/json"));
   webserver.end_headers();
-  Client& client = webserver.get_client();
+  EthernetClient& client = webserver.get_client();
   getfiles(client,root);
   return true;  
 }
 
-void scantofirstline(Client& client, char* tmp, int size, tmElements_t tm) {
+void scantofirstline(EthernetClient& client, char* tmp, int size, tmElements_t tm) {
   while (file_.fgets(tmp,size)>0) {
     char compa[3];
     compa[0]=tmp[25];

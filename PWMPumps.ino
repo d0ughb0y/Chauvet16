@@ -98,7 +98,7 @@ void FeedModeOFF() {
   updatePWMPumps();
 }
 
-void getpwmdata(Client& client, uint8_t channel) {
+void getpwmdata(EthernetClient& client, uint8_t channel) {
   cli();
   for (int i=0;i<PWMDATALEN;i++) {
     client << _pwmdata[channel][(_pwmdatahead[channel]+i)%PWMDATALEN] << (i==PWMDATALEN-1?"":","); 
@@ -106,7 +106,7 @@ void getpwmdata(Client& client, uint8_t channel) {
   sei();
 }
 
-void getpumpinfo(Client& client) {
+void getpumpinfo(EthernetClient& client) {
   cli();
   client << F("{\"pwmpumps\":[");
   for (int i=0;i<MAXPWMPUMPS;i++) {
@@ -116,17 +116,17 @@ void getpumpinfo(Client& client) {
   sei();
 }
 
-void getpumpinfo(Client& client, uint8_t i) {
+void getpumpinfo(EthernetClient& client, uint8_t i) {
   uint8_t saveSREG = SREG;
   cli();
-  client << F("{\"waveMode\":\"") << _waveMode[i] << F("\",\"syncMode\":\"") << _syncMode[i];
-  client << F("\",\"level\":\"") << _level[i] << F("\",\"pulseWidth\":\"") << _pulseWidth[i];
-  client << F("\",\"pumpAuto\":\"") << _pumpAuto[i];
+  client << F("{\"wm\":\"") << _waveMode[i] << F("\",\"sm\":\"") << _syncMode[i];
+  client << F("\",\"l\":\"") << _level[i] << F("\",\"pw\":\"") << _pulseWidth[i];
+  client << F("\",\"pa\":\"") << _pumpAuto[i];
   client << F("\"}") << (i==MAXPWMPUMPS-1?"":",");    
   SREG=saveSREG;
 }
 
-void getwavedef(Client& client) {
+void getwavedef(EthernetClient& client) {
   cli();
   client << F("{\"wavedef\":[");
   int last = sizeof(wave)/sizeof(WaveDef_t);

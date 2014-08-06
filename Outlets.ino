@@ -134,6 +134,23 @@ inline void outletHandlerB() { //once per second handler
       logSensorsFlag = true; 
       updatePWMPumps();
     }
+#ifdef _DOSER
+    for (int i=0;i<MAXDOSERS;i++) {
+      if (dosercalibrating || conf.doser[i].dosesperday==0 || conf.doser[i].rate==0) continue;//no auto dosing if not calibrated or doseperday is 0
+      uint16_t mins = (uint16_t)(elapsedSecsToday(timenow)/60);
+      if (mins<conf.doser[i].starttime)
+        mins+=1440;
+      mins -= conf.doser[i].starttime;
+      uint16_t tint = conf.doser[i].interval==0?(1440/conf.doser[i].dosesperday):conf.doser[i].interval;
+      if (mins%tint==0) {
+        if (mins/tint < conf.doser[i].dosesperday){
+          uint32_t countmatch = conf.doser[i].rate*(conf.doser[i].dailydose/conf.doser[i].dosesperday);
+          if (countmatch < 60000UL * 15000UL / 1024)
+            doserOn(i, countmatch);
+        }
+      }
+    }
+#endif
   }
   //check if network is still up at 1,21,41 mins past the hour (not a busy time)
   if ((minnow+1)%20==1 && secnow==15) { 
@@ -171,8 +188,10 @@ void _outletOn(uint8_t p){
       PORTA &= ~_BV(p);  
       _outlogentry(p,true);
     }
+#if defined(_FEEDER) || defined(_FEEDER_V2)
   } else if (p==Feeder) {
     feed();
+#endif
   } else if (p==Pump0) {
     FeedModeOFF();
   }else {
