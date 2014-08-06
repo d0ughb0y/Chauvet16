@@ -1,6 +1,5 @@
 Chauvet16
 =========
-
 Chauvet16 Aquarium Controller
 
 Download the files and copy them into an arduino sketch folder named Chauvet16.
@@ -9,8 +8,41 @@ The index.htm file you will need to copy into an SD card that goes into the SD c
 
     curl -0 -v -T index.htm http://user:password@<your controller ip>:<port>/upload/index.htm
     
+Beginning with v20140805, you will need to gzip the index.htm to file index.gz and upload that as well whenver you edit index.htm. The command to upload is
+
+    curl -0 -v -T index.gz http://user:password@<your controller ip>:<port>/upload/index.gz
+
 You can download curl for pretty much any platform here. 
 http://curl.haxx.se/download.html
+
+You can download gzip from here. Get the latest version that supports the -k option so the index.htm file is not deleted after compressing.
+http://www.gzip.org/#exe
+
+I use this command to gzip the file
+
+    gzip -k -9 -f index.htm
+
+This results in file index.htm.gz. You need to rename it to index.gz before uploading to the SD card.
+
+Documentation Links
+-------------------
+[Using the Doser](http://reefcentral.com/forums/showthread.php?p=22993871#post22993871)
+
+[Wiring version 2 of Feeder.](http://reefcentral.com/forums/showthread.php?p=22994359#post22994359)
+
+[Jebao Pump Control.](http://reefcentral.com/forums/showthread.php?p=22191660#post22191660)
+
+[Jebao pump cable wiring.](http://reefcentral.com/forums/showthread.php?p=22913454#post22913454)
+
+[Changing the login username and password.](http://reefcentral.com/forums/showthread.php?p=22277294#post22277294)
+
+[Programming the outlets.](http://reefcentral.com/forums/showthread.php?p=22592718#post22592718)
+
+[More on outlet programming.](http://reefcentral.com/forums/showthread.php?p=22710535#post22710535)
+
+[Outlets inverse cycle.](http://reefcentral.com/forums/showthread.php?p=22709149#post22709149)
+
+[How to setup email using gmx and how to send to multiple email recipients.](http://reefcentral.com/forums/showthread.php?p=22748159#post22748159)
 
 Setting Up Arduino Libraries
 ----------------------------
@@ -24,6 +56,26 @@ You need to edit the Time.cpp and Time.h (instructions below).
 
 OneWire
 http://www.pjrc.com/teensy/arduino_libraries/OneWire.zip
+Edit OneWire.h by adding this line after uint8_t reset(void);
+
+    uint8_t reset2(void);
+
+Then edit OneWire.cpp by changing uint8_t reset(void) to
+
+    uint8_t reset2(void)
+
+then commenting out this line at the end of the function
+
+    //delayMicroseconds(420);
+
+then add this code above the reset2 function
+
+    uint8_t OneWire::reset(void) {
+      uint8_t r = reset2();
+      delayMicroseconds(420);
+      return r;
+    }
+
 
 LiquidCrystal
 https://bitbucket.org/fmalpartida/new-liquidcrystal/downloads/LiquidCrystal_V1.2.1.zip
