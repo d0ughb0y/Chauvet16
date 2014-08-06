@@ -241,8 +241,8 @@ void checkAlarm() {
     || (conf.sonaralert && sonaravg>conf.sonaralertval*10)
 #endif    
 #ifdef _DOSER
-    || (conf.doser[0].fullvolume-dosedvolume[0]/100.0<conf.doser[0].dailydose)
-    || (conf.doser[1].fullvolume-dosedvolume[1]/100.0<conf.doser[1].dailydose)
+    || (!dosercalibrating && conf.doser[0].dosesperday>0 && conf.doser[0].rate>0 && conf.doser[0].fullvolume-dosedvolume[0]/100.0<conf.doser[0].dailydose)
+    || (!dosercalibrating && conf.doser[1].dosesperday>0 && conf.doser[1].rate>0 && conf.doser[1].fullvolume-dosedvolume[1]/100.0<conf.doser[1].dailydose)
 #endif
     ) {
       if (!alarm) {

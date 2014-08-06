@@ -667,6 +667,10 @@ boolean apex_config_post(TinyWebServer& webserver, long postlen) {
         strtok(NULL,delims);//skip rate
         strtok(NULL,delims);
         myconf.doser[i].fullvolume=(uint16_t)atoi(strtok(NULL,delims));
+        if (myconf.doser[i].fullvolume!=conf.doser[i].fullvolume) {
+          dosedvolume[i]=0;
+          updateDoserStatusFlag=true;
+        }
       }
     } else if (strcmp_P(name,PSTR("misc"))==0) {
       strtok(NULL,delims);
