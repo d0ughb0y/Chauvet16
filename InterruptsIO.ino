@@ -179,7 +179,10 @@ void checkATO(){
   //if you do not use KALK, just replace Kalk with the ATO pump
   //and remove the ph test condition
   if (conf.outletRec[Kalk].mode == _auto) {
-    if (!getATO2()&& !getATO1() && isOutletOn(Return) && phavg<8.7
+    if (!getATO2()&& !getATO1() && isOutletOn(Return)
+#ifdef _PH
+        && getAtlasAvg(phdata[0])<8.7
+#endif
 #ifdef _SONAR
         && sonaravg<conf.sonaralertval*10
 #endif

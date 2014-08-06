@@ -24,7 +24,11 @@ volatile uint8_t _syncMode[MAXPWMPUMPS];
 volatile uint8_t _waveMode[MAXPWMPUMPS];
 volatile uint8_t _level[MAXPWMPUMPS];
 volatile uint8_t _pulseWidth[MAXPWMPUMPS];
+#ifdef _PWMB
+volatile uint8_t _pumpAuto[MAXPWMPUMPS]={1,1,1,1};
+#else
 volatile uint8_t _pumpAuto[MAXPWMPUMPS]={1,1};
+#endif
 volatile uint16_t _counter[MAXPWMPUMPS];
 volatile uint8_t _step[MAXPWMPUMPS];
 volatile uint8_t _pwmdata[MAXPWMPUMPS][PWMDATALEN];

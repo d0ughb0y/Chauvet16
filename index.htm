@@ -440,6 +440,7 @@
 			<li><a href="#csform">Actions</a></li>
 			<li><a href="#csform">PWM Pumps</a></li>
 			<li><a href="#csform">Dosers</a></li>
+			<li><a href="#csform">Sensors</a> </li>
 			<li><a href="#csform">LEDs</a></li>
 			<li><a href="#csform">Misc</a></li>
 		</ul>
@@ -493,10 +494,6 @@
 		</div>
 		<div id="contentpumps">
 			<div data-role="navbar" id="pumpnav" data-mini="true">
-				<ul>
-					<li><a href="#" class="ui-btn-active ui-state-persist" id="pumpnav0">Pump 0</a> </li>
-					<li><a href="#" id="pumpnav1">Pump 1</a> </li>
-				</ul>
 			</div>
 			<div data-role="content">
 				<div>
@@ -559,28 +556,61 @@
 					Calibration</a>
 			</div>
 		</div>
+		<div id="contentsensors">
+			<div data-role="navbar" id="sensornav" data-mini="true">
+			</div>
+			<div data-role="content">
+				<div data-role="fieldcontain" data-mini="true">
+					<label for="_sensorlowalert" data-mini="true">Low Alert:</label>
+					<input data-mini="true" type="number" step="any" name="_sensorlowalert" id="_sensorlowalert"/>
+				</div>
+				<div data-role="fieldcontain" data-mini="true">
+					<label for="_sensorhighalert" data-mini="true">High Alert:</label>
+					<input data-mini="true" type="number" step="any" name="_sensorhighalert" id="_sensorhighalert"/>
+				</div>
+				<div id="_sensorphcalibrate">
+					<h4 style="text-align: center">Calibrate</h4>
+					<label for="_sensorphvalue" data-mini="true">Sensor Reading:</label>
+					<input data-mini="true" name="_sensorphvalue" id="_sensorphvalue" readonly/>
+					<button data-mini="true" id="_sensorphcal7"
+						onclick="csutil({'cmd':'clow','type':'1','value':'0'});">Calibrate 7</button>
+					<button data-mini="true" id="_sensorphcal10"onclick="csutil({'cmd':'chigh','type':'1','value':'0'});">Calibrate 10</button>
+				</div>
+				<div id="_sensororpcalibrate">
+					<h4 style="text-align: center">Calibrate</h4>
+					<label for="_sensororpvalue" data-mini="true">Sensor Reading:</label>
+					<input data-mini="true" name="_sensororpvalue" id="_sensororpvalue" readonly/>
+					<button data-mini="true" id="_sensororpcalminus"
+						onclick="csutil({'cmd':'clow','type':'2','value':'0'});">Calibrate -</button>
+					<button data-mini="true"
+						id="_sensororpcalplus"onclick="csutil({'cmd':'chigh','type':'2','value':''+sensoridx-numtemp});">Calibrate
+						+</button>
+				</div>
+				<div id="_sensorcondcalibrate">
+					<h4 style="text-align: center">Calibrate</h4>
+					<label for="_sensorcondvalue" data-mini="true">Sensor Reading:</label>
+					<input data-mini="true" name="_sensorpcondalue" id="_sensorcondvalue" readonly/>
+					<label for="_sensorcondcalvalue" data-mini="true">Calibration Reference (us):</label>
+					<input data-mini="true" name="_sensorcondcalvalue" id="_sensorcondcalvalue" type="number" max="80000"/>
+					<button data-mini="true" id="_sensorcondcaldry"
+						onclick="csutil({'cmd':'clow','type':'3','value':'0'});">Calibrate Dry</button>
+					<button data-mini="true"
+						id="_sensorcondcalwet"onclick="csutil({'cmd':'chigh','type':'3','value':''+$('#_sensorcondcalvalue').value()});">Calibrate Single</button>
+				</div>
+			</div>
+		</div>
 		<div id="contentleds">
 			<h1>Coming Soon...</h1>
 		</div>
 		<div id="contentmisc">
-			<h4 style="text-align:center">pH Calibration</h4>
-			<section class="ui-grid-b">
-				<div class="ui-block-a">
-					<button id="ph7btn" data-mini="true" data-theme="c" onClick="phcal({'cal':'s'});"/>
-				</div>
-				<div class="ui-block-b">
-					<button id="ph10btn" data-mini="true" data-theme="c" onClick="phcal({'cal':'t'})"/>
-				</div>
-				<div class="ui-block-c"><input type="text" readonly id="phval" data-mini="true" value=""/></div>
-			</section>
 			<h4 style="text-align:center">Temp Control</h4>
 			<section class="ui-grid-b">
 				<div class="ui-block-a">Heater:</div>
-				<div class="ui-block-b"><input type="number" id="htrlow" data-mini="true" value=""/></div>
-				<div class="ui-block-c"><input type="number" id="htrhigh" data-mini="true" value=""/></div>
+				<div class="ui-block-b"><input type="number" step="any" id="htrlow" data-mini="true" value=""/></div>
+				<div class="ui-block-c"><input type="number" step="any" id="htrhigh" data-mini="true" value=""/></div>
 				<div class="ui-block-a">Fan:</div>
-				<div class="ui-block-b"><input type="number" id="fanlow" data-mini="true" value=""/></div>
-				<div class="ui-block-c"><input type="number" id="fanhigh" data-mini="true" value=""/></div>
+				<div class="ui-block-b"><input type="number" step="any" id="fanlow" data-mini="true" value=""/></div>
+				<div class="ui-block-c"><input type="number" step="any" id="fanhigh" data-mini="true" value=""/></div>
 			</section>
 			<h4 style="text-align:center">Sonar Alert</h4>
 			<section class="ui-grid-b">
@@ -593,14 +623,6 @@
 			</section>
 			<div><label for="sonaralert">Sonar Alert</label><input type="checkbox" id="sonaralert"/></div>
 			<h4 style="text-align:center">Alerts</h4>
-			<section class="ui-grid-b">
-				<div class="ui-block-a">Temp:</div>
-				<div class="ui-block-b"><input type="number" id="alerttemplow" data-mini="true" value="74.0"/></div>
-				<div class="ui-block-c"><input type="number" id="alerttemphigh" data-mini="true" value="82.0"/></div>
-				<div class="ui-block-a">pH:</div>
-				<div class="ui-block-b"><input type="number" id="alertphlow" data-mini="true" value="7.6"/></div>
-				<div class="ui-block-c"><input type="number" id="alertphhigh" data-mini="true" value="8.6"/></div>
-			</section>
 			<section class="ui-grid-a">
 				<div class="ui-block-a"><label for="sndalert">Sound</label><input type="checkbox" id="sndalert"/></div>
 				<div class="ui-block-b"><label for="emailalert">Email</label><input type="checkbox" id="emailalert"/>
@@ -744,6 +766,9 @@ var inputsopen=false;
 var dosersopen=false;
 var dosers = [];
 var doseridx=0;
+var sensoridx=0;
+var numtemp=0;
+var csutilfunction;
 $("#page").on('pageinit',function(e){
  initHome();
 }).on('pagebeforeshow',function(e){
@@ -1079,7 +1104,7 @@ function getsensordata(callback) {
 		if (typeof callback=="function") callback();
 	}).fail(function (jqXHR, textStatus, errorThrown) {
 			if (retry>=maxretries) {
-				alert('unable to connect to apex.');
+				alert('unable to connect to apex.'+textStatus);
 				retry=0;
 				return;
 			}
@@ -1138,7 +1163,7 @@ function loadoutlog() {
 			$.mobile.loading('hide');
 		}).fail(function (jqXHR, textStatus, errorThrown) {
 			if (retry>=maxretries) {
-				alert('unable to connect to apex.');
+				alert('unable to connect to apex. '+textStatus);
 				retry=0;
 				history.back();
 				return;
@@ -1273,6 +1298,7 @@ function updateFeedTime() {
 				feedtimeoutfunction=setTimeout(updateFeedTime, 5000);
 			}
 		}).fail(function (jqXHR, textStatus, errorThrown) {
+			console.log(textStatus);
 		}).done(function (a) {
 		});
 }
@@ -1326,7 +1352,7 @@ function updateStatus(spark) {
 			$.mobile.loading('hide');
 		}).fail(function (jqXHR, textStatus, errorThrown) {
 			if (retry>=maxretries) {
-				alert('unable to connect to apex.');
+				alert('unable to connect to apex. '+textStatus);
 				retry=0;
 				return;
 			}
@@ -1661,7 +1687,7 @@ function initPage() {
 				$.mobile.loading('hide');
 		}).fail(function (jqXHR, textStatus, errorThrown) {
 			if (retry>=maxretries) {
-				alert('unable to connect to apex.');
+				alert('unable to connect to apex. '+textStatus);
 				retry=0;
 				$.mobile.loading('hide');
 				return;
@@ -1760,9 +1786,9 @@ function doserCommand(cmd){
 		data:"{\"cmd\":\""+cmd+"\",\"idx\":\""+doseridx+"\",\"v\":\""+nval+"\"}",
 		contentType:'application/json',
 		type:'POST'}).always(function () {
+			$.mobile.loading('hide');
 		}).done(function (data) {
 			dosers=data.dosers;
-			$.mobile.loading('hide');
 			if (cmd!='cstart' && cmd!='cabort' && cmd!='cadj')
 				alert("Doser command sent.");
 			if (cmd=='cstart') {
@@ -1798,8 +1824,7 @@ function doserCommand(cmd){
 				$('#_dosercalabort').button('disable');
 			}
 		}).fail(function (jqXHR, textStatus, errorThrown) {
-			alert("Doser command error.");
-			console.log(textStatus);
+			alert(textStatus);
 		});
 }
 function updateDoserSetupFields(){
@@ -1809,6 +1834,37 @@ function updateDoserSetupFields(){
 	$('#_doserint').val(config.dosers[doseridx].i).selectmenu('refresh');
 	$('#_doserst').val(minsToTime(config.dosers[doseridx].st));
 	$('#_doserfv').val(config.dosers[doseridx].fv);
+}
+function updateSensorSetupFields(){
+	clearTimeout(csutilfunction);
+	$('#_sensorlowalert').val(config.alerts[sensoridx].l);
+	$('#_sensorhighalert').val(config.alerts[sensoridx].h);
+	clearTimeout(csutilfunction);
+	switch (parseInt(config.alerts[sensoridx].t)) {
+	case 0:
+		$('#_sensorphcalibrate').hide();
+		$('#_sensororpcalibrate').hide();
+		$('#_sensorcondcalibrate').hide();
+		break;
+	case 1:
+		$('#_sensorphcalibrate').show();
+		$('#_sensororpcalibrate').hide();
+		$('#_sensorcondcalibrate').hide();
+		csutil({'cmd':'getval','type':'1','value':'0'});
+		break;
+	case 2:
+		$('#_sensorphcalibrate').hide();
+		$('#_sensororpcalibrate').show();
+		$('#_sensorcondcalibrate').hide();
+		csutil({'cmd':'getval','type':'2','value':'0'});
+		break;
+	case 3:
+		$('#_sensorphcalibrate').hide();
+		$('#_sensororpcalibrate').hide();
+		$('#_sensorcondcalibrate').show();
+		csutil({'cmd':'getval','type':'3','value':'0'});
+		break;
+	}
 }
 function getInputHtml(a) {
 	if (a.did==="base_I1") {
@@ -1884,7 +1940,7 @@ $(document).on('pagebeforechange', function (e, data) {
 	}).always(function () {
 			$.mobile.loading('hide');
 		}).fail(function (jqXHR, textStatus, errorThrown) {
-			alert(textStatus);
+			alert(jqXHR.responseText);
 		}).done(function (f) {
 		});
 });
@@ -1898,6 +1954,7 @@ $('#csetup').on('pageinit', function (e) {
 	$('#contentmisc').hide();
 	$('#contentpumps').hide();
 	$('#contentdosers').hide();
+	$('#contentsensors').hide();
 	$('#contentleds').hide();
 	$('#contentoutlet').show();
 }).on('pageshow', function (e, data) {
@@ -2067,7 +2124,7 @@ $('#dosernav').on('click', 'li a', function(e){
 })
 $('#_dosercalibrate').on('pagebeforeshow', function(e){
 //	doserCommand('cstart');
-	$('#_dosercalibratehdr').html("Calibrate Doser "+doseridx);
+	$('#_dosercalibratehdr').html("Doser "+doseridx);
 	$('#_dosercalvol').val(5);
 	$('#_dosercaltime').val(980);
 	$('#_dosercaltotaltime').val(0);
@@ -2079,21 +2136,90 @@ $('#_dosercalibrate').on('pagebeforeshow', function(e){
 }).on('pagebeforehide', function(e){
 	doserCommand('cabort');
 })
+$('#_sensorlowalert').on('change',function(e){
+	config.alerts[sensoridx].l=$('#_sensorlowalert').val();
+});
+$('#_sensorhighalert').on('change',function(e){
+	config.alerts[sensoridx].h=$('#_sensorhighalert').val();
+})
+$('#sensornav').on('click', 'li a', function(e){
+	sensoridx = $(this).closest('li').index();
+	updateSensorSetupFields();
+	$.each($('#sensornav').find('a'),function(i,obj){
+		$(this).removeClass('ui-state-persist').removeClass('ui-btn-active');
+	})
+	$(this).addClass('ui-state-persist').addClass('ui-btn-active');
+})
 $('#csform').on('pagebeforecreate', function(e) {
-	if (config.pumps.length>2) {
-		$('#pumpnav').append("<li><a id='pumpnav2'>Pump 2</a> </li>").append("<li><a id='pumpnav3'>Pump 3</a> </li>");
-	  $('#pumpnav').navbar();
+	if (config.pumps.length==4){
+		$('#pumpnav').html('<ul><li><a href="#" class="ui-btn-active ui-state-persist" id="pumpnav0">Pump 0</a> </li>\
+		<li><a href="#" id="pumpnav1">Pump 1</a> </li>\
+		<li><a href="#" id="pumpnav2">Pump 2</a> </li>\
+		<li><a href="#" id="pumpnav3">Pump 3</a> </li></ul>').navbar();
+	} else if (config.pumps.length==2) {
+		$('#pumpnav').html('<ul><li><a href="#" class="ui-btn-active ui-state-persist" id="pumpnav0">Pump 0</a> </li>\
+		<li><a href="#" id="pumpnav1">Pump 1</a> </li></ul>').navbar();
 	} else if (config.pumps.length==0) {
 		$('#contentpumps').html("<h1>No pumps defined.</h1>")
 	}
 	if (config.dosers.length==0){
 		$('#contentdosers').html("<h1>No dosers defined.</h1>")
 	}
+	if (config.alerts.length==0){
+		$('#contentsensors').html("<h1>No sensors defined.</h1>")
+	} else {
+		var ul = '<ul>';
+		var tempnum = 0;
+		var phnum = 0;
+		var firstsensor = true;
+		for (var r in config.alerts){
+			var alert = config.alerts[r];
+			switch (parseInt(alert.t)) {
+			case 0: //temp
+				ul+='<li><a href="#" ';
+				ul+=(firstsensor?'class="ui-btn-active ui-state-persist"':'');
+				ul+=' id="sensornav';
+				ul+=r;
+				ul+='">Temp ';
+				ul+=tempnum++;
+				ul+='</a></li>';
+				numtemp++;
+				break;
+			case 1: //ph
+				ul+='<li><a href="#" ';
+				ul+=(firstsensor?'class="ui-btn-active ui-state-persist"':'');
+				ul+=' id="sensornav';
+				ul+=r;
+				ul+='">pH ';
+				ul+=phnum++;
+				ul+='</a></li>';
+				break;
+			case 2: //orp
+				ul+='<li><a href="#" ';
+				ul+=(firstsensor?'class="ui-btn-active ui-state-persist"':'');
+				ul+=' id="sensornav';
+				ul+=r;
+				ul+='">Orp</a></li>';
+				break;
+			case 3: //cond
+				ul+='<li><a href="#" ';
+				ul+=(firstsensor?'class="ui-btn-active ui-state-persist"':'');
+				ul+=' id="sensornav';
+				ul+=r;
+				ul+='">Cond</a></li>';
+				break;
+			}
+			firstsensor=false;
+		}
+		ul+='</ul>';
+		$('#sensornav').html(ul).navbar();
+	}
 }).on('pagehide', function(e, data) {
 	if (data.nextPage[0].id=='pumpprogramedit' || data.nextPage[0].id=='editaction') return;
 	csitem=-1;
 	pwmpumpsidx=0;
-	doseridx=0;
+	sensoridx=0;
+	clearTimeout(csutilfunction);
 }).on('pagebeforeshow', function (e,data) {
 	switch (csitem) {
 	case 0:
@@ -2116,6 +2242,7 @@ $('#csform').on('pagebeforecreate', function(e) {
 		$('#contentmisc').hide();
 		$('#contentpumps').hide();
 		$('#contentdosers').hide();
+		$('#contentsensors').hide();
 		$('#contentleds').hide();
 		$('#contentoutlets').show();
 		$('#csformhdr').html("Macros Setup");
@@ -2132,6 +2259,7 @@ $('#csform').on('pagebeforecreate', function(e) {
 		$('#contentmisc').hide();
 		$('#contentpumps').hide();
 		$('#contentdosers').hide();
+		$('#contentsensors').hide();
 		$('#contentleds').hide();
 		$('#contentoutlets').hide();
 		$('#csformhdr').html("Actions Setup");
@@ -2149,6 +2277,7 @@ $('#csform').on('pagebeforecreate', function(e) {
 		$('#contentactions').hide();
 		$('#contentmisc').hide();
 		$('#contentdosers').hide();
+		$('#contentsensors').hide();
 		$('#contentleds').hide();
 		$('#contentoutlets').hide();
 		$('#contentpumps').show();
@@ -2161,6 +2290,7 @@ $('#csform').on('pagebeforecreate', function(e) {
 		$('#contentpumps').hide();
 		$('#contentdosers').show();
 		$('#dosernav'+doseridx).trigger('click');
+		$('#contentsensors').hide();
 		$('#contentleds').hide();
 		$('#contentoutlets').hide();
 		$('#csformhdr').html("Dosers Setup");
@@ -2170,22 +2300,31 @@ $('#csform').on('pagebeforecreate', function(e) {
 		$('#contentmisc').hide();
 		$('#contentpumps').hide();
 		$('#contentdosers').hide();
+		$('#contentsensors').show();
+		$('#contentleds').hide();
+		$('#contentoutlets').hide();
+		$('#csformhdr').html("Sensor Setup");
+		$('#sensornav'+sensoridx).trigger('click');
+		break;
+	case 6:
+		$('#contentactions').hide();
+		$('#contentmisc').hide();
+		$('#contentpumps').hide();
+		$('#contentdosers').hide();
+		$('#contentsensors').hide();
 		$('#contentleds').show();
 		$('#contentoutlets').hide();
 		$('#csformhdr').html("LEDs Setup");
 		break;
-	case 6:
+	case 7:
 		$('#contentactions').hide();
 		$('#contentmisc').show();
 		$('#contentpumps').hide();
 		$('#contentdosers').hide();
+		$('#contentsensors').hide();
 		$('#contentleds').hide();
 		$('#contentoutlets').hide();
 		$('#csformhdr').html("Misc Setup");
-		$('#ph7btn').text("pH 7");
-		$('#ph7btn').button('refresh');
-		$('#ph10btn').text("pH 10");
-		$('#ph10btn').button('refresh');
 		$('#htrlow').val(config.misc.hl);
 		$('#htrhigh').val(config.misc.hh);
 		$('#fanlow').val(config.misc.fl);
@@ -2194,14 +2333,10 @@ $('#csform').on('pagebeforecreate', function(e) {
 		$('#sonarhigh').val(config.misc.sh);
 		$('#sonaralertval').val(config.misc.sav);
 		$('#sonaralert').attr("checked", config.misc.sa).checkboxradio("refresh");
-		$('#alerttemplow').val(config.misc.atl);
-		$('#alerttemphigh').val(config.misc.ath);
-		$('#alertphlow').val(config.misc.aphl);
-		$('#alertphhigh').val(config.misc.aphh);
 		$('#sndalert').attr("checked", config.misc.snda).checkboxradio("refresh");
 		$('#emailalert').attr("checked", config.misc.ema).checkboxradio("refresh");
 		$('#resetconf').val(config.misc.init);
-		getphdata();
+		csutil({'cmd':'getval','type':'4','value':'0'});
 		break;
 	}
 });
@@ -2269,28 +2404,37 @@ function savePumpProgram(){
 	updateprogramlist();
 	$('#pumpprogramedit').dialog('close');
 }
-function getphdata() {
-	$.getJSON('phval.json',function (data) {
-		$('#phval').val(data.phval);
-		$('#sonarval').val(data.sonarval);
-	}).always(function () {
-			if (csitem==6) {
-				setTimeout(getphdata, 1000);
-			}
-		});
-}
-function phcal(param) {
-	$.ajax('phval.json', {
+function csutil(param){
+	$.ajax('csutil.json',{
 		data:JSON.stringify(param),
 		contentType:'application/json',
-		type:'POST'}).always(function () {
-		}).done(function (data) {
-			$('#phval').val(data.phval);
-			alert('calibration '+param.cal+' set');
-		}).fail(function (jqXHR, textStatus, errorThrown) {
-			console.log(textStatus);
-			alert('Failed to set calibration '+textStatus);
-		});
+	  type:'POST'}).always(function(){
+		}).done(function(data, textStatus, jqXHR){
+			if (param.cmd=='getval'){
+				//set the value to field
+				switch (parseInt(param.type)){
+				case 1:
+					$('#_sensorphvalue').val(data.value);
+					break;
+				case 2:
+					$('#_sensororpvalue').val(data.value);
+					break;
+				case 3:
+					$('#_sensorcondvalue').val(data.value);
+					break;
+				case 4:
+					$('#sonarval').val(data.value);
+					break;
+				}
+				if ($.mobile.activePage[0].id=='csform')
+					csutilfunction=setTimeout(function(){csutil(param);},1000);
+			} else {
+				alert(jqXHR.responseText);
+			}
+		}).fail(function(jqXHR, textStatus, errorThrown) {
+			alert('CS call failed. '+textStatus);
+			clearTimeout(csutilfunction);
+		})
 }
 function removelinks(id) {
 	$.each(id.find('.direntry'), function (i, lnk) {
@@ -2405,8 +2549,14 @@ function saveconfig() {
 		datastr = '{"dosers":'+JSON.stringify(config.dosers)+'}';
 		break;
 	case 5:
+		name="alerts";
+		datastr = '{"alerts":'+JSON.stringify(config.alerts)+'}';
 		break;
 	case 6:
+		name="leds";
+		datastr = '{"leds":'+JSON.stringify(config.leds)+'}';
+		break;
+	case 7:
 		name="misc";
 		datastr = '{"misc":'+JSON.stringify(config.misc)+'}';
 		break;

@@ -6,8 +6,8 @@
 */
 #define CONTROLLER_NAME "Jerry's Reef" //change this to your controller name
 #define NTPSERVER 193,193,193,107  //pool.ntp.org
-#define LOCAL_IP 192,168,1,15 //change this to a local fixed ip address
-#define ROUTER_IP 192,168,1,1 //change this to your router ip address
+#define LOCAL_IP 192,168,0,15 //change this to a local fixed ip address
+#define ROUTER_IP 192,168,0,1 //change this to your router ip address
 #define ROUTER_PORT 80 //usually port 80 for the ip configuration web page
 //////////////////////////////////////////////////
 // DS18B20 Temperature Sensor Section
@@ -15,10 +15,15 @@
 // I do not recommend using more than 2 sensors
 //////////////////////////////////////////////////
 #define _TEMP  //comment out if no temp probe
-#define MAXTEMP 2 //number of temp sensors, 1 or 2
-#define TEMPNAME {"Temp","Ambient"}
-//edit the next line with your temp sensor address. make sure the number of addresses match the MAXTEMP value
-#define TEMPADDR {0x28, 0xdf, 0x5d, 0x89, 0x05, 0x00, 0x00, 0xf8},{0x28, 0xde, 0x18, 0x5a, 0x05, 0x00, 0x00, 0x7d}
+#define MAXTEMP 1 //number of temp sensors, 1 or 2
+#if !defined(_TEMP)
+#define MAXTEMP 0
+#endif
+//edit the next line to specify the temp sensor name and address pair. One entry for each temp sensor
+//The first temp is used to control heater and fan and MUST be present, the rest may not be present.
+#define TEMPDEF {{"Temp",{0x28, 0xdf, 0x5d, 0x89, 0x05, 0x00, 0x00, 0xf8}}}
+//,{"Ambient",{0x28, 0xde, 0x18, 0x5a, 0x05, 0x00, 0x00, 0x7d}}}
+#define TEMPALERT {{76,82}}
 //////////////////////////////////////////////////
 // End DS18B20 Temperature Sensor Section
 //////////////////////////////////////////////////
@@ -28,16 +33,39 @@
 // As there are only 3 available Serial ports
 //////////////////////////////////////////////////
 #define _PH  //comment out if no ph probe or ph stamp
+//uncomment the next line if you are using the new EZO pH stamp
+//#define _PH_EZO
 #define MAXPH 1 //number of ph stamps
-#define PHNAME {"pH"}
-//edit the next line with your ph sensor address, make sure the number of addresses match the MAXPH value
-#define PHADDR {Serial1}
-//uncomment the next 2 lines if you have Atlas Conductivity sensor and make sure the addr has the right serial port
-//#define _COND
-//#define CONDADDR Serial2
-//uncomment the next 2 lines if you have Atlas Orp sensor and make sure the addr has the right serial port
+#if !defined(_PH)
+#define MAXPH 0
+#endif
+//define the Name, sensor type, Serial port, you can define up to 3 ph sensors (separated by comma)
+//two ph probes example  #define PHDEF {{"pH",_ph,Serial1},{"CalRX",_ph,Serial2}}
+#define PHDEF {{"pH",_ph,Serial1}}
+#define PHALERT {{7.5,9.0}}
+//uncomment the next line you have Atlas Orp sensor and make sure the addr has the right serial port
 //#define _ORP
-//#define ORPADDR Serial3
+#if !defined(_ORP)
+#define MAXORP 0
+#else
+#define MAXORP 1
+#endif
+#define ORPDEF {"Orp",_orp,Serial2}
+#define ORPALERT {200,300}
+//uncomment the next line if you have Atlas Conductivity sensor and make sure the addr has the right serial port
+//You must configure the Atlas stamp to K=1 by sending K1 command using atlas sketch for conductivity stamp
+//You must also configure this stamp to return salinity only. Send the following command O,EC,0<CR>O,TDS,0<CR>O,SG,0<CR>
+//#define _COND
+#if !defined(_COND)
+#define MAXCOND 0
+#else
+#define MAXCOND 1
+#endif
+#define CONDDEF {"Cond",_cond,Serial3}
+#define CONDALERT {0,0}
+#define TOTALSENSORS MAXTEMP+MAXPH+MAXORP+MAXCOND
+// !!!!!!!!!! IMPORTANT !!!!!!!!!!!!!!!!!!!!
+//make sure to update SerialEvent handler section in Sensors.ino if connect or disconnect sensors to Serial ports
 ////////////////////////////////////////////////////
 // End Atlas Stamps Sensor Section
 ////////////////////////////////////////////////////
@@ -51,6 +79,8 @@
 #define _SONAR
 //#define _FEEDER
 #define _FEEDER_V2
+//you can just comment the line below to use 400khz TwoWire bus speed. It is not necessary to edit the Wire library
+#define TW_400
 #define RTC_ADDR 0x68
 #define LCD_ADDR 0x20
 #define LCD_ROWS 2
@@ -83,15 +113,14 @@
 #define SMTPPASSWORD "cGFzc3dvcmQ="
 #define EMAILFROM "user@host.com"
 #define EMAILTO "8005551212@txt.att.net"
-
 #define SD_CS 4
 #define ETHER_CS 10
 #define OUTLOGSZ 6  //size of circular queue for outlet log
 
-#define MAXOUTLETS  8 //either 8 or 16, currently no support for 16 yet
+#define MAXOUTLETS  8 //either 8 or 16
 #define MAXMACROS  4 //fixed
 #define MAXMACROACTIONS 6  //fixed for now, can be made longer if needed
-#define EEPROMSIG 0xA0 //change this everytime you want the eeprom defaults to change
+#define EEPROMSIG 0xA4 //change this everytime you want the eeprom defaults to change
 //define OUTLET names here, order is fixed
 #define OUTLET1 "WP25"
 #define OUTLET2 "Unused2"
@@ -101,14 +130,14 @@
 #define OUTLET6 "Kalk"
 #define OUTLET7 "Skimmer"
 #define OUTLET8 "Return"
-#define OUTLET9 "Unused"
-#define OUTLET10 "Unused"
-#define OUTLET11 "Unused"
-#define OUTLET12 "Unused"
-#define OUTLET13 "Unused"
-#define OUTLET14 "Unused"
-#define OUTLET15 "Unused"
-#define OUTLET16 "Unused"
+#define OUTLET9 "Unused9"
+#define OUTLET10 "Unused10"
+#define OUTLET11 "Unused11"
+#define OUTLET12 "Unused12"
+#define OUTLET13 "Unused13"
+#define OUTLET14 "Unused14"
+#define OUTLET15 "Unused15"
+#define OUTLET16 "Unused16"
 
 #define MACRO1 "Feed Now"
 #define MACRO2 "Feed"
@@ -131,9 +160,10 @@
 //define the default outlet program here. outlets must appear in exact order defined in outlet names definition
 //program outletname, initial off time, on time, off time, days active, mode
 //days active can be set by ORing the days or use EVERYDAY
-//example, for MWF, set as MON|WED|FRY
+//example, for MWF, set as MON|WED|FRI
 //if outlet state is reversed OR INVCYCLE to days active value
 //example EVERYDAY|INVCYCLE
+//this is for 8 outlets only, you need to modify this if you use more than 8 outlets
 #define OUTLETSDEFAULT {{OUTLET1,0,SECS_PER_DAY,0,EVERYDAY,_auto},\
                         {OUTLET2,0,0,0,EVERYDAY|INVCYCLE,_auto},\
                         {OUTLET3,0,SECS_PER_DAY,0,EVERYDAY,_auto},\
@@ -169,8 +199,8 @@
 //in that order, 6x per pump. 
 //valid level values are from 48-255, pulsewidth from 0-10
 //if syncmode is not master, then the rest of the parameters don't need to be specified
-#define PUMP0 {{_master,H1,128,0},{_master,W2,192,10},{_master,ELSE,192,10},{_master,W1,255,4},{_master,W3,255,10},{_master,H1,128,0}}
-#define PUMP1 {{_sync},{_antisync},{_master,ELSE,192,10},{_antisync},{_antisync},{_sync}}
+#define PUMP0 {{_master,H1,115,0},{_master,W2,153,10},{_master,ELSE,153,10},{_master,W1,191,4},{_master,W3,191,10},{_master,H1,115,0}}
+#define PUMP1 {{_sync},{_antisync},{_master,ELSE,153,10},{_antisync},{_antisync},{_sync}}
 //#define PUMP0 {{_master,H1,128,0},{_master,H1,128,0},{_master,H1,128,0},{_master,H1,128,0},{_master,H1,128,0},{_master,H1,128,0}}
 //#define PUMP1 {{_master,H1,128,0},{_master,H1,128,0},{_master,H1,128,0},{_master,H1,128,0},{_master,H1,128,0},{_master,H1,128,0}}
 #define PUMP2 {{_master,H1,128,0},{_master,H1,128,0},{_master,H1,128,0},{_master,H1,128,0},{_master,H1,128,0},{_master,H1,128,0}}
@@ -187,6 +217,7 @@ enum {_auto, _manual, _disabled, _macro };
 //pump 0 is always master
 //pumps 1,2,3 can run in sync or antisync with respect to pump 0
 enum {_master,_sync,_antisync};
+enum {_temp,_ph,_orp,_cond,_sonar};
 
 //function that returns 8 bit value for the given step over the resolution of the wave pattern
 typedef uint8_t(*PatternFP)(uint8_t);
@@ -236,11 +267,18 @@ typedef struct {
 } MacroActions_t;
 
 typedef struct {
+  float lowalert;
+  float highalert;
+  uint8_t type;
+} SensorAlert_t;
+
+typedef struct {
   ORec_t outletRec[MAXOUTLETS];
   ORec_t macrosRec[MAXMACROS];  
   MacroActions_t actions[MAXMACROS][MAXMACROACTIONS];
   PumpDef_t pump[MAXPWMPUMPS][MAXINTERVALS];
   DoserDef_t doser[2];
+  SensorAlert_t alert[TOTALSENSORS];
   float htrlow;
   float htrhigh;
   float fanlow;
@@ -249,11 +287,28 @@ typedef struct {
   uint8_t sonarlow;
   uint8_t sonaralertval;
   boolean sonaralert;
-  float alerttemplow;
-  float alerttemphigh;
-  float alertphlow;
-  float alertphhigh;
   boolean soundalert;
   boolean emailalert;
   uint8_t initialized;
 } conf_t;
+
+typedef struct {
+  char name[8];
+  uint8_t type;
+  HardwareSerial& saddr;
+  boolean initialized;
+  char scratch[15];//store serial reading here
+  uint8_t i;//current index to scratch
+  boolean isReady;//scratch has complete value
+  float value; //last reading value
+  float sum; //for calculating running average
+  volatile float average; //the running average
+} AtlasSensorDef_t;
+
+typedef struct {
+  char name[8];
+  uint8_t addr[8];
+  volatile boolean initialized;
+  volatile uint16_t average;
+  uint16_t sum;
+} TempSensorDef_t;

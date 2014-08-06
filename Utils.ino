@@ -109,18 +109,42 @@ void initializeConf() {
      conf.doser[i].rate = doserdefault[i].rate;
      conf.doser[i].fullvolume=doserdefault[i].fullvolume;
   }
-  conf.fanlow = 79.0;
-  conf.fanhigh = 79.7;
+#ifdef _TEMP
+  SensorAlert_t tempalerts[]=TEMPALERT;
+  for (int i=0;i<MAXTEMP;i++) {
+    conf.alert[i].lowalert=tempalerts[i].lowalert;
+    conf.alert[i].highalert=tempalerts[i].highalert;
+    conf.alert[i].type=_temp;
+  }
+#endif
+#ifdef _PH
+  SensorAlert_t phalerts[]=PHALERT;
+  for (int i=0;i<MAXPH;i++){
+    conf.alert[MAXTEMP+i].lowalert=phalerts[i].lowalert;
+    conf.alert[MAXTEMP+i].highalert=phalerts[i].highalert;
+    conf.alert[MAXTEMP+i].type=_ph;
+  }
+#endif
+#ifdef _ORP
+  SensorAlarm_t orpalert = ORPALERT;
+  conf.alert[MAXTEMP+MAXPH].lowalert=orpalert.lowalert;
+  conf.alert[MAXTEMP+MAXPH].highalert=orpalert.highalert;
+  conf.alert[MAXTEMP+MAXPH].type=_orp;
+#endif
+#ifdef _COND
+  SensorAlarm_t condalert = CONDALERT;
+  conf.alert[MAXTEMP+MAXPH+MAXORP].lowalert=condalert.lowalert;
+  conf.alert[MAXTEMP+MAXPH+MAXORP].highalert=condalert.highalert;
+  conf.alert[MAXTEMP+MAXPH+MAXORP].type=_cond;
+#endif
+  conf.fanlow = 80.0;
+  conf.fanhigh = 80.5;
   conf.htrlow = 78.3;
   conf.htrhigh = 79.0;
   conf.sonarlow = 40;
   conf.sonarhigh = 5;
   conf.sonaralertval = 37;
   conf.sonaralert = false;
-  conf.alerttemplow = 76.0;
-  conf.alerttemphigh = 82.0;
-  conf.alertphlow = 7.5;
-  conf.alertphhigh = 9.0;
   conf.soundalert=false;
   conf.emailalert=false;
   conf.initialized=EEPROMSIG;
@@ -145,6 +169,9 @@ static boolean lcdpresent = false;
 
 void initLCD(){
   lcd.begin(LCD_COLS,LCD_ROWS);
+#ifdef TW_400
+  TWBR=12;
+#endif
   lcdpresent = checkLCD();
   p(F("LCD init.       "));
 }
@@ -205,13 +232,13 @@ boolean psensors() {
 case 1:
 #ifdef _PH
 #if MAXPH==1
-  lcd << F("pH:") << getph()  << F(" ");
+  lcd << F("pH:") << getAtlasAvg(phdata[0])  << F(" ");
   x++;
   if (x%2==0) return x>=maxsensors;
 #else
   static int pindex = 0;
   while (pindex<MAXPH)  {
-    lcd << F("pH") << pindex << F(":") << getph()  << F(" ");
+    lcd << F("pH") << pindex << F(":") << getAtlasAvg(phdata[pindex])  << F(" ");
     x++;
     pindex++;
     if (x%2==0) return x>=maxsensors;
@@ -406,26 +433,26 @@ void logSensors() {
     fileout_ << F("<record><date>") << buffer << F("</date>");
 #ifdef _TEMP
     for (int i=0;i<MAXTEMP;i++) {
-      fileout_ << F("<probe><name>") << tempname[i] << F("</name><value>");
+      fileout_ << F("<probe><name>") << tempdata[i].name << F("</name><value>");
       fileout_ << setprecision(1) << getTemp(i)<< F("</value></probe>");
     }
 #endif
 #ifdef _PH
     for (int i=0;i<MAXPH;i++) {
-      fileout_ << F("<probe><name>") << phname[i] << F("</name><value>");
+      fileout_ << F("<probe><name>") << phdata[i].name << F("</name><value>");
       fileout_ << setprecision(2);
-      fileout_ << (getph()<10.0?" ":"") << getph(i) << F("</value></probe>");
+      fileout_ << (getAtlasAvg(phdata[i])<10.0?" ":"") << getAtlasAvg(phdata[i]) << F("</value></probe>");
     }
 #endif
 #ifdef _COND
       fileout_ << F("<probe><name>Cond</name><value>");
       fileout_ << setprecision(1);
-      fileout_ << getCond() << F("</value></probe>");
+      fileout_ << getAtlasAvg(conddata) << F("</value></probe>");
 #endif
 #ifdef _ORP
       fileout_ << F("<probe><name>Orp</name><value>");
       fileout_ << setprecision(0);
-      fileout_ << getOrp() << F("</value></probe>");
+      fileout_ << getAtlasAvg(orpdata) << F("</value></probe>");
 #endif
     fileout_ << F("</record>\n");
     fileout_.close();
@@ -465,10 +492,35 @@ void logMessage(uint8_t ip[], const char* msg) {
 void logAlarm() {
   char buffer[20];
   if (logSetup(now2(),  buffer, "LOG", "log")) {
-     fileout_ << buffer << F(" Alarm Event : Temp=") << getTemp();
-     fileout_ << F(" ph=") << getph();
-     fileout_ << F(" Top Off water level: ") << (uint8_t)getSonarPct() << F("%\n");
-     fileout_.close();
+     fileout_ << buffer << F(" Alarm Event :\n");
+#ifdef _TEMP
+    for (uint8_t i;i<MAXTEMP;i++) {
+       fileout_ << F(" Temp ") << tempdata[i].name << F(": ") << getTemp(i) << F("\n"); 
+    }
+#endif
+#ifdef _PH
+    for (uint8_t i;i<MAXPH;i++) {
+      fileout_ << F(" ph ") << phdata[i].name << F(" : ") << getAtlasAvg(phdata[i]) << F("\n");
+    }
+#endif
+#ifdef _COND
+    fileout_ << F("Cond: ") << getAtlasAvg(conddata) << F("\n");
+#endif
+#ifdef _ORP
+    fileout_ << F("Orp: ") << getAtlasAvg(orpdata) << F("\n");
+#endif
+#ifdef _SONAR
+    fileout_ << F(" Top Off water level: ") << (uint8_t)getSonarPct() << F("%\n");
+#endif
+#ifdef _DOSER
+    for (int i=0;i<MAXDOSERS;i++) {
+      fileout_ << F("Doser ") << i << F(": \n");
+      fileout_ << F("  ") << (const char*)conf.doser[i].name << F("\n");
+      fileout_ << F("  Dosed Volume: ") << dosedvolume[i]/100.0 << F("\n");
+      fileout_ << F("  Remaining Volume:") << conf.doser[i].fullvolume -dosedvolume[i]/100.0 << F("\n");
+    }
+#endif
+    fileout_.close();
   }
 }
 

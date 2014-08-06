@@ -339,7 +339,16 @@ void TinyWebServer::send_error_code(Client& client, int code) {
 #endif
   client << F("HTTP/1.1 ");
   client.print(code, DEC);
+  if (code==200)
   client << F(" OK\r\n");
+  else if (code==400)
+    client << F(" Bad Request\r\n");
+  else if (code==404)
+    client << F(" Not Found\r\n");
+  else if (code==414)
+    client << F(" Request URI Too Long\r\n");
+  else if (code==417)
+    client << F(" Expectation Failed\r\n");
   client << F("Connection: close\r\n");
   client << F("Cache-Control: no-cache\r\n");
   if (code != 200) {
