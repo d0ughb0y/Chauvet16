@@ -843,7 +843,7 @@ function pwmpagechange(e) {
 			pwmpumpsconfig=data.pwmpumps;
 			updatepwmpagefields();
 		}).fail(function (jqXHR, textStatus, errorThrown) {
-			console.log(textStatus);
+			console.log(jqXHR.responseText);
 		});
 }
 $('#Outlets').on("change", $("input[type='radio']"), function (event, ui) {
@@ -865,7 +865,7 @@ $('#Outlets').on("change", $("input[type='radio']"), function (event, ui) {
 	}).always(function () {
 			$.mobile.loading('hide');
 		}).fail(function (jqXHR, textStatus, errorThrown) {
-			alert(textStatus);
+			alert(jqXHR.responseText);
 			updateStatus();
 		});
 });
@@ -1079,7 +1079,7 @@ function getsensordata(callback) {
 		if (typeof callback=="function") callback();
 	}).fail(function (jqXHR, textStatus, errorThrown) {
 			if (retry>=maxretries) {
-				alert('unable to connect to apex.');
+				alert('unable to connect to apex.'+jqXHR.responseText);
 				retry=0;
 				return;
 			}
@@ -1138,7 +1138,7 @@ function loadoutlog() {
 			$.mobile.loading('hide');
 		}).fail(function (jqXHR, textStatus, errorThrown) {
 			if (retry>=maxretries) {
-				alert('unable to connect to apex.');
+				alert('unable to connect to apex.'+jqXHR.responseText);
 				retry=0;
 				history.back();
 				return;
@@ -1223,7 +1223,7 @@ function setFeed(i) {
 			$.mobile.loading('hide');
 			updateFeedTime();
 		}).fail(function (jqXHR, textStatus, errorThrown) {
-			alert(textStatus);
+			alert(jqXHR.responseText);
 		}).done(function (data) {
 		});
 }
@@ -1273,6 +1273,7 @@ function updateFeedTime() {
 				feedtimeoutfunction=setTimeout(updateFeedTime, 5000);
 			}
 		}).fail(function (jqXHR, textStatus, errorThrown) {
+			console.log(jqXHR.responseText);
 		}).done(function (a) {
 		});
 }
@@ -1326,7 +1327,7 @@ function updateStatus(spark) {
 			$.mobile.loading('hide');
 		}).fail(function (jqXHR, textStatus, errorThrown) {
 			if (retry>=maxretries) {
-				alert('unable to connect to apex.');
+				alert('unable to connect to apex.'+jqXHR.responseText);
 				retry=0;
 				return;
 			}
@@ -1661,7 +1662,7 @@ function initPage() {
 				$.mobile.loading('hide');
 		}).fail(function (jqXHR, textStatus, errorThrown) {
 			if (retry>=maxretries) {
-				alert('unable to connect to apex.');
+				alert('unable to connect to apex. '+jqXHR.responseText);
 				retry=0;
 				$.mobile.loading('hide');
 				return;
@@ -1760,9 +1761,9 @@ function doserCommand(cmd){
 		data:"{\"cmd\":\""+cmd+"\",\"idx\":\""+doseridx+"\",\"v\":\""+nval+"\"}",
 		contentType:'application/json',
 		type:'POST'}).always(function () {
+			$.mobile.loading('hide');
 		}).done(function (data) {
 			dosers=data.dosers;
-			$.mobile.loading('hide');
 			if (cmd!='cstart' && cmd!='cabort' && cmd!='cadj')
 				alert("Doser command sent.");
 			if (cmd=='cstart') {
@@ -1798,8 +1799,7 @@ function doserCommand(cmd){
 				$('#_dosercalabort').button('disable');
 			}
 		}).fail(function (jqXHR, textStatus, errorThrown) {
-			alert("Doser command error.");
-			console.log(textStatus);
+			alert(jqXHR.responseText);
 		});
 }
 function updateDoserSetupFields(){
@@ -1884,7 +1884,7 @@ $(document).on('pagebeforechange', function (e, data) {
 	}).always(function () {
 			$.mobile.loading('hide');
 		}).fail(function (jqXHR, textStatus, errorThrown) {
-			alert(textStatus);
+			alert(jqXHR.responseText);
 		}).done(function (f) {
 		});
 });
@@ -2067,7 +2067,7 @@ $('#dosernav').on('click', 'li a', function(e){
 })
 $('#_dosercalibrate').on('pagebeforeshow', function(e){
 //	doserCommand('cstart');
-	$('#_dosercalibratehdr').html("Calibrate Doser "+doseridx);
+	$('#_dosercalibratehdr').html("Doser "+doseridx);
 	$('#_dosercalvol').val(5);
 	$('#_dosercaltime').val(980);
 	$('#_dosercaltotaltime').val(0);
@@ -2287,8 +2287,7 @@ function phcal(param) {
 			$('#phval').val(data.phval);
 			alert('calibration '+param.cal+' set');
 		}).fail(function (jqXHR, textStatus, errorThrown) {
-			console.log(textStatus);
-			alert('Failed to set calibration '+textStatus);
+			alert('Failed to set calibration '+jqXHR.responseText);
 		});
 }
 function removelinks(id) {
@@ -2362,7 +2361,7 @@ function loadlog() {
 		logpath="";
 	}).done(function (data) {
 		}).fail(function (jqXHR, textStatus, errorThrown) {
-			alert(textStatus);
+			alert(jqXHR.responseText);
 			history.back();
 		}).always(function () {
 			$.mobile.loading('hide');

@@ -416,9 +416,6 @@ boolean apex_status_json_handler(TinyWebServer& webserver) {
 
 boolean apex_error(TinyWebServer& webserver, const __FlashStringHelper* msg, int i) {
   webserver.send_error_code(400);
-  webserver.send_content_type(F("text/plain"));
-  webserver.end_headers();
-//  webserver << F("Unable to update conf\n");
   webserver << msg << F(" ") << i << F("\n");
   beepFail();
   return true;   
@@ -470,7 +467,7 @@ boolean apex_doser_post(TinyWebServer& webserver, long postlen) {
     ptr+=ln;
     avail-=ln;
   }
-  if (len!=postlen) return apex_error(webserver,F("len mismatch"),len);
+  if (len!=postlen) return apex_error(webserver,F("len mismatch. "),len);
   json[postlen]=0;
   char* name = strtok(json,delims);
   while (name!=NULL) {
@@ -480,12 +477,12 @@ boolean apex_doser_post(TinyWebServer& webserver, long postlen) {
       strcpy(idx,strtok(NULL,delims));
     } else if (strcmp_P(name,PSTR("v"))==0) {
       strcpy(volume,strtok(NULL,delims));
-    } else return apex_error(webserver,F("invalid json."),0);
+    } else return apex_error(webserver,F("Invalid json request. "),0);
     name=strtok(NULL,delims);
   }
-  if (idx==NULL) return apex_error(webserver,F("invalid json."),0);
+  if (idx==NULL) return apex_error(webserver,F("Invalid json, idx is null. "),0);
   int i = atoi(idx);
-  if (i<0 || i>MAXDOSERS-1) return apex_error(webserver,F("invalid idx."),i);
+  if (i<0 || i>MAXDOSERS-1) return apex_error(webserver,F("Invalid idx value."),i);
   if (strcmp_P(command,PSTR("don"))==0){
     doserOn(i,0);
   } else if (strcmp_P(command,PSTR("doff"))==0) {
@@ -499,26 +496,29 @@ boolean apex_doser_post(TinyWebServer& webserver, long postlen) {
       int vol = atoi(volume);
       caladjust(i,vol);
     } else
-      return apex_error(webserver,F("invalid json."),0);
+      return apex_error(webserver,F("Invalid json, Time unit not specified. "),0);
   } else if (strcmp_P(command,PSTR("csave"))==0) {
     if (volume!=NULL && calibrationcount>0) {
       int vol = atoi(volume);
       if (vol>0)
         calsave(i,vol);
       else
-        return apex_error(webserver,F("Doser calibration save failed."),vol);
+        return apex_error(webserver,F("Cannot save due to invalid volume value. "),vol);
     }
   }  else if (strcmp_P(command,PSTR("cabort"))==0) {
     calibrationcount=0;
     dosercalibrating=false;
   } else if (strcmp_P(command,PSTR("mdose"))==0) {
+    if (conf.doser[i].rate==0) {
+      return apex_error(webserver,F("Please calibrate this doser before using. Doser "),i);
+    }
     if (volume!=NULL) {
       int vol = atoi(volume);
       if (vol>0 && vol/10.0*conf.doser[i].rate < 15000UL * 60000UL / 1024)
         manualDoseOn(i,vol);
       else
-        return apex_error(webserver,F("Volume must result in Doser pump On time <=15 minutes."),vol);
-    } else return apex_error(webserver,F("invalid json."),0);
+        return apex_error(webserver,F("Volume must result in Doser pump On time <=15 minutes. "),vol);
+    } else return apex_error(webserver,F("Invalid json request, volume not specified. "),0);
   } else if (strcmp_P(command,PSTR("setdv"))==0) {
     if (volume!=NULL) {
       int vol = atoi(volume);
@@ -526,7 +526,7 @@ boolean apex_doser_post(TinyWebServer& webserver, long postlen) {
       writeDoserStatus();
     }
   } else {
-    return apex_error(webserver,F("invalid json."),0);
+    return apex_error(webserver,F("Invalid json request. "),0);
   }
   return apex_doser_get(webserver);
 }
