@@ -493,10 +493,6 @@
 		</div>
 		<div id="contentpumps">
 			<div data-role="navbar" id="pumpnav" data-mini="true">
-				<ul>
-					<li><a href="#" class="ui-btn-active ui-state-persist" id="pumpnav0">Pump 0</a> </li>
-					<li><a href="#" id="pumpnav1">Pump 1</a> </li>
-				</ul>
 			</div>
 			<div data-role="content">
 				<div>
@@ -2080,9 +2076,14 @@ $('#_dosercalibrate').on('pagebeforeshow', function(e){
 	doserCommand('cabort');
 })
 $('#csform').on('pagebeforecreate', function(e) {
-	if (config.pumps.length>2) {
-		$('#pumpnav').append("<li><a id='pumpnav2'>Pump 2</a> </li>").append("<li><a id='pumpnav3'>Pump 3</a> </li>");
-	  $('#pumpnav').navbar();
+	if (config.pumps.length==4){
+		$('#pumpnav').html('<ul><li><a href="#" class="ui-btn-active ui-state-persist" id="pumpnav0">Pump 0</a> </li>\
+		<li><a href="#" id="pumpnav1">Pump 1</a> </li>\
+		<li><a href="#" id="pumpnav2">Pump 2</a> </li>\
+		<li><a href="#" id="pumpnav3">Pump 3</a> </li></ul>').navbar();
+	} else if (config.pumps.length==2) {
+		$('#pumpnav').html('<ul><li><a href="#" class="ui-btn-active ui-state-persist" id="pumpnav0">Pump 0</a> </li>\
+		<li><a href="#" id="pumpnav1">Pump 1</a> </li></ul>').navbar();
 	} else if (config.pumps.length==0) {
 		$('#contentpumps').html("<h1>No pumps defined.</h1>")
 	}

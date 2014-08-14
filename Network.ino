@@ -59,14 +59,36 @@ TinyWebServer web = TinyWebServer(handlers,headers);
   IPAddress router(ROUTER_IP);
 
 boolean netCheck() {
-  static IPAddress router(ROUTER_IP); //change the ip to your router ip address
+  static uint8_t retry = 0;
+  boolean hasFreeSocket = false;
+  for (uint8_t sock=0;sock<MAX_SOCK_NUM;sock++){
+    EthernetClient client(sock);
+    uint8_t s = client.status();
+    if (s==0 || s==0x18 || s==0x1C) {//closed || fin_wait || close_wait
+      hasFreeSocket=true;
+      break;
+    }
+  }
+  if (!hasFreeSocket) {
+    retry++;
+    if (retry>3) {
+      retry=0;
+      resetNetwork();
+    }
+    return false;//we only test if there is free socket to connect
+  }
   EthernetClient client;
+  IPAddress router(ROUTER_IP); //change the ip to your router ip address
   if (client.connect(router,ROUTER_PORT)) {
     client.stop();
+    retry=0;
     return true;
   } else {
-    resetNetwork();
-    return false;
+    if (++retry>3) {
+      resetNetwork();
+      return false;
+    } else
+      return true;
   }
 }
 
