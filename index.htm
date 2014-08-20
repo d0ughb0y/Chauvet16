@@ -868,7 +868,7 @@ function pwmpagechange(e) {
 			pwmpumpsconfig=data.pwmpumps;
 			updatepwmpagefields();
 		}).fail(function (jqXHR, textStatus, errorThrown) {
-			console.log(jqXHR.responseText);
+			console.log(textStatus);
 		});
 }
 $('#Outlets').on("change", $("input[type='radio']"), function (event, ui) {
@@ -890,7 +890,7 @@ $('#Outlets').on("change", $("input[type='radio']"), function (event, ui) {
 	}).always(function () {
 			$.mobile.loading('hide');
 		}).fail(function (jqXHR, textStatus, errorThrown) {
-			alert(jqXHR.responseText);
+			alert(textStatus);
 			updateStatus();
 		});
 });
@@ -1248,7 +1248,7 @@ function setFeed(i) {
 			$.mobile.loading('hide');
 			updateFeedTime();
 		}).fail(function (jqXHR, textStatus, errorThrown) {
-			alert(jqXHR.responseText);
+			alert(textStatus);
 		}).done(function (data) {
 		});
 }
@@ -2507,7 +2507,7 @@ function loadlog() {
 		logpath="";
 	}).done(function (data) {
 		}).fail(function (jqXHR, textStatus, errorThrown) {
-			alert(jqXHR.responseText);
+			alert(textStatus);
 			history.back();
 		}).always(function () {
 			$.mobile.loading('hide');
