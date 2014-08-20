@@ -13,7 +13,7 @@ const char path5[] PROGMEM = "/cgi-bin/status.xml";
 const char path6[] PROGMEM = "/cgi-bin/outlog.xml" "*";
 const char path7[] PROGMEM = "/cgi-bin/files.json" "*";
 const char path8[] PROGMEM = "/config.json";
-const char path9[] PROGMEM = "/phval.json";
+const char path9[] PROGMEM = "/csutil.json";
 const char path10[] PROGMEM = "/pwmset.json";
 const char path11[] PROGMEM = "/doser.json";
 const char path12[] PROGMEM = "/cgi-bin/status.cgi";
@@ -35,7 +35,7 @@ TinyWebServer::PathHandler handlers[] = {
   {path6, TinyWebServer::GET, &apex_outlog_handler},
   {path7, TinyWebServer::GET, &apex_filesjson_handler},
   {path8, TinyWebServer::ANY, &apex_config_handler},
-  {path9, TinyWebServer::ANY, &apex_phval_handler},
+  {path9, TinyWebServer::POST, &apex_csutil_handler},
   {path10,TinyWebServer::POST, &apex_pwmset_handler},
   {path11,TinyWebServer::ANY,&apex_doser_handler},
   {path12 , TinyWebServer::POST, &apex_command_handler},
@@ -120,7 +120,7 @@ void send_file_name(TinyWebServer& web_server) {
   if (endchar!=NULL) {
     fullpath[endchar-fullpath]='\0';
   }
-  send_file_name(web_server,fullpath);  
+  send_file_name(web_server,fullpath);
 }
 
 void send_file_name(TinyWebServer& web_server, char* fullpath) {
@@ -302,19 +302,19 @@ void sendEmail() {
     client << F("\r\n");
 #ifdef _TEMP
     for (int i=0;i<MAXTEMP;i++) {
-      client << tempname[i] << ": " << getTemp(i) << F("\r\n");
+      client << tempdata[i].name << ": " << getTemp(i) << F("\r\n");
     }
 #endif
 #ifdef _PH
     for (int i=0;i<MAXPH;i++) {
-      client << phname[i] << ": " << getph(i) << F("\r\n");
+      client << phdata[i].name << ": " << getAtlasAvg(phdata[i]) << F("\r\n");
     }
 #endif
 #ifdef _COND
-    client << F("Cond: ") << getCond() << F("\r\n");
+    client << F("Cond: ") << getAtlasAvg(conddata) << F("\r\n");
 #endif
 #ifdef _ORP
-  client << F("Orp: ") << getOrp() << F("\r\n");
+  client << F("Orp: ") << getAtlasAvg(orpdata) << F("\r\n");
 #endif
 #ifdef _SONAR
     client << F("Top Off water level: ") << (uint8_t)getSonarPct() << F("%\r\n.\r\n");

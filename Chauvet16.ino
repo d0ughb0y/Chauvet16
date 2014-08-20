@@ -52,13 +52,18 @@ volatile boolean netCheckFlag = false;
 volatile boolean updateRTCFlag = false;
 volatile uint16_t sonaravg = 0;
 volatile uint8_t displaymode = 0;
-volatile float phavg=0;
 volatile uint8_t maxsensors = 0;
 #ifdef _TEMP
-char tempname[][8] = TEMPNAME;
+TempSensorDef_t tempdata[] = TEMPDEF;
 #endif
 #ifdef _PH
-char phname[][8] = PHNAME;
+AtlasSensorDef_t phdata[MAXPH] = PHDEF;
+#endif
+#ifdef _ORP
+AtlasSensorDef_t orpdata = ORPDEF;
+#endif
+#ifdef _COND
+AtlasSensorDef_t conddata = CONDDEF;
 #endif
 #ifdef _DOSER
 volatile boolean doseractive[MAXDOSERS];
@@ -179,18 +184,28 @@ void loop() {
       updateRTC();
       updateRTCFlag=false; 
     }
+#ifdef _DOSER
     if (updateDoserStatusFlag) {
       writeDoserStatus();
       updateDoserStatusFlag=false;
     }
-    updatePh();
+#endif
+#ifdef _PH
+    static uint8_t phidx = 0;
+    updateAtlas(phdata[phidx++]);
+    phidx%=MAXPH;
+#endif
+#ifdef _SONAR
     updateSonar();
+#endif
     logOutlet();
     previousTime = currentTime;
     profile(false);
   }
   //do every cycle  
+#ifdef _TEMP
   updateTemp(); //this takes 500us
+#endif
   webprocess(); 
 }
 

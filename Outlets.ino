@@ -153,7 +153,7 @@ inline void outletHandlerB() { //once per second handler
 #endif
   }
   //check if network is still up at 1,21,41 mins past the hour (not a busy time)
-  if ((minnow+1)%20==1 && secnow==15) { 
+  if ((minnow+1)%5==1 && secnow==15) { 
     netCheckFlag=true;
   }
   if (secnow%LCD_MSG_CYCLE_SECS==0) {

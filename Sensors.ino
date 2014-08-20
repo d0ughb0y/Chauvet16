@@ -6,9 +6,6 @@
 */
 #define numReadings 8
 #ifdef _TEMP
-volatile uint16_t tempavg[MAXTEMP];
-uint8_t addr[][8] = {TEMPADDR};
-uint16_t sum[MAXTEMP];
 #define TEMPPIN 48
 OneWire ds(TEMPPIN);
 #endif
@@ -26,30 +23,50 @@ void initSensors() {
   }
 #endif
 #ifdef _PH
-  if (initPH()) {
-    p(F("pH OK.          "));
-    logMessage(F("pH sensor initialized."));   
-  } else {
-    beepFail();
-    p(F("pH Init failed  "));
-    logMessage(F("pH Init failed"));
-  } 
-#endif  
+  for (uint8_t i=0;i<MAXPH;i++) {
+    if (initAtlas(phdata[i])) {
+      p(F("pH OK.          "));
+      logMessage(F("pH initialized. ph "),i);
+    } else {
+      beepFail();
+      p(F("pH init failed. "));
+      logMessage(F("pH init failed. ph "),i);
+    }
+  }
+#endif
 #ifdef _ORP
   maxsensors++;
+  if (initAtlas(orpdata)) {
+    p(F("ORP OK.         "));
+    logMessage(F("ORP sensor initialized."));
+  } else {
+    beepFail();
+    p(F("ORP init failed."));
+    logMessage(F("ORP sensor init failed."));
+  }
 #endif
 #ifdef _COND
   maxsensors++;
+  if (initAtlas(conddata)) {
+    p(F("Cond OK.        "));
+    logMessage(F("Conductivity sensor initialized."));
+  } else {
+    beepFail();
+    p(F("Cond init failed"));
+    logMessage(F("Conductivity sensor init failed."));
+  }
 #endif
 }
 
-boolean tempinit = false;
 boolean phinit = false;
+boolean condinit = false;
+boolean orpinit = false;
 
 boolean initTemp() {
 uint8_t _addr[8];
-uint8_t x = 0;
+int x = 0;
 uint8_t _numtemps = 0;
+int _lastfound = -1;
 if (ds.reset()) {
   for (int n=0;n<MAXTEMP;n++) {
     if (!ds.search(_addr)) {
@@ -60,20 +77,28 @@ if (ds.reset()) {
       return false;
     else {
       for (int i=0;i<MAXTEMP;i++) {
-        if (OneWire::crc8(_addr,7)==OneWire::crc8(addr[i],7)) {
+        if (OneWire::crc8(_addr,7)==OneWire::crc8(tempdata[i].addr,7)) {
           logMessage(F("Found Temp "),i);
           x=i;
           break;
         }
+      }
+      if (x!=_lastfound)
+        _lastfound=x;
+      else {
+        logMessage(F("Found unregistered temp sensor. Please update config.h."));
+        continue;
       }
     }
     _numtemps++;
     if (ds.reset()) {
       ds.select(_addr);
       ds.write(0x44);
-    } else
-      return false;
-    for (int x=0;x<250;x++) {
+    } else {
+      logMessage(F("Init temp reset after addr fail."));
+      return false;//always fail on any onewire bus error
+    }
+    for (int y=0;y<1024;y++) {
       if (ds.read()>0) break;
     }
     if (ds.reset()) {
@@ -82,40 +107,41 @@ if (ds.reset()) {
       uint8_t data[9];
       ds.read_bytes(data,9);
       if (ds.crc8(data,8)!=data[8]) {
+        logMessage(F("Read crc data mismatch."));
         return false;
       }
       uint16_t tval = data[1] << 8 | data[0];
       if (tval > 256 && tval < 512 ) {
-        sum[x] = tval * numReadings;
-        tempavg[x] = tval;
+        tempdata[x].sum = tval * numReadings;
+        tempdata[x].average = tval;
+        tempdata[x].initialized=true;
       }
-    } else
+    } else {
+      logMessage(F("Temp data read reset fail."));
       return false;
+    }
   }
   ds.reset_search();
   delay(250);
-  if (_numtemps==MAXTEMP) {
-    tempinit=true;
+  if (tempdata[0].initialized) {//only temp 0 is required
     return true;
-  } else
+  } else {
+    logMessage(F("Temp0 is not initialized."));
     return false;
+  }
 } else //no temp probes
   return false;
 }
 
-float getTemp() {
-  return getTemp(0);
-}
-
 float getTemp(int i) {
-  if (!tempinit) return 0.0;
+  if (!tempdata[i].initialized) return 0.0;
   static float lasttemp[MAXTEMP];
   static unsigned long lastread[MAXTEMP];
   unsigned long timenow = millis();
   if (timenow-lastread[i]>128) {
     uint8_t saveSREG = SREG;
     cli();
-    uint16_t t = tempavg[i];
+    uint16_t t = tempdata[i].average;
     SREG=saveSREG;
     lasttemp[i] = t / 16.0 * 1.8 + 32.0;
     lastread[i]=timenow;
@@ -124,13 +150,6 @@ float getTemp(int i) {
 }
 
 void updateTemp() {
-  if (!tempinit) {
-    //test if temp probe is plugged in
-    if (ds.reset()) {
-      tempinit=true;
-    } else
-      return;
-  }
   static uint8_t state = 0;
   static uint8_t t = 0;
   static unsigned long timestamp;
@@ -140,8 +159,7 @@ void updateTemp() {
       if (ds.reset2()) { //500us
         state=1;
         timestamp=micros();
-      } else
-        tempinit=false;
+      }
       break;
     case 1:
       if (micros()-timestamp<420) return;
@@ -163,7 +181,7 @@ void updateTemp() {
         bytecounter=0;
         timestamp=micros();
       } else {
-        tempinit=false;
+        logMessage(F("reset failed"));
         t=0;
         state=0;
       }
@@ -177,7 +195,7 @@ void updateTemp() {
          if (bytecounter==0) {
            ds.write(0x55);
          } else {
-           ds.write(addr[t][bytecounter-1]);
+           ds.write(tempdata[t].addr[bytecounter-1]);
          }
          bytecounter++;
          if (bytecounter>=9)
@@ -200,14 +218,20 @@ void updateTemp() {
         if (tval > 256 && tval < 512 ) {
           uint8_t saveSREG=SREG;
           cli();
-          uint16_t tavg = tempavg[t];
+          tempdata[t].sum = (tempdata[t].sum - tempdata[t].average) + tval;
+          tempdata[t].average = tempdata[t].sum / numReadings;
           SREG=saveSREG;
-          sum[t] = (sum[t] - tavg) + tval;
-          tempavg[t] = sum[t] / numReadings;
+          tempdata[t].initialized=true;
         }
+      } else {
+        if (t!=0)
+          tempdata[t].initialized=false;
+        logMessage(F("crc mismatch"));
       }
       t++;
       t%=MAXTEMP;
+      if (t>=MAXTEMP)
+        t=0;
       if (t==0) {
         state=0;
       } else
@@ -217,176 +241,226 @@ void updateTemp() {
 }
 
 void checkTempISR(){
-  if (!tempinit) return;
+  if (!tempdata[0].initialized) return;
   #ifdef _HEATER
-  if (getTemp() <= conf.htrlow && conf.outletRec[Heater].mode==_auto)
+  if (getTemp(0) <= conf.htrlow && conf.outletRec[Heater].mode==_auto)
     _outletOn(Heater);
-  if (getTemp() >= conf.htrhigh && conf.outletRec[Heater].mode==_auto)
+  if (getTemp(0) >= conf.htrhigh && conf.outletRec[Heater].mode==_auto)
     _outletOff(Heater);
   #endif
   #ifdef _FAN
-  if (getTemp() >= conf.fanhigh && conf.outletRec[Fan].mode==_auto) {
+  if (getTemp(0) >= conf.fanhigh && conf.outletRec[Fan].mode==_auto) {
       _outletOn(Fan);
   }
-  if (getTemp() <= conf.fanlow && conf.outletRec[Fan].mode==_auto) {
+  if (getTemp(0) <= conf.fanlow && conf.outletRec[Fan].mode==_auto) {
       _outletOff(Fan);
   }
   #endif  
 }
 
 void checkAlarm() {
-  if ((tempinit && (getTemp()>=conf.alerttemphigh || getTemp()<=conf.alerttemplow)) ||
-    (phinit && (phavg>=conf.alertphhigh || phavg<=conf.alertphlow)) 
-#ifdef _SONAR    
-    || (conf.sonaralert && sonaravg>conf.sonaralertval*10)
-#endif    
-#ifdef _DOSER
-    || (!dosercalibrating && conf.doser[0].dosesperday>0 && conf.doser[0].rate>0 && conf.doser[0].fullvolume-dosedvolume[0]/100.0<conf.doser[0].dailydose)
-    || (!dosercalibrating && conf.doser[1].dosesperday>0 && conf.doser[1].rate>0 && conf.doser[1].fullvolume-dosedvolume[1]/100.0<conf.doser[1].dailydose)
+#ifdef _TEMP
+  for(int i=0;i<MAXTEMP;i++) {
+    if (tempdata[i].initialized && (getTemp(i)>conf.alert[i].highalert || getTemp(i)<conf.alert[i].lowalert))
+      return setAlarm(true);
+  }
 #endif
-    ) {
-      if (!alarm) {
-        alarmOn();
-        emailFlag=true;
-        logalarmFlag=true;
-        alarm=true;    
-      }
+#ifdef _PH
+  for (int i=0;i<MAXPH;i++) {
+    if (phdata[i].initialized && (getAtlasAvg(phdata[i])>conf.alert[MAXTEMP+i].highalert || getAtlasAvg(phdata[i])<conf.alert[MAXTEMP+i].lowalert))
+      return setAlarm(true);
+  }
+#endif
+#ifdef _ORP
+  if (orpdata.initialized && (getAtlasAvg(orpdata)>conf.alert[MAXTEMP+MAXPH].highalert || getAtlasAvg(orpdata)<conf.alert[MAXTEMP+MAXPH].lowalert))
+      return setAlarm(true);
+#endif
+#ifdef _COND
+  if (conddata.initialized && (getAtlasAvg(conddata)>conf.alert[MAXTEMP+MAXPH+MAXORP].highalert || getAtlasAvg(conddata)<conf.alert[MAXTEMP+MAXPH+MAXORP].lowalert))
+      return setAlarm(true);
+#endif
+#ifdef _SONAR
+  if (conf.sonaralert && sonaravg>conf.sonaralertval*10)
+    return setAlarm(true);
+#endif
+#ifdef _DOSER
+  if (!dosercalibrating) {
+    for (int i=0;i<MAXDOSERS;i++) {
+      if (conf.doser[i].dosesperday>0 && conf.doser[i].rate>0 && conf.doser[i].fullvolume-dosedvolume[i]/100.0<conf.doser[i].dailydose)
+        return setAlarm(true);
+    }
+  }
+#endif
+  setAlarm(false);
+}
+
+void setAlarm(boolean state){
+  if (state) {
+    if (!alarm) {
+      alarmOn();
+      emailFlag=true;
+      logalarmFlag=true;
+      alarm=true;
+    }
   } else {
     if (alarm) {
       alarm=false;
       beepoff();
     }
-  }  
+  }
 }
 
-///////////////////////////////////////////////////////
-//  pH section
-///////////////////////////////////////////////////////
-#ifdef _PH
-static float phreading=0;
-static boolean phready = false;
+/////////////////////////////////////////////////////////
+// Atlas Sensors Functions
+/////////////////////////////////////////////////////////
+boolean initAtlas(AtlasSensorDef_t &data) {
+  char responsechars[15];
+  responsechars[0]=0;
+  data.saddr.begin(38400);
+  for (int i=0;i<255,strlen(responsechars)==0;i++) {
+    if (data.type==_cond)//set conductivity stamp to return SG only, K=1.0
+      data.saddr.print("response,0\rc,0\ro,ec,0\ro,tds,0\ro,sg,0\rk,1.0\rr\r");
+    else {
+#ifdef _PH_EZO
+      if (data.type==_ph) {
+        data.saddr.print("response,0\rc,0\rr\r");
+      } else
 #endif
-boolean initPH() {
-#ifdef _PH  
-  char phchars[15];
-  phchars[0]=0;
-  Serial1.begin(38400);
-  for (int i=0;i<255,strlen(phchars)==0;i++) {
-    Serial1.print("e\rr\r");
-    delay(384);
-    getresponse(phchars);
-  }
-  if (strlen(phchars)==0) {
-    phinit=false;
-    return false;
-  }
-  phreading=atof(phchars);
-  if (phreading>0) {
-    phready=true;
-    phinit=true;
-    updatePh();
-    phready=false;
-    return true;
-  } else 
-#endif  
-    return false;
-}
-
-void updatePh() {
-  if (!phinit) return;
-  static float sum=0;
-  static float pha = 0;
-  if (phready) {
-    phready=false;
-    if (phreading>0) {
-      if (pha) {
-        sum = (sum-pha)+phreading;
-        pha = sum / numReadings; 
-        cli();
-        phavg=pha;
-        sei();
-      } else {
-         sum = phreading*numReadings;
-         pha=phreading;
-         phavg=phreading;
-      }
+      data.saddr.print("e\rr\r");
     }
-    Serial1.print("r\r");
+    delay(384);
+    data.average=0;
+    getresponse(data, responsechars);
   }
+  if (strlen(responsechars)==0) {
+    data.initialized=false;
+    return false;
+  }
+  data.value=atof(responsechars);
+  if (data.value>0) {
+    data.isReady=true;
+    data.initialized=true;
+    updateAtlas(data);
+    data.isReady=false;
+  } else
+    return false;
+  return true;
 }
 
-float getph() {
-  if (!phinit) return 0.0;
-  uint8_t saveSREG=SREG;
-  cli();
-  float p = phavg;
-  SREG=saveSREG;
-  return p;
-}
-
-float getph(int i) {
-   return getph();
-}
-
-void calibrate7() {
-  Serial1.print("s\r");
-}
-
-void calibrate10(){
-  Serial1.print("t\r");
-}
-
-void calibrate4() {
-  Serial1.print("f\r");
-}
-
-void getresponse(char* phchars) {
+void getresponse(AtlasSensorDef_t& data, char* response){
   int i = 0;
-  while (Serial1.available()) {
-    char c = (char)Serial1.read(); 
+  while (data.saddr.available()) {
+    char c = (char)data.saddr.read();
     if (c=='\r') {
-      phchars[i]=0;
+      response[i]=0;
       i=0;
       return;
     } else {
-      phchars[i++]=c;
+      response[i++]=c;
       if (i==14) {
         i=0;
-        phchars[0]=0;
+        response[0]=0;
         return;
       }
     }
   }
 }
 
-void serialEvent1() {
-  static char phchars[15];
-  static int i = 0;
-  char c = (char)Serial1.read(); 
+void updateAtlas(AtlasSensorDef_t& data) {
+  if (!data.initialized) return;
+  if (data.isReady) {
+    data.isReady=false;
+    if (data.value>0) {
+      if (data.average) {
+        data.sum = (data.sum-data.average)+data.value;
+        cli();
+        data.average = data.sum / numReadings;
+        sei();
+      } else {
+        data.sum = data.value*numReadings;
+        cli();
+        data.average = data.value;
+        sei();
+      }
+    }
+    data.saddr.print("r\r");
+  }
+}
+
+float getAtlasAvg(AtlasSensorDef_t& data) {
+  if (!data.initialized) return 0.0;
+  uint8_t saveSREG=SREG;
+  cli();
+  float p = data.average;
+  SREG=saveSREG;
+  return p;
+}
+
+void calibrateLow(AtlasSensorDef_t& data) {
+  if (data.type==_ph) {
+    //calibrate ph 7
+#ifdef _PH_EZO
+    data.saddr.print("cal,mid,7.00\r");
+#else
+    data.saddr.print("s\r");
+#endif
+  } else if (data.type==_orp) {
+    data.saddr.print("-\r");
+  } else if (data.type==_cond) {
+    data.saddr.print("cal,dry\r");
+  }
+}
+
+void calibrateHigh(AtlasSensorDef_t& data, long val) {
+  if (data.type==_ph) {
+    //calibrate ph 10
+#ifdef _PH_EZO
+    data.saddr.print("cal,high,10.00\r");
+#else
+    data.saddr.print("t\r");
+#endif
+  } else if (data.type==_orp) {
+    data.saddr.print("+\r");
+  } else if (data.type==_cond) {
+    data.saddr.print("cal,one,");
+    data.saddr.print(val);
+    data.saddr.print("\r");
+  }
+}
+
+void atlasHandler(AtlasSensorDef_t &data) {
+  char c = (char)data.saddr.read();
   if (c=='\r') {
-    phchars[i]=0;
-    i=0;
-    phreading=atof(phchars);  
-    phready=true;
-    return;
+    data.scratch[data.i]=0;
+    data.i=0;
+    data.value=atof(data.scratch);
+    data.isReady=true;
   } else {
-    phchars[i++]=c;
-    if (i==14) {
-      i=0;
-      phchars[0]=0;
-      phreading=0;
-      phready=true;
+    data.scratch[data.i++]=c;
+    if (data.i==14) {
+      data.i=0;
+      data.scratch[0]=0;
+      data.value=0;
+      data.isReady=true;
     }
   }
 }
 
-/////////////////////////////////////////////////////////
-// Conductivity Section
-/////////////////////////////////////////////////////////
-
-
 
 /////////////////////////////////////////////////////////
-// Orp Section
+// Serial Event Handlers
 /////////////////////////////////////////////////////////
+//uncomment the serialEvent function corresponding to the Serial port with atlas stamp connected, and
+//set the parameter to the corresponding sensor variable.
+void serialEvent1() {
+  atlasHandler(phdata[0]); //make sure to pass the SensorDef variable of the sensor attached to this serial port
+}
+
+//void serialEvent2(){
+//  atlasHandler(orpdata); //make sure to pass the SensorDef variable of the sensor attached to this serial port
+//}
+
+//void serialEvent3() {
+//  atlasHandler(conddata); //make sure to pass the SensorDef variable of the sensor attached to this serial port
+//}
 
