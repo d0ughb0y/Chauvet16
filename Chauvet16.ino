@@ -195,6 +195,12 @@ void loop() {
     updateAtlas(phdata[phidx++]);
     phidx%=MAXPH;
 #endif
+#ifdef _ORP
+    updateAtlas(orpdata);
+#endif
+#ifdef _COND
+    updateAtlas(conddata);
+#endif
 #ifdef _SONAR
     updateSonar();
 #endif

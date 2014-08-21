@@ -126,7 +126,7 @@ void initializeConf() {
   }
 #endif
 #ifdef _ORP
-  SensorAlarm_t orpalert = ORPALERT;
+  SensorAlert_t orpalert = ORPALERT;
   conf.alert[MAXTEMP+MAXPH].lowalert=orpalert.lowalert;
   conf.alert[MAXTEMP+MAXPH].highalert=orpalert.highalert;
   conf.alert[MAXTEMP+MAXPH].type=_orp;
@@ -492,33 +492,30 @@ void logMessage(uint8_t ip[], const char* msg) {
 void logAlarm() {
   char buffer[20];
   if (logSetup(now2(),  buffer, "LOG", "log")) {
-     fileout_ << buffer << F(" Alarm Event :\n");
+     fileout_ << buffer << F(" Alarm Event : ");
 #ifdef _TEMP
     for (uint8_t i;i<MAXTEMP;i++) {
-       fileout_ << F(" Temp ") << tempdata[i].name << F(": ") << getTemp(i) << F("\n"); 
+       fileout_ << tempdata[i].name << F(":") << getTemp(i) << F(" ");
     }
 #endif
 #ifdef _PH
     for (uint8_t i;i<MAXPH;i++) {
-      fileout_ << F(" ph ") << phdata[i].name << F(" : ") << getAtlasAvg(phdata[i]) << F("\n");
+      fileout_ << phdata[i].name << F(":") << getAtlasAvg(phdata[i]) << F(" ");
     }
 #endif
 #ifdef _COND
-    fileout_ << F("Cond: ") << getAtlasAvg(conddata) << F("\n");
+    fileout_ << F("Cond:") << getAtlasAvg(conddata) << F(" ");
 #endif
 #ifdef _ORP
-    fileout_ << F("Orp: ") << getAtlasAvg(orpdata) << F("\n");
-#endif
-#ifdef _SONAR
-    fileout_ << F(" Top Off water level: ") << (uint8_t)getSonarPct() << F("%\n");
+    fileout_ << F("Orp:") << getAtlasAvg(orpdata) << F(" ");
 #endif
 #ifdef _DOSER
     for (int i=0;i<MAXDOSERS;i++) {
-      fileout_ << F("Doser ") << i << F(": \n");
-      fileout_ << F("  ") << (const char*)conf.doser[i].name << F("\n");
-      fileout_ << F("  Dosed Volume: ") << dosedvolume[i]/100.0 << F("\n");
-      fileout_ << F("  Remaining Volume:") << conf.doser[i].fullvolume -dosedvolume[i]/100.0 << F("\n");
+      fileout_ << (const char*)conf.doser[i].name << F(":") << dosedvolume[i]/100.0 << F(" ");
     }
+#endif
+#ifdef _SONAR
+    fileout_ << F("Sonar:") << (uint8_t)getSonarPct() << F("%\n");
 #endif
     fileout_.close();
   }
@@ -593,18 +590,6 @@ void getfiles(EthernetClient& client, char* rootstr) {
       client << F("{\"n\":\"");
       file_.getFilename(fn);
       client << fn;
-//      client << F("\",\"d\":\"");
-//      uint8_t x = FAT_MONTH(d.lastWriteDate);
-//      client << (x<10?"0":"") << x << F("/");
-//      x = FAT_DAY(d.lastWriteDate);
-//      client << (x<10?"0":"") << x << F("/") << FAT_YEAR(d.lastWriteDate);
-//      client << F("\",\"t\":\"");
-//      x = FAT_HOUR(d.lastWriteTime);
-//      client << (x<10?"0":"") << x << F(":");
-//      x = FAT_MINUTE(d.lastWriteTime);
-//      client << (x<10?"0":"") << x << F(":");
-//      x = FAT_SECOND(d.lastWriteTime);
-//      client << (x<10?"0":"") << x;
       client << F("\",\"s\":\"");
       if (!file_.isDir())
         client << file_.fileSize();

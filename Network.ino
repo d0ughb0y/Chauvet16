@@ -527,7 +527,7 @@ unsigned long getNtpTime(IPAddress timeServer)
 void logNetworkAccess(TinyWebServer &web_server) {
   char* path = (char*)web_server.get_path();
   if (strcmp_P(path,PSTR("/pwmpumpdata.json"))==0 ||
-   strcmp_P(path,PSTR("/phval.json"))==0) return; 
+   strcmp_P(path,PSTR("/csutil.json"))==0) return;
   uint8_t remoteip[4];
   EthernetClient& client = web_server.get_client();
   client.getRemoteIP(remoteip);

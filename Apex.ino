@@ -823,7 +823,6 @@ boolean apex_csutil_handler(TinyWebServer& webserver) {
       json[i++]=(char)client.read();
     }
     json[i]=0;
-    logMessage(json);
     char delims[] = "{}[],:\"";
     scratch = strtok(json,delims);
     while (scratch!=NULL){

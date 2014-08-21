@@ -519,8 +519,6 @@ void testPWM(){
 #define sonarTPin    47  //PL2
 #define SONAR_TRIGGER_HI PORTL |= _BV(PL2);
 #define SONAR_TRIGGER_LO PORTL &= ~_BV(PL2);
-//#define SONAR_TRIGGER_HI PORTL |= _BV(PK5);
-//#define SONAR_TRIGGER_LO PORTL &= ~_BV(PK5);
 #define DURATION_TO_MM 6
 #define DURATION_TO_CM 58
 #define DURATION_TO_IN 148
@@ -547,7 +545,6 @@ inline void sonarHandler(uint8_t pins) {
    unsigned long duration = micros()-starttime;
    if (duration<=maxval)
      sonarDistance = duration/DURATION_TO_MM;  
-//   DISABLESONAR;
  }   
 }
 
@@ -562,35 +559,25 @@ void updateSonar()
     }
     sonaravg = sum /256;
   }
-//  SONARPINOUT;
-//  delayMicroseconds(2);
   SONAR_TRIGGER_LO
   delayMicroseconds(2);
   SONAR_TRIGGER_HI
   delayMicroseconds(10);
   SONAR_TRIGGER_LO
   delayMicroseconds(2);
-//  SONARPININ;
-//  delayMicroseconds(2);
-//  ENABLESONAR;
 }
 
 uint16_t getSonar() {
-  static uint16_t highest = 0;
   uint8_t saveSREG = SREG;
   cli();
   uint16_t tmp = sonaravg;
   SREG=saveSREG;
-//  if (tmp>highest || (highest - tmp)>2) {
-//    highest = tmp;
-//  }
-//  return highest;
   return tmp;
 }
 
 uint8_t getSonarPct() {
   uint16_t numerator = conf.sonarlow*10-getSonar();
   uint16_t denominator = conf.sonarlow - conf.sonarhigh;
-  return numerator*10/denominator; 
+  return numerator/(denominator*10);
 }
 
