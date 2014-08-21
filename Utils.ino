@@ -132,7 +132,7 @@ void initializeConf() {
   conf.alert[MAXTEMP+MAXPH].type=_orp;
 #endif
 #ifdef _COND
-  SensorAlarm_t condalert = CONDALERT;
+  SensorAlert_t condalert = CONDALERT;
   conf.alert[MAXTEMP+MAXPH+MAXORP].lowalert=condalert.lowalert;
   conf.alert[MAXTEMP+MAXPH+MAXORP].highalert=condalert.highalert;
   conf.alert[MAXTEMP+MAXPH+MAXORP].type=_cond;
