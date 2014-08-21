@@ -64,8 +64,6 @@
 #define CONDDEF {"Cond",_cond,Serial3}
 #define CONDALERT {0,0}
 #define TOTALSENSORS MAXTEMP+MAXPH+MAXORP+MAXCOND
-// !!!!!!!!!! IMPORTANT !!!!!!!!!!!!!!!!!!!!
-//make sure to update SerialEvent handler section in Sensors.ino if connect or disconnect sensors to Serial ports
 ////////////////////////////////////////////////////
 // End Atlas Stamps Sensor Section
 ////////////////////////////////////////////////////

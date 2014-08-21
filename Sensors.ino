@@ -428,6 +428,23 @@ void calibrateHigh(AtlasSensorDef_t& data, long val) {
   }
 }
 
+void atlasSerialHandler(){
+#ifdef _PH
+  for (int i=0;i<MAXPH;i++) {
+     if (phdata[i].saddr.available())
+      return atlasHandler(phdata[i]);
+  }
+#endif
+#ifdef _ORP
+  if (orpdata.saddr.available())
+    return atlasHandler(orpdata);
+#endif
+#ifdef _COND
+  if (conddata.saddr.available())
+    return atlasHandler(conddata);
+#endif
+}
+
 void atlasHandler(AtlasSensorDef_t &data) {
   char c = (char)data.saddr.read();
   if (c=='\r') {
@@ -453,14 +470,14 @@ void atlasHandler(AtlasSensorDef_t &data) {
 //uncomment the serialEvent function corresponding to the Serial port with atlas stamp connected, and
 //set the parameter to the corresponding sensor variable.
 void serialEvent1() {
-  atlasHandler(phdata[0]); //make sure to pass the SensorDef variable of the sensor attached to this serial port
+  atlasSerialHandler();
 }
 
-//void serialEvent2(){
-//  atlasHandler(orpdata); //make sure to pass the SensorDef variable of the sensor attached to this serial port
-//}
+void serialEvent2(){
+  atlasSerialHandler();
+}
 
-//void serialEvent3() {
-//  atlasHandler(conddata); //make sure to pass the SensorDef variable of the sensor attached to this serial port
-//}
+void serialEvent3() {
+  atlasSerialHandler();
+}
 
