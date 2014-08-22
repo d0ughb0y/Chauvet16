@@ -57,6 +57,11 @@ TinyWebServer web = TinyWebServer(handlers,headers);
     0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED    };
   IPAddress ip(LOCAL_IP);
   IPAddress router(ROUTER_IP);
+#ifdef DNS_IP
+  IPAddress dnsserver(DNS_IP);
+#else
+  IPAddress dnsserver(ROUTER_IP);
+#endif
 
 boolean netCheck() {
   static uint8_t retry = 0;
@@ -66,6 +71,7 @@ boolean netCheck() {
     uint8_t s = client.status();
     if (s==0 || s==0x18 || s==0x1C) {//closed || fin_wait || close_wait
       hasFreeSocket=true;
+      client.stop();
       break;
     }
   }
@@ -79,7 +85,7 @@ boolean netCheck() {
   }
   EthernetClient client;
   IPAddress router(ROUTER_IP); //change the ip to your router ip address
-  if (client.connect(router,ROUTER_PORT)) {
+  if (client.connect(router,ROUTER_PORT)==1) {
     client.stop();
     retry=0;
     return true;
@@ -93,7 +99,7 @@ boolean netCheck() {
 }
 
 void resetNetwork() {
-  Ethernet.begin(mac,ip,router,router);
+  Ethernet.begin(mac,ip,dnsserver, router);
   web.begin();
   chirp();
   logMessage(F("Ethernet and Webserver reset."));
@@ -101,7 +107,7 @@ void resetNetwork() {
 
 void initNetwork() {
   //init ethernet shield
-  Ethernet.begin(mac,ip,router,router);
+  Ethernet.begin(mac,ip,dnsserver, router);
   initClock();
   logMessage(F("System initializing..."));
   if (netCheck()) {
@@ -273,8 +279,13 @@ inline void webprocess() {
 void sendEmail() {
   if (!conf.emailalert) return;
   logMessage(F("Sending email alert."));
-  EthernetClient& client = web.get_client();
-  if (client.connect(SMTPSERVER, SMTPPORT)){
+  EthernetClient client;
+#ifdef SMTP_IP
+  IPAddress smtpip(SMTP_IP);
+  if (client.connect(smtpip,SMTPPORT)==1){
+#else
+  if (client.connect(SMTPSERVER, SMTPPORT)==1){
+#endif
     if(!eRcv(client)) return;
     client << F("EHLO CHAUVET16\r\n");
     if(!eRcv(client)) return;
@@ -302,36 +313,39 @@ void sendEmail() {
     client << F("\r\n");
 #ifdef _TEMP
     for (int i=0;i<MAXTEMP;i++) {
-      client << tempdata[i].name << ": " << getTemp(i) << F("\r\n");
+      client << (const char*)tempdata[i].name << ": " << getTemp(i) << F("\r\n");
     }
 #endif
 #ifdef _PH
     for (int i=0;i<MAXPH;i++) {
-      client << phdata[i].name << ": " << getAtlasAvg(phdata[i]) << F("\r\n");
+      client << (const char*)phdata[i].name << ": " << getAtlasAvg(phdata[i]) << F("\r\n");
     }
 #endif
 #ifdef _COND
     client << F("Cond: ") << getAtlasAvg(conddata) << F("\r\n");
 #endif
 #ifdef _ORP
-  client << F("Orp: ") << getAtlasAvg(orpdata) << F("\r\n");
+    client << F("Orp: ") << getAtlasAvg(orpdata) << F("\r\n");
 #endif
 #ifdef _SONAR
-    client << F("Top Off water level: ") << (uint8_t)getSonarPct() << F("%\r\n.\r\n");
+    client << F("Top Off water level: ") << (int)getSonarPct() << F("%\r\n");
 #endif
 #ifdef _DOSER
-  for (int i=0;i<MAXDOSERS;i++) {
-    client << F("Doser ") << i << F(": \r\n");
-    client << F("  ") << (const char*)conf.doser[i].name << F("\r\n");
-    client << F("  Dosed Volume: ") << dosedvolume[i]/100.0 << F("\r\n");
-    client << F("  Remaining Volume:") << conf.doser[i].fullvolume -dosedvolume[i]/100.0 << F("\r\n");
-  }
+    for (int i=0;i<MAXDOSERS;i++) {
+      client << F("Doser ") << i << F(": \r\n");
+      client << F("  ") << (const char*)conf.doser[i].name << F("\r\n");
+      client << F("  Dosed Volume: ") << dosedvolume[i]/100.0 << F("\r\n");
+      client << F("  Remaining Volume:") << conf.doser[i].fullvolume -dosedvolume[i]/100.0 << F("\r\n");
+    }
 #endif
+    client << F(".\r\n");
     if(!eRcv(client)) return;
     client << F("QUIT\r\n");    
     if(!eRcv(client)) return;
     client.stop();
     logMessage(F("Successfully sent email."));
+  } else {
+     logMessage(F("Send email failed."));
   }
 }
 
@@ -339,9 +353,11 @@ void sendEmail() {
 byte eRcv(EthernetClient& client)
 {
   byte respCode;
-  while(!client.available()) delay(1);
+  while(client.connected() && !client.available()){
+    delay(1);
+  }
   respCode = client.peek();
-  while(client.available())
+  while(client.connected() && client.available())
   {  
     client.read();    
   }
@@ -357,8 +373,10 @@ byte eRcv(EthernetClient& client)
 void efail(EthernetClient& client)
 {
   client.println(F("QUIT"));
-  while(!client.available()) delay(1);
-  while(client.available())
+  while(client.connected() && !client.available()) {
+    delay(1);
+  }
+  while(client.connected() && client.available())
   {  
     client.read();    
   }

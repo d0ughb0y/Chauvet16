@@ -446,19 +446,24 @@ void atlasSerialHandler(){
 }
 
 void atlasHandler(AtlasSensorDef_t &data) {
-  char c = (char)data.saddr.read();
-  if (c=='\r') {
-    data.scratch[data.i]=0;
-    data.i=0;
-    data.value=atof(data.scratch);
-    data.isReady=true;
-  } else {
-    data.scratch[data.i++]=c;
-    if (data.i==14) {
+  int ccount = data.saddr.available();
+  for (int i=0;i<ccount;i++) {
+    char c = (char)data.saddr.read();
+    if (c=='\r') {
+      data.scratch[data.i]=0;
       data.i=0;
-      data.scratch[0]=0;
-      data.value=0;
+      data.value=atof(data.scratch);
       data.isReady=true;
+      return;
+    } else {
+      data.scratch[data.i++]=c;
+      if (data.i==14) {
+        data.i=0;
+        data.scratch[0]=0;
+        data.value=0;
+        data.isReady=true;
+        return;
+      }
     }
   }
 }

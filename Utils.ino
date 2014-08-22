@@ -492,15 +492,15 @@ void logMessage(uint8_t ip[], const char* msg) {
 void logAlarm() {
   char buffer[20];
   if (logSetup(now2(),  buffer, "LOG", "log")) {
-     fileout_ << buffer << F(" Alarm Event : ");
+     fileout_ << buffer << F(" Alarm Event: ");
 #ifdef _TEMP
-    for (uint8_t i;i<MAXTEMP;i++) {
-       fileout_ << tempdata[i].name << F(":") << getTemp(i) << F(" ");
+    for (uint8_t i=0;i<MAXTEMP;i++) {
+       fileout_ << (const char*)tempdata[i].name << F(":") << getTemp(i) << F(" ");
     }
 #endif
 #ifdef _PH
-    for (uint8_t i;i<MAXPH;i++) {
-      fileout_ << phdata[i].name << F(":") << getAtlasAvg(phdata[i]) << F(" ");
+    for (uint8_t i=0;i<MAXPH;i++) {
+      fileout_ << (const char*)phdata[i].name << F(":") << getAtlasAvg(phdata[i]) << F(" ");
     }
 #endif
 #ifdef _COND
@@ -515,7 +515,7 @@ void logAlarm() {
     }
 #endif
 #ifdef _SONAR
-    fileout_ << F("Sonar:") << (uint8_t)getSonarPct() << F("%\n");
+    fileout_ << F("Sonar:") << (int)getSonarPct() << F("%\n");
 #endif
     fileout_.close();
   }

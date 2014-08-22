@@ -578,6 +578,6 @@ uint16_t getSonar() {
 uint8_t getSonarPct() {
   uint16_t numerator = conf.sonarlow*10-getSonar();
   uint16_t denominator = conf.sonarlow - conf.sonarhigh;
-  return numerator/(denominator*10);
+  return numerator*10/denominator;
 }
 

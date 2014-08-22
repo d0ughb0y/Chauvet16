@@ -8,6 +8,7 @@
 #define NTPSERVER 193,193,193,107  //pool.ntp.org
 #define LOCAL_IP 192,168,0,15 //change this to a local fixed ip address
 #define ROUTER_IP 192,168,0,1 //change this to your router ip address
+//#define DNS_IP 75,75,75,75 //specify this if your router does not do dns forwarding
 #define ROUTER_PORT 80 //usually port 80 for the ip configuration web page
 //////////////////////////////////////////////////
 // DS18B20 Temperature Sensor Section
@@ -105,11 +106,12 @@
 //SMTPUSER = your email login, sample below is admin
 //SMTPPASSWORD = your email password, sample below is password
 #define BASICAUTH "YWRtaW46cGFzc3dvcmQ="
-#define SMTPSERVER "my.smtp.net"
+#define SMTPSERVER "smtp.gmx.net"
+#define SMTP_IP 74,208,5,30
 #define SMTPPORT 587
 #define SMTPUSER "YWRtaW4="
 #define SMTPPASSWORD "cGFzc3dvcmQ="
-#define EMAILFROM "user@host.com"
+#define EMAILFROM "user@gmx.com"
 #define EMAILTO "8005551212@txt.att.net"
 #define SD_CS 4
 #define ETHER_CS 10
