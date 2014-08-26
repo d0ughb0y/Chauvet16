@@ -56,23 +56,24 @@ You need to edit the Time.cpp and Time.h (instructions below).
 
 OneWire
 http://www.pjrc.com/teensy/arduino_libraries/OneWire.zip
+
 Edit OneWire.h by adding this line after uint8_t reset(void);
 
     uint8_t reset2(void);
 
-Then edit OneWire.cpp by changing uint8_t reset(void) to
+Then edit OneWire.cpp by changing uint8_t OneWire::reset(void) to
 
-    uint8_t reset2(void)
+    uint8_t OneWire::reset2(void)
 
 then commenting out this line at the end of the function
 
-    //delayMicroseconds(420);
+    //delayMicroseconds(410);
 
 then add this code above the reset2 function
 
     uint8_t OneWire::reset(void) {
       uint8_t r = reset2();
-      delayMicroseconds(420);
+      delayMicroseconds(410);
       return r;
     }
 
@@ -101,12 +102,6 @@ Edit EthernetClient.cpp and add this to the end of the file
 Edit EthernetClient.h and add this to line 25
 
     uint8_t* getRemoteIP(uint8_t RemoteIP[]);//adds remote ip address
-
-Editing the Wire library to make it run at 400khz is optional, but you will see the LCD update a lot faster with this change.
-
-Edit Wire/utility/twi.h file line 25 to
-
-    #define TWI_FREQ 400000L
 
 Make sure to edit config.h defines before compiling and uploading to the mega board.
 

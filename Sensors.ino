@@ -162,7 +162,7 @@ void updateTemp() {
       }
       break;
     case 1:
-      if (micros()-timestamp<420) return;
+      if (micros()-timestamp<410) return;
       ds.skip();  //540us
       state=2;
       break;
@@ -187,7 +187,7 @@ void updateTemp() {
       }
       break;
     case 5:
-      if (micros()-timestamp<420) return;
+      if (micros()-timestamp<410) return;
       if (MAXTEMP==1) {
         ds.skip(); //540us
         state=6;
