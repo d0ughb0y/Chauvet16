@@ -1850,7 +1850,13 @@ function updateSensorSetupFields(){
 		$('#_sensorphcalibrate').show();
 		$('#_sensororpcalibrate').hide();
 		$('#_sensorcondcalibrate').hide();
-		csutil({'cmd':'getval','type':'1','value':'0'});
+		var phidx=-1;
+		for (var i=0;i<=sensoridx;i++){
+			if (config.alerts[i].t==1){
+				phidx++;
+			}
+		}
+		csutil({'cmd':'getval','type':'1','value':''+phidx});
 		break;
 	case 2:
 		$('#_sensorphcalibrate').hide();
@@ -2068,18 +2074,6 @@ $('#sonaralertval').on('change', function (e) {
 });
 $('#sonaralert').on('change', function (e) {
 	config.misc.sa=this.checked;
-});
-$('#alerttemplow').on('change', function (e) {
-	config.misc.atl=parseFloat($('#alerttemplow').val());
-});
-$('#alerttemphigh').on('change', function (e) {
-	config.misc.ath=parseFloat($('#alerttemphigh').val());
-});
-$('#alertphlow').on('change', function (e) {
-	config.misc.aphl=parseFloat($('#alertphlow').val());
-});
-$('#alertphhigh').on('change', function (e) {
-	config.misc.aphh=parseFloat($('#alertphhigh').val());
 });
 $('#sndalert').on('change', function (e) {
 	config.misc.snda=this.checked;
