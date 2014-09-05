@@ -769,6 +769,7 @@ var doseridx=0;
 var sensoridx=0;
 var numtemp=0;
 var csutilfunction;
+var hassonar=false;
 $("#page").on('pageinit',function(e){
  initHome();
 }).on('pagebeforeshow',function(e){
@@ -1628,6 +1629,8 @@ function initPage() {
 		$('#Inputs').empty();
 		for (var i in f.pstat.inputs) {
 			var input=f.pstat.inputs[i];
+			if (input.n=="Top Off")
+				hassonar=true;
 			var divblocka=$('<div class="ui-block-a"/>');
 			divblocka.append($('<h3 class="ui-li-heading" id="'+input.n+'">'+input.n+'</h3>'));
 			var divblockb=$('<div class="ui-block-b"/>');
@@ -2330,7 +2333,8 @@ $('#csform').on('pagebeforecreate', function(e) {
 		$('#sndalert').attr("checked", config.misc.snda).checkboxradio("refresh");
 		$('#emailalert').attr("checked", config.misc.ema).checkboxradio("refresh");
 		$('#resetconf').val(config.misc.init);
-		csutil({'cmd':'getval','type':'4','value':'0'});
+		if (hassonar)
+			csutil({'cmd':'getval','type':'4','value':'0'});
 		break;
 	}
 });
