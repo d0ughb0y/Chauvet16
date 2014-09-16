@@ -5,10 +5,10 @@
  * permission is absolutely prohibited.
 */
 #define CONTROLLER_NAME "Jerry's Reef" //change this to your controller name
-#define NTPSERVER 193,193,193,107  //pool.ntp.org
+#define NTPSERVER 76,73,0,4  //pool.ntp.org
 #define LOCAL_IP 192,168,0,15 //change this to a local fixed ip address
 #define ROUTER_IP 192,168,0,1 //change this to your router ip address
-//#define DNS_IP 75,75,75,75 //specify this if your router does not do dns forwarding
+#define DNS_IP 75,75,75,75 //specify this if your router does not do dns forwarding
 #define ROUTER_PORT 80 //usually port 80 for the ip configuration web page
 //////////////////////////////////////////////////
 // DS18B20 Temperature Sensor Section
@@ -23,8 +23,10 @@
 //edit the next line to specify the temp sensor name and address pair. One entry for each temp sensor
 //The first temp is used to control heater and fan and MUST be present, the rest may not be present.
 #define TEMPDEF {{"Temp",{0x28, 0xdf, 0x5d, 0x89, 0x05, 0x00, 0x00, 0xf8}}}
-//,{"Ambient",{0x28, 0xde, 0x18, 0x5a, 0x05, 0x00, 0x00, 0x7d}}}
 #define TEMPALERT {{76,82}}
+//#define TEMPDEF {{"Temp",{0x28, 0xdf, 0x5d, 0x89, 0x05, 0x00, 0x00, 0xf8}},{"Ambient",{0x28,0xff,0xa4,0xe0,0x22,0x14,0x00,0x21}},{"Sump",{0x28,0xde,0x18,0x5a,0x05,0x00,0x00,0x7d}}}
+//#define TEMPALERT {{76,82},{65,88},{65,88}}
+
 //////////////////////////////////////////////////
 // End DS18B20 Temperature Sensor Section
 //////////////////////////////////////////////////
@@ -113,6 +115,7 @@
 #define SMTPPASSWORD "cGFzc3dvcmQ="
 #define EMAILFROM "user@gmx.com"
 #define EMAILTO "8005551212@txt.att.net"
+
 #define SD_CS 4
 #define ETHER_CS 10
 #define OUTLOGSZ 6  //size of circular queue for outlet log
@@ -120,14 +123,14 @@
 #define MAXOUTLETS  8 //either 8 or 16
 #define MAXMACROS  4 //fixed
 #define MAXMACROACTIONS 6  //fixed for now, can be made longer if needed
-#define EEPROMSIG 0xA4 //change this everytime you want the eeprom defaults to change
+#define EEPROMSIG 0xA5 //change this everytime you want the eeprom defaults to change
 //define OUTLET names here, order is fixed
 #define OUTLET1 "WP25"
 #define OUTLET2 "Unused2"
 #define OUTLET3 "LED"
 #define OUTLET4 "Pump"
 #define OUTLET5 "Fan"
-#define OUTLET6 "Kalk"
+#define OUTLET6 "ATO"
 #define OUTLET7 "Skimmer"
 #define OUTLET8 "Return"
 #define OUTLET9 "Unused9"
@@ -155,7 +158,7 @@
 #define INVCYCLE _BV(0)
 #define NORMALCYCLE 0
 
-#define OUTLETDEFS WP25, Unused2, LED, Pump, Fan, Kalk, Skimmer, Return,\
+#define OUTLETDEFS WP25, Unused2, LED, Pump, Fan, ATO, Skimmer, Return,\
                    Unused9, Unused10, Unused11, Unused12, Unused13, Unused14, Unused15, Unused16
 //define the default outlet program here. outlets must appear in exact order defined in outlet names definition
 //program outletname, initial off time, on time, off time, days active, mode

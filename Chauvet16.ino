@@ -15,6 +15,7 @@
 #include <SdFat.h>
 #include <SPI.h>
 #include <Ethernet.h>
+#include <Dns.h>
 #include <Flash.h>
 #include <stdlib.h>
 #include "TinyWebServer.h"

@@ -178,19 +178,19 @@ void checkATO(){
   //this routine is for ATO using KALK reactor.
   //if you do not use KALK, just replace Kalk with the ATO pump
   //and remove the ph test condition
-  if (conf.outletRec[Kalk].mode == _auto) {
+  if (conf.outletRec[ATO].mode == _auto) {
     if (!getATO2()&& !getATO1() && isOutletOn(Return)
-#ifdef _PH
-        && getAtlasAvg(phdata[0])<8.7
-#endif
+//#ifdef _PH
+//        && getAtlasAvg(phdata[0])<8.7
+//#endif
 #ifdef _SONAR
         && sonaravg<conf.sonaralertval*10
 #endif
       ) {
-        _outletOn(Kalk);
+        _outletOn(ATO);
         return;
     }
-    _outletOff(Kalk);
+    _outletOff(ATO);
   }
 }
 
@@ -551,13 +551,23 @@ inline void sonarHandler(uint8_t pins) {
 void updateSonar()
 {
   static uint32_t sum=0;
+  uint8_t saveSREG=SREG;
+  cli();
+  uint16_t tmpavg=sonaravg;
+  uint16_t tmpdist=sonarDistance;
+  SREG=saveSREG;
+
   if (sonarDistance>0) {
     if (sum)
-      sum = (sum - sonaravg) + sonarDistance;
+      sum = (sum - tmpavg) + tmpdist;
     else {
-      sum = sonarDistance*256;
+      sum = tmpdist*256;
     }
-    sonaravg = sum /256;
+    tmpavg = sum /256;
+    saveSREG=SREG;
+    cli();
+    sonaravg=tmpavg;
+    SREG=saveSREG;
   }
   SONAR_TRIGGER_LO
   delayMicroseconds(2);

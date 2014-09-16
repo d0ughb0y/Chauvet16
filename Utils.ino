@@ -36,9 +36,8 @@ char* freeRam () {
 //   EEPROM
 ////////////////////////////////////////
 #include <avr/eeprom.h>
-#define EEPROM_END 0x1000
 #define DOSERBLOCKSIZE sizeof(dosedvolume)*MAXDOSERS
-#define DCADDR EEPROM_END-DOSERBLOCKSIZE
+#define DCADDR E2END-22-DOSERBLOCKSIZE
 
 void readEEPROM() {
   eeprom_read_block((void*)&conf, (void*)0, sizeof(conf));
@@ -249,14 +248,14 @@ case 1:
   state=2;
  case 2:
 #ifdef _COND
- lcd << F("C:") << "getCond()";
+ lcd << F("C:") << getAtlasAvg(conddata);
  x++;
  if (x%2==0) return x>=maxsensors;
 #endif
   state=3;
   case 3:
 #ifdef _ORP
-    lcd << F("O:") << "getOrp()";
+    lcd << F("O:") << getAtlasAvg(orpdata);
     x++;
     if (x%2==0) return x>=maxsensors;
 #endif

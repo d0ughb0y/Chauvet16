@@ -390,9 +390,20 @@ void efail(EthernetClient& client)
 #ifdef AUTODST
 boolean isDst = false;
 #endif
-IPAddress timeServer(NTPSERVER);
+
+IPAddress timeServer;
 
 void initClock() {
+  DNSClient dns;
+  dns.begin(Ethernet.dnsServerIP());
+  if (dns.getHostByName("pool.ntp.org",timeServer)==1) {
+    p(F("Got NTP IP"));
+  } else {
+    p(F("NTP DNS failed."));
+    IPAddress naddr(NTPSERVER);
+    timeServer=naddr;
+  }
+
   unsigned long ntptime = getNtpTime(timeServer); //get standard time
   if (ntptime>0) {
     setTime(ntptime);
