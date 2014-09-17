@@ -326,7 +326,11 @@ boolean initAtlas(AtlasSensorDef_t &data) {
 #endif
       data.saddr.print("e\rr\r");
     }
+#if defined(_PH_EZO) || defined(_COND)
+    delay(1000);
+#else
     delay(384);
+#endif
     data.average=0;
     getresponse(data, responsechars);
   }

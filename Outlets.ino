@@ -184,8 +184,13 @@ void _outlogentry(uint8_t p, boolean state) {
 
 void _outletOn(uint8_t p){
   if (p<8) {
+#ifdef OUTLET8INVERTED
+    if (!(PORTA & _BV(p))) {//is off
+      PORTA |= _BV(p);
+#else
     if (!(~PORTA & _BV(p))) {//is off
-      PORTA &= ~_BV(p);  
+      PORTA &= ~_BV(p);
+#endif
       _outlogentry(p,true);
     }
 #if defined(_FEEDER) || defined(_FEEDER_V2)
@@ -195,8 +200,13 @@ void _outletOn(uint8_t p){
   } else if (p==Pump0) {
     FeedModeOFF();
   }else {
+#ifdef OUTLET16INVERTED
+    if (!(~PORTC & _BV(p-8))) {
+      PORTC &= ~_BV(p-8);
+#else
     if (!(PORTC & _BV(p-8))) {
       PORTC |= _BV(p-8);
+#endif
       _outlogentry(p,true);
     }
   }
@@ -204,16 +214,26 @@ void _outletOn(uint8_t p){
 
 void _outletOff(uint8_t p) {
   if (p<8) {
+#ifdef OUTLET8INVERTED
+    if (PORTA & _BV(p)) {//is on
+      PORTA &= ~_BV(p);
+#else
     if (~PORTA & _BV(p)) {//is on
       PORTA |= _BV(p);
+#endif
       _outlogentry(p,false);
     }
   } else if (p==Feeder) {
   } else if (p==Pump0) {
      FeedModeON(); 
   }else {
+#ifdef OUTLET16INVERTED
+    if (~PORTC & _BV(p-8)) {
+      PORTC |= _BV(p-8);
+#else
     if (PORTC & _BV(p-8)) {
       PORTC &= ~_BV(p-8);
+#endif
       _outlogentry(p,false);
     }
   }
@@ -253,9 +273,17 @@ void outletAuto(uint8_t _p) {
 
 boolean isOutletOn(uint8_t p) {
    if (p<8){
+#ifdef OUTLET8INVERTED
+      return PORTA & _BV(p);
+#else
       return ~PORTA & _BV(p);
+#endif
    } else {
+#ifdef OUTLET16INVERTED
+      return ~PORTC & _BV(p-8);
+#else
       return PORTC & _BV(p-8);
+#endif
    }
 }
 
