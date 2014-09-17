@@ -143,7 +143,11 @@ float getTemp(int i) {
     cli();
     uint16_t t = tempdata[i].average;
     SREG=saveSREG;
-    lasttemp[i] = t / 16.0 * 1.8 + 32.0;
+    lasttemp[i] = t / 16.0
+#ifndef CELSIIUS
+    * 1.8 + 32.0
+#endif
+    ;
     lastread[i]=timenow;
   }
   return lasttemp[i];
@@ -215,12 +219,14 @@ void updateTemp() {
       }
       if (ds.crc8(data,8)==data[8]) {
         uint16_t tval = data[1] << 8 | data[0];
-        uint8_t saveSREG=SREG;
-        cli();
-        tempdata[t].sum = (tempdata[t].sum - tempdata[t].average) + tval;
-        tempdata[t].average = tempdata[t].sum / numReadings;
-        SREG=saveSREG;
-        tempdata[t].initialized=true;
+        if (tval > 256 && tval < 784) {
+          uint8_t saveSREG=SREG;
+          cli();
+          tempdata[t].sum = (tempdata[t].sum - tempdata[t].average) + tval;
+          tempdata[t].average = tempdata[t].sum / numReadings;
+          SREG=saveSREG;
+          tempdata[t].initialized=true;
+        }
       } else {
         if (t!=0)
           tempdata[t].initialized=false;

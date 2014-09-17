@@ -16,6 +16,7 @@
 // I do not recommend using more than 2 sensors
 //////////////////////////////////////////////////
 #define _TEMP  //comment out if no temp probe
+//#define CELSIUS  //uncomment if using celsius unit
 #define MAXTEMP 1 //number of temp sensors, 1 or 2
 #if !defined(_TEMP)
 #define MAXTEMP 0

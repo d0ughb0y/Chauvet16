@@ -307,8 +307,16 @@ char inputstate(uint8_t val) {
 void poutlets() {
   if (!lcdpresent) return;
   lcd.setCursor(0,1);
+#ifdef OUTLET8INVERTED
+  uint8_t oa = PORTA;
+#else
   uint8_t oa = ~PORTA;
+#endif
+#ifdef OUTLET16INVERTED
+  uint8_t ob = ~PORTC;
+#else
   uint8_t ob = PORTC;
+#endif
   for (int p=0;p<MAXOUTLETS;p++) {
     if (p<8) {
       if (oa & _BV(p)) {
