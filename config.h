@@ -5,10 +5,10 @@
  * permission is absolutely prohibited.
 */
 #define CONTROLLER_NAME "Jerry's Reef" //change this to your controller name
-#define NTPSERVER 76,73,0,4  //pool.ntp.org
+#define NTPSERVER 76,73,0,4  //pool.ntp.org, used if dns lookup fails
 #define LOCAL_IP 192,168,0,15 //change this to a local fixed ip address
 #define ROUTER_IP 192,168,0,1 //change this to your router ip address
-#define DNS_IP 75,75,75,75 //specify this if your router does not do dns forwarding
+#define DNS_IP 75,75,75,75 //dns of your internet service provider
 #define ROUTER_PORT 80 //usually port 80 for the ip configuration web page
 //////////////////////////////////////////////////
 // DS18B20 Temperature Sensor Section

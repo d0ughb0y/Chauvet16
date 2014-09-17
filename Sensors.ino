@@ -144,7 +144,7 @@ float getTemp(int i) {
     uint16_t t = tempdata[i].average;
     SREG=saveSREG;
     lasttemp[i] = t / 16.0
-#ifndef CELSIIUS
+#ifndef CELSIUS
     * 1.8 + 32.0
 #endif
     ;

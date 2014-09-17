@@ -175,14 +175,8 @@ inline uint8_t getATO2() {
 }
 
 void checkATO(){
-  //this routine is for ATO using KALK reactor.
-  //if you do not use KALK, just replace Kalk with the ATO pump
-  //and remove the ph test condition
   if (conf.outletRec[ATO].mode == _auto) {
     if (!getATO2()&& !getATO1() && isOutletOn(Return)
-//#ifdef _PH
-//        && getAtlasAvg(phdata[0])<8.7
-//#endif
 #ifdef _SONAR
         && sonaravg<conf.sonaralertval*10
 #endif
