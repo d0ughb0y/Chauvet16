@@ -17,14 +17,14 @@
 //////////////////////////////////////////////////
 #define _TEMP  //comment out if no temp probe
 //#define CELSIUS  //uncomment if using celsius unit
-#define MAXTEMP 1 //number of temp sensors, 1 or 2
+#define MAXTEMP 2 //number of temp sensors, 1 or 2
 #if !defined(_TEMP)
 #define MAXTEMP 0
 #endif
 //edit the next line to specify the temp sensor name and address pair. One entry for each temp sensor
 //The first temp is used to control heater and fan and MUST be present, the rest may not be present.
-#define TEMPDEF {{"Temp",{0x28, 0xdf, 0x5d, 0x89, 0x05, 0x00, 0x00, 0xf8}}}
-#define TEMPALERT {{76,82}}
+#define TEMPDEF {{"Temp",{0x28, 0xdf, 0x5d, 0x89, 0x05, 0x00, 0x00, 0xf8}},{"Ambient",{0x28,0xde,0x18,0x5a,0x05,0x00,0x00,0x7d}}}
+#define TEMPALERT {{76,82},{65,88}}
 //#define TEMPDEF {{"Temp",{0x28, 0xdf, 0x5d, 0x89, 0x05, 0x00, 0x00, 0xf8}},{"Ambient",{0x28,0xff,0xa4,0xe0,0x22,0x14,0x00,0x21}},{"Sump",{0x28,0xde,0x18,0x5a,0x05,0x00,0x00,0x7d}}}
 //#define TEMPALERT {{76,82},{65,88},{65,88}}
 
@@ -74,7 +74,7 @@
 #define _DOSER
 //default values  name (7 characters max), ml per day, times per day (0=disabled), interval (0=divide equally),
 //starttime (minutes since midnight), calibration value (0=uncalibrated), full volume in ml
-#define DOSERDEFAULT {"Cal",300,24,0,0,0,3800},{"Alk", 300,24,0,10,0,3800}
+#define DOSERDEFAULT {"Cal",24,12,0,0,100,500},{"Alk", 24,12,0,10,100,500}
 #define MAXDOSERS 2
 //#define _HEATER
 #define _FAN

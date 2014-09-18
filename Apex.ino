@@ -876,13 +876,13 @@ boolean apex_csutil_handler(TinyWebServer& webserver) {
 #endif
 #ifdef _COND
     } else if (sensortype==_cond) {
-      if (value==0)
-        return apex_error(webserver,F("Invalid csutil data."),5);
       if (strcmp_P(command,PSTR("getval"))==0) {
         return csutilreply(webserver, getAtlasAvg(conddata));
       } else if (strcmp_P(command,PSTR("clow"))==0) {
         calibrateLow(conddata);
       } else if (strcmp_P(command,PSTR("chigh"))==0) {
+        if (value==0)
+          return apex_error(webserver,F("Invalid csutil data."),5);
         calibrateHigh(conddata,value);
       } else {
         return apex_error(webserver,F("Invalid csutil data."),6);

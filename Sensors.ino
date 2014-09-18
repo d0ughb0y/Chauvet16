@@ -111,7 +111,7 @@ if (ds.reset()) {
         return false;
       }
       uint16_t tval = data[1] << 8 | data[0];
-      if (tval > 256 && tval < 512 ) {
+      if (tval > 256 && tval < 784 ) {
         tempdata[x].sum = tval * numReadings;
         tempdata[x].average = tval;
         tempdata[x].initialized=true;
