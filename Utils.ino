@@ -36,8 +36,8 @@ char* freeRam () {
 //   EEPROM
 ////////////////////////////////////////
 #include <avr/eeprom.h>
-#define DOSERBLOCKSIZE sizeof(dosedvolume)*MAXDOSERS
-#define DCADDR E2END-22-DOSERBLOCKSIZE
+#define DOSERBLOCKSIZE 4*MAXDOSERS
+#define DCADDR E2END-DOSERBLOCKSIZE
 
 void readEEPROM() {
   eeprom_read_block((void*)&conf, (void*)0, sizeof(conf));
@@ -46,14 +46,20 @@ void readEEPROM() {
 void writeEEPROM() {
   eeprom_write_block((const void*)&conf, (void*)0, sizeof(conf));
 }
-
+#ifdef _DOSER
 void readDoserStatus(){
   eeprom_read_block((void*)&dosedvolume, (void*)(DCADDR), DOSERBLOCKSIZE);
+  if (dosedvolume[0]>conf.doser[0].fullvolume) {
+     //initialize
+    memset((void*)&dosedvolume,0,DOSERBLOCKSIZE);
+    writeDoserStatus();
+  }
 }
 
 void writeDoserStatus( ){
   eeprom_write_block((const void*)&dosedvolume, (void*)(DCADDR), DOSERBLOCKSIZE);
 }
+#endif
 
 void initializeConf() {
   ORec_t defaultorec[] = OUTLETSDEFAULT;
@@ -135,6 +141,20 @@ void initializeConf() {
   conf.alert[MAXTEMP+MAXPH+MAXORP].lowalert=condalert.lowalert;
   conf.alert[MAXTEMP+MAXPH+MAXORP].highalert=condalert.highalert;
   conf.alert[MAXTEMP+MAXPH+MAXORP].type=_cond;
+#endif
+#ifdef _PWMFAN
+  FanDef_t fan[]=PWMFANDEF;
+  for (uint8_t i=0;i<MAXPWMFANS;i++) {
+    strcpy((char*)conf.pwmfan[i].name,fan[i].name);
+    conf.pwmfan[i].tempsensor=fan[i].tempsensor;
+    conf.pwmfan[i].templow=fan[i].templow;
+    conf.pwmfan[i].temphigh=fan[i].temphigh;
+    conf.pwmfan[i].levellow=fan[i].levellow;
+    conf.pwmfan[i].levelhigh=fan[i].levelhigh;
+    conf.pwmfan[i].mode=fan[i].mode;
+    conf.pwmfan[i].alert=fan[i].alert;
+    conf.pwmfan[i].maxrpm=fan[i].maxrpm;
+  }
 #endif
   conf.fanlow = 80.0;
   conf.fanhigh = 80.5;
@@ -413,6 +433,10 @@ void logOutlet() {
           fileout_ << F("Doser0");
         } else if (_outlog[ltail].changed==Doser1) {
           fileout_ << F("Doser1");
+        } else if (_outlog[ltail].changed==Doser2) {
+          fileout_ << F("Doser2");
+        } else if (_outlog[ltail].changed=Doser3) {
+          fileout_ << F("Doser3");
         } else {
           fileout_ << (const char*)conf.outletRec[_outlog[ltail].changed].name;
         }
@@ -522,8 +546,14 @@ void logAlarm() {
     }
 #endif
 #ifdef _SONAR
-    fileout_ << F("Sonar:") << (int)getSonarPct() << F("%\n");
+    fileout_ << F("Sonar:") << (int)getSonarPct() << F("%");
 #endif
+#ifdef _PWMFAN
+    for (uint8_t i=0;i<MAXPWMFANS;i++) {
+      fileout_ << (const char*)conf.pwmfan[i].name << F(":") << getPWMFanRPM(i) << F("rpm ");
+    }
+#endif
+    fileout_ << F("\n");
     fileout_.close();
   }
 }

@@ -4,7 +4,6 @@
  * Commercial use of this software without
  * permission is absolutely prohibited.
 */
-FLASH_STRING(apex_dummy,"");
 FLASH_STRING(apex_hwsw,"hardware=\"1.0\" software=\"4.20_1B13\">\n<hostname>");
 FLASH_STRING(apex_intro1,"</hostname>\n<serial>AC4:12345</serial>\n<timezone>");
 FLASH_STRING(apex_intro2,"</timezone>\n");
@@ -48,6 +47,7 @@ FLASH_STRING(apex_json11,"\"}");
 FLASH_STRING(apex_json12,"],\"inputs\":[");
 FLASH_STRING(apex_json12a,"],\"pwmpumps\":[");
 FLASH_STRING(apex_json_doser1,"],\"dosers\":[");
+FLASH_STRING(apex_json_pwmfan,"],\"pwmfans\":[");
 FLASH_STRING(apex_json13,"]}}");
 
 boolean process_params(char* inputstring, char* params_[], uint8_t len) {
@@ -410,6 +410,10 @@ boolean apex_status_json_handler(TinyWebServer& webserver) {
   for (int i=0;i<MAXDOSERS;i++) {
     getdoserstatus(client,i);
   }
+  client << apex_json_pwmfan;
+  for (int i=0;i<MAXPWMFANS;i++) {
+    getpwmfanstatus(client,i,true);
+  }
   client << apex_json13 << F("\n");
   return true;  
 }
@@ -421,8 +425,63 @@ boolean apex_error(TinyWebServer& webserver, const __FlashStringHelper* msg, int
   return true;   
 }
 
+boolean apex_pwmfan_handler(TinyWebServer& webserver) {
+  if (!check_auth(webserver)) return true;
+#ifdef _PWMFAN
+  EthernetClient& client = webserver.get_client();
+  const char* hdrlen = webserver.get_header_value(PSTR("Content-Length"));
+  if (hdrlen!=NULL) {
+    int len = atol(hdrlen)+1;
+    char json[len];
+    char command[8];
+    int idx;
+    long value;
+    char* scratch;
+    int i=0;
+    while (client.available() && i<len) {
+      json[i++]=(char)client.read();
+    }
+    json[i]=0;
+    char delims[] = "{}[],:\"";
+    scratch = strtok(json,delims);
+    while (scratch!=NULL){
+      if (strcmp_P(scratch,PSTR("cmd"))==0) {
+        strcpy(command,strtok(NULL,delims));
+      } else if (strcmp_P(scratch,PSTR("idx"))==0) {
+        strcpy(scratch,strtok(NULL,delims));
+        idx = atoi(scratch);
+      } else if (strcmp_P(scratch,PSTR("value"))==0){
+        strcpy(scratch,strtok(NULL,delims));
+        value=atol(scratch);
+      } else {
+        return apex_error(webserver,F("Invalid pwmfan data."),0);
+      }
+      scratch=strtok(NULL,delims);
+    }
+    if (strcmp_P(command,PSTR("setlvl"))==0) {
+      setPWMFanMode(idx,_manual);
+      if (value==0) {
+        setPWMFanOFF(idx);
+      } else {
+        setPWMFanON(idx);
+        setPWMFanLevel(idx,value);
+      }
+    } else if (strcmp_P(command,PSTR("setmode"))==0) {
+      setPWMFanMode(idx,value);
+    }
+    webserver.send_error_code(200);
+    webserver.send_content_type(F("text/plain"));
+    webserver.end_headers();
+    webserver.get_client() << F("pwmfan command OK.");
+    return true;
+  }
+#endif
+  return apex_error(webserver,F("incorrect pwmfan data."),8);
+}
+
 boolean apex_doser_handler(TinyWebServer& webserver) {
   if (!check_auth(webserver)) return true;
+#ifdef _DOSER
   EthernetClient& client = webserver.get_client();
   const char* hdrlen = webserver.get_header_value(PSTR("Content-Length"));
   if (hdrlen==NULL) {
@@ -430,8 +489,11 @@ boolean apex_doser_handler(TinyWebServer& webserver) {
   } else {
     return apex_doser_post(webserver, atol(hdrlen));  
   }    
+#else
+  return apex_error(webserver,F("Invalid json request. "),0);
+#endif
 }
-
+#ifdef _DOSER
 boolean apex_doser_post(TinyWebServer& webserver, long postlen) {
   //cmd don, doff, cstart, cstop, cadj, csave, cabort, mdose, setdv
   //idx 0,1
@@ -525,8 +587,18 @@ boolean apex_doser_post(TinyWebServer& webserver, long postlen) {
       dosedvolume[i]=vol*100ul;
       writeDoserStatus();
       logMessage(F("Doser volume set."));
+#if (MAXDOSERS>=1)
       logMessage(F("Doser0 dosed volume is "),dosedvolume[0]/100.0);
+#endif
+#if (MAXDOSERS>=2)
       logMessage(F("Doser1 dosed volume is "),dosedvolume[1]/100.0);
+#endif
+#if (MAXDOSERS>=3)
+      logMessage(F("Doser2 dosed volume is "),dosedvolume[2]/100.0);
+#endif
+#if (MAXDOSERS==4)
+      logMessage(F("Doser3 dosed volume is "),dosedvolume[3]/100.0);
+#endif
     }
   } else {
     return apex_error(webserver,F("Invalid json request. "),0);
@@ -546,7 +618,7 @@ boolean apex_doser_get(TinyWebServer& webserver) {
   client << F("]}\r\n");
   return true;
 }
-
+#endif
 boolean apex_config_handler(TinyWebServer& webserver) {
   if (!check_auth(webserver)) return true;
   EthernetClient& client = webserver.get_client();
@@ -655,6 +727,7 @@ boolean apex_config_post(TinyWebServer& webserver, long postlen) {
       }  
       updatepwmpump=true;
     } else if (strcmp_P(name,PSTR("dosers"))==0) {
+#ifdef _DOSER
       for (int i=0;i<MAXDOSERS;i++) {
         strtok(NULL,delims);
         strcpy((char*)myconf.doser[i].name,strtok(NULL,delims));
@@ -675,6 +748,7 @@ boolean apex_config_post(TinyWebServer& webserver, long postlen) {
           updateDoserStatusFlag=true;
         }
       }
+#endif
     } else if (strcmp_P(name,PSTR("alerts"))==0) {
       for (int i=0;i<TOTALSENSORS;i++) {
         strtok(NULL,delims);
@@ -683,6 +757,27 @@ boolean apex_config_post(TinyWebServer& webserver, long postlen) {
         myconf.alert[i].highalert=atof(strtok(NULL,delims));
         strtok(NULL,delims);
         myconf.alert[i].type=atoi(strtok(NULL,delims));
+      }
+    } else if (strcmp_P(name,PSTR("pwmfans"))==0) {
+      for (int i=0;i<MAXPWMFANS;i++) {
+        strtok(NULL,delims);
+        strcpy((char*)myconf.pwmfan[i].name,strtok(NULL,delims));
+        strtok(NULL,delims);
+        myconf.pwmfan[i].maxrpm=atoi(strtok(NULL,delims));
+        strtok(NULL,delims);
+        myconf.pwmfan[i].tempsensor=atoi(strtok(NULL,delims));
+        strtok(NULL,delims);
+        myconf.pwmfan[i].templow=atoi(strtok(NULL,delims));
+        strtok(NULL,delims);
+        myconf.pwmfan[i].temphigh=atoi(strtok(NULL,delims));
+        strtok(NULL,delims);
+        myconf.pwmfan[i].levellow=(uint8_t)atoi(strtok(NULL,delims));
+        strtok(NULL,delims);
+        myconf.pwmfan[i].levelhigh=(uint8_t)atoi(strtok(NULL,delims));
+        strtok(NULL,delims);
+        myconf.pwmfan[i].mode=(uint8_t)atoi(strtok(NULL,delims));
+        strtok(NULL,delims);
+        myconf.pwmfan[i].alert=strcmp_P(strtok(NULL,delims),PSTR("true"))==0?true:false;
       }
     } else if (strcmp_P(name,PSTR("misc"))==0) {
       strtok(NULL,delims);
@@ -700,7 +795,7 @@ boolean apex_config_post(TinyWebServer& webserver, long postlen) {
       strtok(NULL,delims);
       myconf.sonaralertval=atoi(strtok(NULL,delims));      
       strtok(NULL,delims);
-      myconf.sonaralert=strcmp(strtok(NULL,delims),"true")==0?true:false;
+      myconf.sonaralert=strcmp_P(strtok(NULL,delims),PSTR("true"))==0?true:false;
       strtok(NULL,delims);
       myconf.soundalert=strcmp_P(strtok(NULL,delims),PSTR("true"))==0?true:false;
       strtok(NULL,delims);
@@ -792,6 +887,19 @@ boolean apex_config_get(TinyWebServer& webserver) {
     client << F("\",\"t\":\"") << conf.alert[i].type;
     client << F("\"}") << (i<TOTALSENSORS-1?",":"");
   }
+  client << F("],\"pwmfans\":[\n");
+  for (int i=0;i<MAXPWMFANS;i++) {
+    client << F("{\"n\":\"") << (char*) conf.pwmfan[i].name;
+    client << F("\",\"mr\":\"") << conf.pwmfan[i].maxrpm;
+    client << F("\",\"ts\":\"") << conf.pwmfan[i].tempsensor;
+    client << F("\",\"tl\":\"") << conf.pwmfan[i].templow;
+    client << F("\",\"th\":\"") << conf.pwmfan[i].temphigh;
+    client << F("\",\"ll\":\"") << conf.pwmfan[i].levellow;
+    client << F("\",\"lh\":\"") << conf.pwmfan[i].levelhigh;
+    client << F("\",\"m\":\"") << conf.pwmfan[i].mode;
+    client << F("\",\"a\":\"") << (conf.pwmfan[i].alert?F("true"):F("false"));
+    client << F("\"}") << (i<MAXPWMFANS-1?",":"");
+  }
   client << F("],\n\"misc\":{\n");
   client << F("\"hl\":\"") << conf.htrlow;
   client << F("\",\n\"hh\":\"") << conf.htrhigh;
@@ -853,7 +961,7 @@ boolean apex_csutil_handler(TinyWebServer& webserver) {
       if (value<0 || value>=MAXPH)
         return apex_error(webserver,F("Invalid csutil data."),2);
       if (strcmp_P(command,PSTR("getval"))==0) {
-        return csutilreply(webserver, getAtlasAvg(phdata[value]));
+        return csutilreply(webserver, phdata[value].value);
       } else if (strcmp_P(command,PSTR("clow"))==0) {
         calibrateLow(phdata[value]);
       } else if (strcmp_P(command,PSTR("chigh"))==0) {
@@ -865,7 +973,7 @@ boolean apex_csutil_handler(TinyWebServer& webserver) {
 #ifdef _ORP
     } else if (sensortype==_orp) {
       if (strcmp_P(command,PSTR("getval"))==0) {
-        return csutilreply(webserver, getAtlasAvg(orpdata));
+        return csutilreply(webserver, orpdata.value);
       } else if (strcmp_P(command,PSTR("clow"))==0) {
         calibrateLow(orpdata);
       } else if (strcmp_P(command,PSTR("chigh"))==0) {
@@ -877,7 +985,7 @@ boolean apex_csutil_handler(TinyWebServer& webserver) {
 #ifdef _COND
     } else if (sensortype==_cond) {
       if (strcmp_P(command,PSTR("getval"))==0) {
-        return csutilreply(webserver, getAtlasAvg(conddata));
+        return csutilreply(webserver, ec);
       } else if (strcmp_P(command,PSTR("clow"))==0) {
         calibrateLow(conddata);
       } else if (strcmp_P(command,PSTR("chigh"))==0) {
@@ -886,6 +994,22 @@ boolean apex_csutil_handler(TinyWebServer& webserver) {
         calibrateHigh(conddata,value);
       } else {
         return apex_error(webserver,F("Invalid csutil data."),6);
+      }
+#endif
+#ifdef _PWMFAN
+    } else if (sensortype==_fantach) {
+      if (strcmp_P(command,PSTR("getval"))==0) {
+        webserver.send_error_code(200);
+        webserver.send_content_type(F("application/json"));
+        webserver.end_headers();
+        webserver.get_client() << F("{\"value\":[");
+        for (uint8_t i=0;i<MAXPWMFANS;i++){
+          getpwmfanstatus(webserver.get_client(),i, false);
+        }
+        webserver.get_client() << F("]}");
+        return true;
+      } else {
+        return apex_error(webserver,F("Invalid csutil data."),4);
       }
 #endif
     } else {
@@ -905,8 +1029,9 @@ boolean csutilreply(TinyWebServer& webserver, float val) {
   webserver.send_error_code(200);
   webserver.send_content_type(F("application/json"));
   webserver.end_headers();
-  webserver.get_client() << F("{\"value\":\"") << val << F("\"}");
-  return true;
+  webserver.get_client() << F("{\"value\":\"");
+  webserver.get_client() << val << F("\"}");
+  return true;  
 }
 
 boolean apex_pwmpumpdata_handler(TinyWebServer& webserver) {

@@ -24,14 +24,15 @@
 static uint32_t currentTime = 0;
 static uint32_t previousTime = 0;
 static uint16_t deltaTime = 0;
+static uint8_t  counter = 0;
 
 SdFat sd;
 SdFile file_;
 volatile uint32_t debug1=0;
 volatile uint32_t debug2=0;
-LiquidCrystal_I2C lcd(LCD_ADDR,LCD_EN,LCD_RW,LCD_RS,LCD_D4,LCD_D5,LCD_D6,LCD_D7,LCD_BACKLIGHT,NEGATIVE);
+LiquidCrystal_I2C lcd(LCD_ADDR,LCD_EN,LCD_RW,LCD_RS,LCD_D4,LCD_D5,LCD_D6,LCD_D7,LCD_BACKLIGHT,LCD_POLARITY);
 
-enum outlet {OUTLETDEFS, Feeder=20, Doser0=23, Doser1=24, Pump0=30, Pump1=31, Pump2=32, Pump3=33, PPump0=40, PPump1=41, End=255};
+enum outlet {OUTLETDEFS, Feeder=20, Doser0=23, Doser1=24, Doser2=25, Doser3=26, Pump0=30, Pump1=31, Pump2=32, Pump3=33, PWMFan0=40, PWMFan1=41, PWMFan2=42, End=255};
 
 volatile uint8_t _ActiveMacro = 4;
 volatile time_t _MacroTime = 0;
@@ -65,6 +66,7 @@ AtlasSensorDef_t orpdata = ORPDEF;
 #endif
 #ifdef _COND
 AtlasSensorDef_t conddata = CONDDEF;
+long ec;
 #endif
 #ifdef _DOSER
 volatile boolean doseractive[MAXDOSERS];
@@ -75,6 +77,7 @@ volatile boolean updateDoserStatusFlag = false;
 volatile boolean dosercalibrating = false;
 volatile uint16_t calibrationcount = 0;
 #endif
+
 void setup() {
   initBuzzer();
   initTimer();
@@ -82,6 +85,9 @@ void setup() {
   initializeEEPROM();
   #if defined(_FEEDER) || defined(_FEEDER_V2)
   initFeeder();
+  #endif
+  #ifdef _PWMFAN
+  initPWMFan();
   #endif
   initATO();
   #ifdef _SONAR
@@ -93,7 +99,6 @@ void setup() {
   initNetwork(); //ethernet, clock, webserver, start logging here
   initSensors(); //temp and ph
   initOutlets();
-  initPWM();
   #ifdef _DOSER
   initDosers();
   #endif
@@ -128,6 +133,8 @@ void loop() {
   currentTime = millis();
   deltaTime = currentTime - previousTime;
   if (deltaTime > 16) { //60hz ~ every 16ms
+    counter++;
+    counter%=60;
     profile(true);
     time_t timenow = now();
     static time_t lasttimenow = 0;
@@ -154,8 +161,10 @@ void loop() {
         case 4: ppwmpump(2);
                 break; 
 #endif
+#ifdef SHOWDEBUGONLCD
         case LCD_NUM_MSGS-1: pdebug();
                 break;
+#endif
       }
       lastdisplaymode = displaymode;
     }
@@ -193,17 +202,26 @@ void loop() {
 #endif
 #ifdef _PH
     static uint8_t phidx = 0;
-    updateAtlas(phdata[phidx++]);
-    phidx%=MAXPH;
+    if (counter==30) {
+      updateAtlas(phdata[phidx++]);
+      phidx%=MAXPH;
+    }
 #endif
 #ifdef _ORP
-    updateAtlas(orpdata);
+    if (counter==35)
+      updateAtlas(orpdata);
 #endif
 #ifdef _COND
-    updateAtlas(conddata);
+    if (counter==40)
+      updateAtlas(conddata);
 #endif
 #ifdef _SONAR
-    updateSonar();
+    if (counter==45)
+      updateSonar();
+#endif
+#ifdef _PWMFAN
+    if (counter==50)
+      updatePWMFans();
 #endif
     logOutlet();
     previousTime = currentTime;
@@ -213,7 +231,7 @@ void loop() {
 #ifdef _TEMP
   updateTemp(); //this takes 500us
 #endif
-  webprocess(); 
+  webprocess();
 }
 
 

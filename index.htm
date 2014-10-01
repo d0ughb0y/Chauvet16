@@ -31,6 +31,19 @@
 				cache:true
 			});
 		});
+		$.fn.gauge = function(opts) {
+			this.each(function() {
+				var $this = $(this),
+					data = $this.data();
+				if (data.gauge) {
+					delete data.gauge;
+				}
+				if (opts !== false) {
+					data.gauge = new Gauge(this).setOptions(opts);
+				}
+			});
+			return this;
+		};
 	</script>
 	<style type="text/css">
 		#Outlets .ui-li, #Inputs .ui-li, #outloglist .ui-li, #sensorloglist .ui-li, #loglist .ui-li  {
@@ -100,9 +113,6 @@
 			height: 15px;
 			font-size: small;
 		}
-		.doser {
-			height: 45px;
-		}
 		.doser_bar {
 			width:70%;
 			height:30px;
@@ -142,8 +152,26 @@
 			text-align: center;
 			z-index: 100;
 		}
+		#PWMFans .ui-li {
+			padding-left:0;
+			padding-right:0;
+			margin: 0;
+		}
+		.pwmfanleft {
+			text-align: center;
+			width: 100px;
+			height:90px;
+			float:left;
+		}
+		.pwmfanright {
+			overflow:hidden;
+			text-align: center;
+			width:200px;
+			height: 90px;
+		}
 	</style>
 	<script src="http://code.jquery.com/mobile/1.3.2/jquery.mobile-1.3.2.min.js"></script>
+	<script src="https://cdn.rawgit.com/bernii/gauge.js/gh-pages/dist/gauge.min.js"></script>
 	<meta content="width=device-width, minimum-scale=1, maximum-scale=1" name="viewport"/>
 	<meta name="apple-mobile-web-app-capable" content="yes"/>
 	<meta name="apple-mobile-web-app-status-bar-style" content="black"/>
@@ -172,6 +200,10 @@
 			<div data-role="collapsible" data-collapsed-icon="arrow-r" data-expanded-icon="arrow-d" data-inset="false"id="PWMPumpsBar">
 				<h2>PWM Pumps</h2>
 				<ul data-role="listview" id="PWMPumps"></ul>
+			</div>
+			<div data-role="collapsible" data-collapsed-icon="arrow-r" data-expanded-icon="arrow-d"	data-inset="false" id="PWMFansBar">
+				<h2>PWM Fans</h2>
+				<ul data-role="listview" id="PWMFans"></ul>
 			</div>
 			<div data-role="collapsible" data-collapsed-icon="arrow-r" data-expanded-icon="arrow-d"	data-inset="false"id="DosersBar">
 				<h2>Dosing Pumps</h2>
@@ -439,6 +471,7 @@
 			<li><a href="#csform">Macros</a> </li>
 			<li><a href="#csform">Actions</a></li>
 			<li><a href="#csform">PWM Pumps</a></li>
+			<li><a href="#csform">PWM Fans</a></li>
 			<li><a href="#csform">Dosers</a></li>
 			<li><a href="#csform">Sensors</a> </li>
 			<li><a href="#csform">LEDs</a></li>
@@ -499,6 +532,47 @@
 				<div>
 					<ul data-role="listview" id="pumpprogramlist">
 					</ul>
+				</div>
+			</div>
+		</div>
+		<div id="contentpwmfans">
+			<div data-role="navbar" id="pwmfannav" data-mini="true">
+				<ul>
+					<li><a href="#" class="ui-btn-active-ui-state-persist" id="pwmfannav0">Fan 0</a> </li>
+					<li><a href="#" id="pwmfannav1">Fan 1</a> </li>
+					<li><a href="#" id="pwmfannav2">Fan 2</a> </li>
+				</ul>
+			</div>
+			<div data-role="content" id="_pwmfancontent">
+				<div data-role="fieldcontain" data-mini="true">
+					<label for="_fanname" data-mini="true" style="width:80%">Fan Name:</label>
+					<input data-mini="true" type="text" name="_fanname" id="_fanname" maxlength="7" pattern="[a-zA-Z0-9]+"/>
+				</div>
+				<div data-role="fieldcontain" data-mini="true">
+					<label for="_fanmaxrpm" data-mini="true" style="width:80%">Max RPM:</label>
+					<input data-mini="true" type="number" name="_fanmaxrpm" id="_fanmaxrpm" step="1"/>
+				</div>
+				<div data-role="fieldcontain" data-mini="true">
+					<label for="_fantemp" data-mini="true" style="width:80%">Temp Sensor:</label>
+					<input data-mini="true" type="number" name="_fantemp" id="_fantemp" min="0"/>
+				</div>
+				<div data-role="rangeslider" data-mini="true">
+					<label for="_fantemplow" data-mini="true" style="width: 80%">Temp Range:</label>
+					<input name="_fantemplow" id="_fantemplow" min="70" max="100" step="1" value="75"
+						data-mini="true" type="range"/>
+					<input name="_fantemohigh" id="_fantemphigh" min="70" max="100" step="1" value="80" data-mini="true"
+						type="range"/>
+				</div>
+				<div data-role="rangeslider" data-mini="true" id="_fanlevelrange">
+					<label for="_fanlevellow" data-mini="true" style="width: 80%">Duty Cycle Ramp:</label>
+					<input name="_fanlevellow" id="_fanlevellow" min="30" max="100" step="1" value="30" data-mini="true"
+						type="range"/>
+					<input name="_fanlevelhigh" id="_fanlevelhigh" min="30" max="100" step="1" value="100" data-mini="true"
+						type="range"/>
+				</div>
+				<div data-role="fieldcontain" data-mini="true">
+					<label for="_fanalarm" data-mini="true" style="width: 80%">Alarm if Stalled</label>
+					<input type="checkbox" name="inverse" id="_fanalarm" value="" data-mini="true"/>
 				</div>
 			</div>
 		</div>
@@ -692,7 +766,7 @@
 			<input type="range" name="slider3" id="pulsewidth" value="10" min="0" max="10" step="1"	data-highlight="true"	data-mini="true"/>
 		</div>
 		<div data-role="controlgroup" data-type="horizontal" data-mini="true"  style="text-align: center">
-			<input name="pumpauto" id="pumpauto" value="1" checked="checked" type="radio" data-mini="true">
+			<input name="pumpauto" id="pumpauto" value="1" checked type="radio" data-mini="true">
 			<label for="pumpauto">Auto</label>
 			<input name="pumpauto" id="pumpmanual" value="0" type="radio" data-mini="true">
 			<label for="pumpmanual">Manual</label>
@@ -726,7 +800,8 @@
 		<label for="_dosercaltotaltime">Current Total Time Units:</label>
 		<input type="number" name="_dosercaltotaltime" id="_dosercaltotaltime" value="0" data-mini="true" readonly/>
 		<label for="_dosercaltime" data-mini="true">ON Time Units (1 unit=1.02ms, min=98, max=5000):</label>
-		<input type="number" name="_dosercaltime" id="_dosercaltime" value="" min="100" max="5000" step="1"	data-mini="true"/>
+		<input type="number" name="_dosercaltime" id="_dosercaltime" value="" min="100" max="5000" step="1"
+			data-mini="true"/>
 		<button onclick="doserCommand('cstart');" data-mini="true" id="_dosercalstart">Start</button>
 		<button onclick="doserCommand('cadj');" data-mini="true" id="_dosercaladjust">+Dose</button>
 		<button onclick="doserCommand('csave');" data-mini="true" id="_dosercalsave">Save</button>
@@ -754,6 +829,10 @@ var config={};
 var macros=[];
 var outletname=[];
 var action=[];
+var gaugesinitialized=false;
+var pwmfansopen=false;
+var pwmfanidx = 0;
+var pwmfanmaxrpm=[];
 var pwmpumpsopen=false;
 var updatewavefunction;
 var pwmbarwidth=6;
@@ -770,11 +849,14 @@ var sensoridx=0;
 var numtemp=0;
 var csutilfunction;
 var hassonar=false;
-$("#page").on('pageinit',function(e){
- initHome();
+$("#page").on('pagecreate', function(e){
+}).on('pageinit',function(e){
+	initHome();
 }).on('pagebeforeshow',function(e){
- if (initialized) updateStatus();
-}).on("pageshow", function(e){});
+ if (initialized)  updateStatus();
+}).on("pageshow", function(e){
+
+});
 $('#setup').on("pagebeforeshow", function (e) {
 	$('#httptimeout').val(localStorage.getItem('timeout')/1000).slider('refresh');
 	$('#httpretries').val(localStorage.getItem('httpretries')).slider('refresh');
@@ -965,17 +1047,60 @@ $('#DosersBar').on('expand', function (e){
 	dosersopen=false;
 });
 $('#PWMPumpsBar').on('expand',function(e){
+	if (pwmpumpsconfig.length==0) return;
 	if (!pwmpumpsopen) {
 		pwmpumpsopen=true;
 		if (initialized) {
 			setTimeout(function() {updateStatus(0);},0);
-//			updatewavefunction =	setTimeout("getpwmpumpdata();",0);
 		}
 	}
 }).on('collapse',function(){
 		pwmpumpsopen=false;
 		clearTimeout(updatewavefunction);
 	});
+function initializeGauges(){
+	if (gaugesinitialized) return;
+	var opts = {
+		angle: 0.15, // The length of each line
+		lineWidth: 0.4, // The line thickness
+		pointer: {
+			length: 0.9, // The radius of the inner circle
+			strokeWidth: 0.035, // The rotation offset
+			color: '#000000' // Fill color
+		},
+		limitMax: 'false',   // If true, the pointer will not go past the end of the gauge
+		fontSize: 6,
+		colorStart: '#6FADCF',   // Colors
+		colorStop: '#8FC0DA',    // just experiment with them
+		strokeColor: '#E0E0E0',   // to see which ones work best for you
+		generateGradient: true
+	};
+	for (var i=0;i<$('#PWMFans li').size();i++) {
+		$('#canvasfan'+i).gauge(opts);
+		var data = $('#canvasfan'+i).data();
+		data.gauge.maxValue=pwmfanmaxrpm[i]; // set max gauge value
+		data.gauge.animationSpeed=1; // set animation speed (32 is default value)
+		data.gauge.setTextField($('#rpmval_'+i)[0]);
+		data.gauge.set(parseFloat(0));
+	}
+	gaugesinitialized = true;
+}
+$('#PWMFansBar').on('expand',function(e){
+	if (pwmfanmaxrpm.length==0) return;
+	pwmfansopen=true;
+	initializeGauges();
+	updateStatus();
+	clearTimeout(csutilfunction);
+	csutilfunction=csutil({"cmd":"getval","type":"5"});
+}).on('collapse',function(){
+	pwmfansopen=false;
+	clearTimeout(csutilfunction);
+	csutilfunction=null;
+}).on('slidestart',$("input[type=range]"), function(event, ui){
+	clearTimeout(csutilfunction);
+}).on('slidestop',$("input[type=range]"), function(event,ui){
+	pwmfan({"cmd":"setlvl","idx":""+parseInt(event.target.id.charAt(8))+"","value":""+event.target.value+""});
+})
 $('#MacrosBar').on('expand',function (e) {
 	if (!feedexpanded) {
 		feedexpanded=true;
@@ -1492,6 +1617,17 @@ function renderPage(f) {
 	if (dosersopen){
 			animateDoser();
 	}
+	if (pwmfansopen){
+		for (var i in a.pstat.pwmfans){
+			var fan=a.pstat.pwmfans[i];
+			var data = $('#canvasfan'+i).data();
+			data.gauge.set(parseInt(fan.r));
+			$('#statusfan'+i).html(parseFloat(fan.t).toFixed(1));
+			$('#fanlevel'+i).val(fan.l).slider("refresh");
+			$('#fanauto'+i).prop('checked', fan.m=="0").checkboxradio("refresh");
+			$('#fanmanual'+i).prop('checked', fan.m=="1").checkboxradio("refresh");
+		}
+	}
 }
 function getSparkData() {
 	if (sensoropen==false&&initialized) return;
@@ -1659,6 +1795,33 @@ function initPage() {
 			$('#PWMPumps').append(olist);
 		}
 		$('#PWMPumps').trigger('create').listview('refresh');
+		$('#PWMFans').empty();
+		for (var i in f.pstat.pwmfans) {
+			var pwmfan=f.pstat.pwmfans[i];
+			pwmfanmaxrpm.push(pwmfan.mr);
+			var leftdiv = $('<div class="pwmfanleft"></div>');
+			var rightdiv = $('<div class="pwmfanright"></div>');
+			var divend = $('<div style="clear:both"/>');
+			var rpmdiv = $('<div style="font-size:small"></div>');
+			rpmdiv.append('<div id="rpmval_'+i+'" style="display:inline-block;"></div>');
+			rpmdiv.append('<div style="display:inline-block;">RPM</div>');
+			var name = $('<div style="font-size:large">'+pwmfan.n+'</div>');
+			var canvas = $('<canvas id="canvasfan'+i+'" width="100px" height="50px"></canvas>');
+			leftdiv.append(name,canvas,rpmdiv);
+			var	slide=$('<input type="range" name="fanlevel'+i+'" id="fanlevel'+i+
+					'" value="0" min="0" max="100" step="10" data-highlight="true" data-mini="true"/>');
+			var radiofs = $('<fieldset data-role="controlgroup" data-type="horizontal" data-mini="true"></fieldset>');
+			radiofs.append('<input type="radio" name="fanmode'+i+'" id="fanauto'+i+'" value="0" onchange=\'pwmfan({"cmd":"setmode","idx":"'+i+'","value":"0"});\' checked></input>');
+			radiofs.append('<label for="fanauto'+i+'">Auto</label>');
+			radiofs.append('<input type="radio" name="fanmode'+i+'" id="fanmanual'+i+'" value="1" onchange=\'pwmfan({"cmd":"setmode","idx":"'+i+'","value":"1"});\'></input>');
+			radiofs.append('<label for="fanmanual'+i+'">Manual</label>');
+			var	status=$('<div style="font-size:small;"><div style="display: inline-block;">Max Rpm:'+pwmfan.mr+' Temp:&nbsp;</div><div id="statusfan'+i+'" style="display: inline-block;">0</div></div>');
+			rightdiv.append(radiofs,slide,status);
+			var olist=$('<li/>');
+			olist.append(leftdiv,rightdiv,divend);
+			$('#PWMFans').append(olist);
+		}
+		$('#PWMFans').trigger('create').listview('refresh');
 		$('#Dosers').empty();
 		for (var i in f.pstat.dosers){
 			var doser=f.pstat.dosers[i];
@@ -1842,12 +2005,12 @@ function updateSensorSetupFields(){
 	clearTimeout(csutilfunction);
 	$('#_sensorlowalert').val(config.alerts[sensoridx].l);
 	$('#_sensorhighalert').val(config.alerts[sensoridx].h);
-	clearTimeout(csutilfunction);
 	switch (parseInt(config.alerts[sensoridx].t)) {
 	case 0:
 		$('#_sensorphcalibrate').hide();
 		$('#_sensororpcalibrate').hide();
 		$('#_sensorcondcalibrate').hide();
+		clearTimeout(csutilfunction);
 		break;
 	case 1:
 		$('#_sensorphcalibrate').show();
@@ -1859,21 +2022,31 @@ function updateSensorSetupFields(){
 				phidx++;
 			}
 		}
-		csutil({'cmd':'getval','type':'1','value':''+phidx});
+		csutilfunction=csutil({'cmd':'getval','type':'1','value':''+phidx});
 		break;
 	case 2:
 		$('#_sensorphcalibrate').hide();
 		$('#_sensororpcalibrate').show();
 		$('#_sensorcondcalibrate').hide();
-		csutil({'cmd':'getval','type':'2','value':'0'});
+		csutilfunction=csutil({'cmd':'getval','type':'2','value':'0'});
 		break;
 	case 3:
 		$('#_sensorphcalibrate').hide();
 		$('#_sensororpcalibrate').hide();
 		$('#_sensorcondcalibrate').show();
-		csutil({'cmd':'getval','type':'3','value':'0'});
+		csutilfunction=csutil({'cmd':'getval','type':'3','value':'0'});
 		break;
 	}
+}
+function updatePwmFanSetupFields(){
+	$('#_fanname').val(config.pwmfans[pwmfanidx].n);
+	$('#_fanmaxrpm').val(config.pwmfans[pwmfanidx].mr);
+	$('#_fantemp').val(config.pwmfans[pwmfanidx].ts);
+	$('#_fantemplow').val(config.pwmfans[pwmfanidx].tl).slider('refresh');
+	$('#_fantemphigh').val(config.pwmfans[pwmfanidx].th).slider('refresh');
+	$('#_fanlevellow').val(config.pwmfans[pwmfanidx].ll).slider('refresh');
+	$('#_fanlevelhigh').val(config.pwmfans[pwmfanidx].lh).slider('refresh');
+	$('#_fanalarm').attr("checked", config.pwmfans[pwmfanidx].a=="true").checkboxradio("refresh");
 }
 function getInputHtml(a) {
 	if (a.did==="base_I1") {
@@ -1962,6 +2135,7 @@ $('#csetup').on('pageinit', function (e) {
 	$('#contentaction').hide();
 	$('#contentmisc').hide();
 	$('#contentpumps').hide();
+	$('#contentpwmfans').hide();
 	$('#contentdosers').hide();
 	$('#contentsensors').hide();
 	$('#contentleds').hide();
@@ -2076,13 +2250,13 @@ $('#sonaralertval').on('change', function (e) {
 	config.misc.sav=parseInt($('#sonaralertval').val());
 });
 $('#sonaralert').on('change', function (e) {
-	config.misc.sa=this.checked;
+	config.misc.sa=this.checked?"true":"false";
 });
 $('#sndalert').on('change', function (e) {
-	config.misc.snda=this.checked;
+	config.misc.snda=this.checked?"true":"false";
 });
 $('#emailalert').on('change', function (e) {
-	config.misc.ema=this.checked;
+	config.misc.ema=this.checked?"true":"false";
 });
 $('#_dosername').on('change', function(e){
 	config.dosers[doseridx].n=$('#_dosername').val();
@@ -2120,7 +2294,6 @@ $('#dosernav').on('click', 'li a', function(e){
 	$(this).addClass('ui-state-persist').addClass('ui-btn-active');
 })
 $('#_dosercalibrate').on('pagebeforeshow', function(e){
-//	doserCommand('cstart');
 	$('#_dosercalibratehdr').html("Doser "+doseridx);
 	$('#_dosercalvol').val(5);
 	$('#_dosercaltime').val(980);
@@ -2141,11 +2314,45 @@ $('#_sensorhighalert').on('change',function(e){
 })
 $('#sensornav').on('click', 'li a', function(e){
 	sensoridx = $(this).closest('li').index();
+	clearTimeout(csutilfunction);
 	updateSensorSetupFields();
 	$.each($('#sensornav').find('a'),function(i,obj){
 		$(this).removeClass('ui-state-persist').removeClass('ui-btn-active');
 	})
 	$(this).addClass('ui-state-persist').addClass('ui-btn-active');
+})
+$('#pwmfannav').on('click', 'li a', function(e){
+	pwmfanidx=$(this).closest('li').index();
+	updatePwmFanSetupFields();
+	$.each($('#pwmfannav').find('a'),function(i,obj){
+		$(this).removeClass('ui-state-persist').removeClass('ui-btn-active');
+	})
+	$(this).addClass('ui-state-persist').addClass('ui-btn-active');
+})
+$('#_fanname').on('change', function(e){
+	config.pwmfans[pwmfanidx].n=this.value;
+})
+$('#_fanmaxrpm').on('change',function(e){
+	config.pwmfans[pwmfanidx].mr=this.value;
+})
+$('#_fantemp').on('change', function(e){
+	config.pwmfans[pwmfanidx].ts=this.value;
+})
+$('#_pwmfancontent').on('slidestop', $("input[type=range]"), function(event, ui){
+	var id = event.target.id;
+	var val = event.target.value;
+	if (id=="_fantemplow") {
+		config.pwmfans[pwmfanidx].tl=val;
+	} else if (id=="_fantemphigh") {
+		config.pwmfans[pwmfanidx].th=val;
+	} else if (id=="_fanlevellow") {
+		config.pwmfans[pwmfanidx].ll=val;
+	} else if (id=="_fanlevelhigh") {
+		config.pwmfans[pwmfanidx].lh=val;
+	}
+})
+$('#_fanalarm').on('change',function(e){
+	config.pwmfans[pwmfanidx].a=this.checked?"true":"false";
 })
 $('#csform').on('pagebeforecreate', function(e) {
 	if (config.pumps.length==4){
@@ -2211,18 +2418,30 @@ $('#csform').on('pagebeforecreate', function(e) {
 		ul+='</ul>';
 		$('#sensornav').html(ul).navbar();
 	}
+	if (config.pwmfans.length==0){
+		$('#contentpwmfans').html("<h1>No PWM Fans defined.</h1>")
+	} else {
+		if (config.pwmfans.length<3)
+		  $("#pwmfannav2").parent("li").remove();
+		if (config.pwmfans.length<2)
+			$("#pwmfannav1").parent("li").remove();
+
+	}
 }).on('pagehide', function(e, data) {
 	if (data.nextPage[0].id=='pumpprogramedit' || data.nextPage[0].id=='editaction') return;
 	csitem=-1;
 	pwmpumpsidx=0;
 	sensoridx=0;
+	pwmfanidx=0;
 	clearTimeout(csutilfunction);
 }).on('pagebeforeshow', function (e,data) {
+	clearTimeout(csutilfunction);
 	switch (csitem) {
 	case 0:
 		$('#contentactions').hide();
 		$('#contentmisc').hide();
 		$('#contentpumps').hide();
+		$('#contentpwmfans').hide();
 		$('#contentdosers').hide();
 		$('#contentleds').hide();
 		$('#contentoutlets').show();
@@ -2238,6 +2457,7 @@ $('#csform').on('pagebeforecreate', function(e) {
 		$('#contentactions').hide();
 		$('#contentmisc').hide();
 		$('#contentpumps').hide();
+		$('#contentpwmfans').hide();
 		$('#contentdosers').hide();
 		$('#contentsensors').hide();
 		$('#contentleds').hide();
@@ -2255,6 +2475,7 @@ $('#csform').on('pagebeforecreate', function(e) {
 		$('#contentactions').show();
 		$('#contentmisc').hide();
 		$('#contentpumps').hide();
+		$('#contentpwmfans').hide();
 		$('#contentdosers').hide();
 		$('#contentsensors').hide();
 		$('#contentleds').hide();
@@ -2278,13 +2499,27 @@ $('#csform').on('pagebeforecreate', function(e) {
 		$('#contentleds').hide();
 		$('#contentoutlets').hide();
 		$('#contentpumps').show();
+		$('#contentpwmfans').hide();
 		$('#csformhdr').html("PWM Pumps");
 		$('#pumpnav'+pwmpumpsidx).trigger('click');
 		break;
 	case 4:
 		$('#contentactions').hide();
 		$('#contentmisc').hide();
+		$('#contentdosers').hide();
+		$('#contentsensors').hide();
+		$('#contentleds').hide();
+		$('#contentoutlets').hide();
 		$('#contentpumps').hide();
+		$('#contentpwmfans').show();
+		$('#csformhdr').html("PWM Fans");
+		$('#pwmfannav'+pwmfanidx).trigger('click');
+		break;
+	case 5:
+		$('#contentactions').hide();
+		$('#contentmisc').hide();
+		$('#contentpumps').hide();
+		$('#contentpwmfans').hide();
 		$('#contentdosers').show();
 		$('#dosernav'+doseridx).trigger('click');
 		$('#contentsensors').hide();
@@ -2292,10 +2527,11 @@ $('#csform').on('pagebeforecreate', function(e) {
 		$('#contentoutlets').hide();
 		$('#csformhdr').html("Dosers Setup");
 		break;
-	case 5:
+	case 6:
 		$('#contentactions').hide();
 		$('#contentmisc').hide();
 		$('#contentpumps').hide();
+		$('#contentpwmfans').hide();
 		$('#contentdosers').hide();
 		$('#contentsensors').show();
 		$('#contentleds').hide();
@@ -2303,20 +2539,22 @@ $('#csform').on('pagebeforecreate', function(e) {
 		$('#csformhdr').html("Sensor Setup");
 		$('#sensornav'+sensoridx).trigger('click');
 		break;
-	case 6:
+	case 7:
 		$('#contentactions').hide();
 		$('#contentmisc').hide();
 		$('#contentpumps').hide();
+		$('#contentpwmfans').hide();
 		$('#contentdosers').hide();
 		$('#contentsensors').hide();
 		$('#contentleds').show();
 		$('#contentoutlets').hide();
 		$('#csformhdr').html("LEDs Setup");
 		break;
-	case 7:
+	case 8:
 		$('#contentactions').hide();
 		$('#contentmisc').show();
 		$('#contentpumps').hide();
+		$('#contentpwmfans').hide();
 		$('#contentdosers').hide();
 		$('#contentsensors').hide();
 		$('#contentleds').hide();
@@ -2329,9 +2567,9 @@ $('#csform').on('pagebeforecreate', function(e) {
 		$('#sonarlow').val(config.misc.sl);
 		$('#sonarhigh').val(config.misc.sh);
 		$('#sonaralertval').val(config.misc.sav);
-		$('#sonaralert').attr("checked", config.misc.sa).checkboxradio("refresh");
-		$('#sndalert').attr("checked", config.misc.snda).checkboxradio("refresh");
-		$('#emailalert').attr("checked", config.misc.ema).checkboxradio("refresh");
+		$('#sonaralert').attr("checked", config.misc.sa=="true").checkboxradio("refresh");
+		$('#sndalert').attr("checked", config.misc.snda=="true").checkboxradio("refresh");
+		$('#emailalert').attr("checked", config.misc.ema=="true").checkboxradio("refresh");
 		$('#resetconf').val(config.misc.init);
 		if (hassonar)
 			csutil({'cmd':'getval','type':'4','value':'0'});
@@ -2402,6 +2640,19 @@ function savePumpProgram(){
 	updateprogramlist();
 	$('#pumpprogramedit').dialog('close');
 }
+function pwmfan(param){
+	clearTimeout(csutilfunction);
+	csutilfunction=null;
+	$.ajax('pwmfan.json', {
+		data:JSON.stringify(param),
+		contentType:'application/json',
+		type:'POST'}).always(function () {
+			csutilfunction=csutil({"cmd":"getval","type":"5"});
+		}).done(function (data, textStatus, jqXHR) {
+		}).fail(function (jqXHR, textStatus, errorThrown) {
+			console.log(textStatus);
+		});
+}
 function csutil(param){
 	$.ajax('csutil.json',{
 		data:JSON.stringify(param),
@@ -2409,7 +2660,6 @@ function csutil(param){
 	  type:'POST'}).always(function(){
 		}).done(function(data, textStatus, jqXHR){
 			if (param.cmd=='getval'){
-				//set the value to field
 				switch (parseInt(param.type)){
 				case 1:
 					$('#_sensorphvalue').val(data.value);
@@ -2418,20 +2668,34 @@ function csutil(param){
 					$('#_sensororpvalue').val(data.value);
 					break;
 				case 3:
-					$('#_sensorcondvalue').val(data.value);
+					$('#_sensorcondvalue').val(parseFloat(data.value).toFixed(0));
 					break;
 				case 4:
 					$('#sonarval').val(data.value);
 					break;
+				case 5:
+					if (pwmfansopen && csutilfunction!=null){
+						$.each(data.value, function (i, rec) {
+							var data = $('#canvasfan'+i).data();
+							data.gauge.set(parseInt(rec.r));
+							$('#fanlevel'+i).val(rec.l).slider("refresh");
+							$('#fanauto'+i).prop('checked', rec.m=="0").checkboxradio("refresh");
+							$('#fanmanual'+i).prop('checked', rec.m=="1").checkboxradio("refresh");
+							$('#statusfan'+i).html(parseFloat(rec.t).toFixed(1));
+						});
+					}
+					break;
 				}
-				if ($.mobile.activePage[0].id=='csform')
-					csutilfunction=setTimeout(function(){csutil(param);},1000);
 			} else {
 				alert(jqXHR.responseText);
 			}
 		}).fail(function(jqXHR, textStatus, errorThrown) {
-			alert('CS call failed. '+textStatus);
-			clearTimeout(csutilfunction);
+			console.log('CS call failed. '+textStatus);
+		}).always(function(data, textStatus, errorThrown) {
+			if (param.type==5 && pwmfansopen==false)
+				return;
+			if (param.type!=0)
+				csutilfunction=setTimeout(function(){csutil(param);},1000);
 		})
 }
 function removelinks(id) {
@@ -2543,18 +2807,22 @@ function saveconfig() {
 		datastr = '{"pumps":'+JSON.stringify(config.pumps)+'}';
 		break;
 	case 4:
+		name="pwmfans";
+		datastr = '{"pwmfans":'+JSON.stringify(config.pwmfans)+'}';
+		break;
+	case 5:
 		name="dosers";
 		datastr = '{"dosers":'+JSON.stringify(config.dosers)+'}';
 		break;
-	case 5:
+	case 6:
 		name="alerts";
 		datastr = '{"alerts":'+JSON.stringify(config.alerts)+'}';
 		break;
-	case 6:
+	case 7:
 		name="leds";
 		datastr = '{"leds":'+JSON.stringify(config.leds)+'}';
 		break;
-	case 7:
+	case 8:
 		name="misc";
 		datastr = '{"misc":'+JSON.stringify(config.misc)+'}';
 		break;

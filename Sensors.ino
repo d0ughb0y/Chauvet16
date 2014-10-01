@@ -63,6 +63,7 @@ boolean condinit = false;
 boolean orpinit = false;
 
 boolean initTemp() {
+#ifdef _TEMP
 uint8_t _addr[8];
 int x = 0;
 uint8_t _numtemps = 0;
@@ -130,6 +131,7 @@ if (ds.reset()) {
     return false;
   }
 } else //no temp probes
+#endif
   return false;
 }
 
@@ -295,6 +297,19 @@ void checkAlarm() {
     }
   }
 #endif
+#ifdef _PWMFAN
+  for (uint8_t i=0;i<MAXPWMFANS;i++) {
+    if (conf.pwmfan[i].mode==_auto && conf.pwmfan[i].alert) {
+      if (getPWMFanLevel(i)>0) {
+        if (getPWMFanRPM(i)==0) {
+          delay(50);
+          if (getPWMFanRPM(i)==0)
+            return setAlarm(true);
+        }
+      }
+    }
+  }
+#endif
   setAlarm(false);
 }
 
@@ -319,40 +334,55 @@ void setAlarm(boolean state){
 /////////////////////////////////////////////////////////
 boolean initAtlas(AtlasSensorDef_t &data) {
   char responsechars[15];
-  responsechars[0]=0;
   data.saddr.begin(38400);
+  responsechars[0]=0;
   for (int i=0;i<255,strlen(responsechars)==0;i++) {
-    if (data.type==_cond)//set conductivity stamp to return SG only, K=1.0
-      data.saddr.print("response,0\rc,0\ro,ec,0\ro,tds,0\ro,sg,0\rk,1.0\rr\r");
-    else {
+    responsechars[0]=0;
+#ifdef _COND
+    if (data.type==_cond) { //set conductivity stamp to return SG only, K=1.0
+      data.saddr.print("\r");
+      delay(300);
+      getresponse(data,responsechars);
+      responsechars[0]=0;
+      data.saddr.print("response,0\rl,0\rc,0\ro,ec,1\ro,tds,0\ro,sg,0\ro,s,1\rk,1.0\rr\r");
+    } else
+#endif
 #ifdef _PH_EZO
       if (data.type==_ph) {
-        data.saddr.print("response,0\rc,0\rr\r");
+        data.saddr.print("\r");
+        delay(300);
+        getresponse(data,responsechars);
+        responsechars[0]=0;
+        data.saddr.print("rresponse,0\rl,0\rc,0\rr\r");
       } else
 #endif
       data.saddr.print("e\rr\r");
-    }
-#if defined(_PH_EZO) || defined(_COND)
-    delay(1000);
-#else
-    delay(384);
-#endif
     data.average=0;
+    while (!data.saddr.available()) delay(100);
+    delay(300);
     getresponse(data, responsechars);
+//    logMessage(responsechars);
   }
   if (strlen(responsechars)==0) {
     data.initialized=false;
     return false;
   }
-  data.value=atof(responsechars);
+#ifdef _COND
+  if (data.type==_cond) {
+    char* v = strchr(responsechars,',');
+    if (v==0) return false;
+    data.value=atof(v+1);
+  } else
+#endif
+    data.value=atof(responsechars);
   if (data.value>0) {
     data.isReady=true;
     data.initialized=true;
     updateAtlas(data);
     data.isReady=false;
-  } else
-    return false;
-  return true;
+    return true;
+  }
+  return false;
 }
 
 void getresponse(AtlasSensorDef_t& data, char* response){
@@ -378,12 +408,37 @@ void updateAtlas(AtlasSensorDef_t& data) {
   if (!data.initialized) return;
   if (data.isReady) {
     data.isReady=false;
+#ifdef ATLASTEMPCOMPENSATE
+    if (data.type==_cond) {
+       data.saddr.print("t,");
+       #ifdef CELSIUS
+       data.saddr.print(getTemp(0));
+       #else
+       data.saddr.print((getTemp(0)-32)/1.8);
+       #endif
+       data.saddr.print("\r");
+    }
+#endif
+    data.saddr.print("r\r");
+//    if (data.type==_cond) {
+//      if (data.value < 30.0 || data.value > 40.0)
+//        return; //skip value
+//    } else if (data.type==_ph) {
+//      if (data.value < 6.0 || data.value > 10.0)
+//        return; //skip value
+//    } else if (data.type==_orp) {
+//      if (data.value < 200.0 || data.value > 500.0)
+//        return; //skip value
+//    }
     if (data.value>0) {
       if (data.average) {
-        data.sum = (data.sum-data.average)+data.value;
-        cli();
-        data.average = data.sum / numReadings;
-        sei();
+        if (fabs(data.value-data.value2)<data.value2*0.1) {
+          data.sum = (data.sum-data.average)+data.value;
+          cli();
+          data.average = data.sum / numReadings;
+          sei();
+        }
+        data.value2 = data.value;
       } else {
         data.sum = data.value*numReadings;
         cli();
@@ -391,7 +446,6 @@ void updateAtlas(AtlasSensorDef_t& data) {
         sei();
       }
     }
-    data.saddr.print("r\r");
   }
 }
 
@@ -460,7 +514,19 @@ void atlasHandler(AtlasSensorDef_t &data) {
     if (c=='\r') {
       data.scratch[data.i]=0;
       data.i=0;
-      data.value=atof(data.scratch);
+#ifdef _COND
+      if (data.type==_cond) {
+        char* v = strchr(data.scratch,',');
+        if (v==0) {
+          data.isReady=true;
+          return;
+        }
+        data.value=atof(v+1);
+        *v=0;
+        ec=atol(data.scratch);
+      } else
+#endif
+        data.value=atof(data.scratch);
       data.isReady=true;
       return;
     } else {

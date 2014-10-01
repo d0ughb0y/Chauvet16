@@ -4,11 +4,13 @@
  * Commercial use of this software without
  * permission is absolutely prohibited.
 */
+//#define SHOWDEBUGONLCD
 #define CONTROLLER_NAME "Jerry's Reef" //change this to your controller name
 #define NTPSERVER 76,73,0,4  //pool.ntp.org, used if dns lookup fails
-#define LOCAL_IP 192,168,0,15 //change this to a local fixed ip address
+#define LOCAL_IP 192,168,0,150 //change this to a local fixed ip address
 #define ROUTER_IP 192,168,0,1 //change this to your router ip address
 #define DNS_IP 75,75,75,75 //dns of your internet service provider
+#define MAC {0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED}
 #define ROUTER_PORT 80 //usually port 80 for the ip configuration web page
 //////////////////////////////////////////////////
 // DS18B20 Temperature Sensor Section
@@ -16,8 +18,8 @@
 // I do not recommend using more than 2 sensors
 //////////////////////////////////////////////////
 #define _TEMP  //comment out if no temp probe
-//#define CELSIUS  //uncomment if using celsius unit
-#define MAXTEMP 2 //number of temp sensors, 1 or 2
+//#define CELSIUS //uncomment if using celsius unit
+#define MAXTEMP 2 //number of temp sensors
 #if !defined(_TEMP)
 #define MAXTEMP 0
 #endif
@@ -25,9 +27,6 @@
 //The first temp is used to control heater and fan and MUST be present, the rest may not be present.
 #define TEMPDEF {{"Temp",{0x28, 0xdf, 0x5d, 0x89, 0x05, 0x00, 0x00, 0xf8}},{"Ambient",{0x28,0xde,0x18,0x5a,0x05,0x00,0x00,0x7d}}}
 #define TEMPALERT {{76,82},{65,88}}
-//#define TEMPDEF {{"Temp",{0x28, 0xdf, 0x5d, 0x89, 0x05, 0x00, 0x00, 0xf8}},{"Ambient",{0x28,0xff,0xa4,0xe0,0x22,0x14,0x00,0x21}},{"Sump",{0x28,0xde,0x18,0x5a,0x05,0x00,0x00,0x7d}}}
-//#define TEMPALERT {{76,82},{65,88},{65,88}}
-
 //////////////////////////////////////////////////
 // End DS18B20 Temperature Sensor Section
 //////////////////////////////////////////////////
@@ -36,7 +35,7 @@
 // Make sure you do not exceed 3 sensors
 // As there are only 3 available Serial ports
 //////////////////////////////////////////////////
-#define _PH  //comment out if no ph probe or ph stamp
+//#define _PH  //comment out if no ph probe or ph stamp
 //uncomment the next line if you are using the new EZO pH stamp
 //#define _PH_EZO
 #define MAXPH 1 //number of ph stamps
@@ -65,30 +64,44 @@
 #else
 #define MAXCOND 1
 #endif
-#define CONDDEF {"Cond",_cond,Serial3}
-#define CONDALERT {0,0}
+#define CONDDEF {"Cond",_cond,Serial3}  //use this for serial connection
+#define CONDALERT {25,45}
 #define TOTALSENSORS MAXTEMP+MAXPH+MAXORP+MAXCOND
+//#define ATLASTEMPCOMPENSATE
 ////////////////////////////////////////////////////
 // End Atlas Stamps Sensor Section
 ////////////////////////////////////////////////////
 #define _DOSER
+#define MAXDOSERS 2
 //default values  name (7 characters max), ml per day, times per day (0=disabled), interval (0=divide equally),
 //starttime (minutes since midnight), calibration value (0=uncalibrated), full volume in ml
+//MAKE SURE TO DEFINE AS MANY ENTRIES AS SPECIFIED IN MAXDOSERS
 #define DOSERDEFAULT {"Cal",24,12,0,0,100,500},{"Alk", 24,12,0,10,100,500}
-#define MAXDOSERS 2
 //#define _HEATER
 #define _FAN
 #define _SONAR
 //#define _FEEDER
 #define _FEEDER_V2
+
+#ifndef _TEMP
+#undef _FAN
+#undef _HEATER
+#endif
+
+#ifdef SHOWDEBUGONLCD
+#define LCD_NUM_MSGS 4+MAXPWMPUMPS/2
+#else
+#define LCD_NUM_MSGS 3+MAXPWMPUMPS/2
+#endif
+#define LCD_MSG_CYCLE_SECS 2
 //you can just comment the line below to use 400khz TwoWire bus speed. It is not necessary to edit the Wire library
 #define TW_400
 #define RTC_ADDR 0x68
+
+//I2C LCD Setting 1
 #define LCD_ADDR 0x20
 #define LCD_ROWS 2
 #define LCD_COLS 16
-#define LCD_NUM_MSGS 4+MAXPWMPUMPS/2
-#define LCD_MSG_CYCLE_SECS 2
 #define LCD_EN 4
 #define LCD_RW 5
 #define LCD_RS 6
@@ -97,12 +110,26 @@
 #define LCD_D6 2
 #define LCD_D7 3
 #define LCD_BACKLIGHT 7
+#define LCD_POLARITY NEGATIVE
+
+//I2C LCD setting 2
+//#define LCD_ADDR 0x27
+//#define LCD_ROWS 2
+//#define LCD_COLS 16
+//#define LCD_EN 2
+//#define LCD_RW 1
+//#define LCD_RS 0
+//#define LCD_D4 4
+//#define LCD_D5 5
+//#define LCD_D6 6
+//#define LCD_D7 7
+//#define LCD_BACKLIGHT 3
+//#define LCD_POLARITY POSITIVE
 
 #define STDTZOFFSET -8
 //comment the next line if your location does not use daylight savings time
 #define AUTODST
 
-#define WEBSERVERPORT 8000
 //go to http://base64-encoder-online.waraxe.us
 //to create your encoded string
 //BASICAUTH = username:password,  sample below is admin:password
@@ -122,11 +149,11 @@
 #define OUTLOGSZ 6  //size of circular queue for outlet log
 
 #define MAXOUTLETS  8 //either 8 or 16
-//#define OUTLET8INVERTED //uncomment this if you want outlets 1-8 to have inverse logic
-//#define OUTLET16INVERTED  //uncomment this if you want outlets 9-16 to have inverse logic
+#define OUTLET8INVERTED //uncomment this if you want outlets 1-8 to have inverse logic
+#define OUTLET16INVERTED  //uncomment this if you want outlets 9-16 to have inverse logic
 #define MAXMACROS  4 //fixed
 #define MAXMACROACTIONS 6  //fixed for now, can be made longer if needed
-#define EEPROMSIG 0xA5 //change this everytime you want the eeprom defaults to change
+#define EEPROMSIG 0xA0 //change this everytime you want the eeprom defaults to change
 //define OUTLET names here, order is fixed
 #define OUTLET1 "WP25"
 #define OUTLET2 "Unused2"
@@ -136,14 +163,14 @@
 #define OUTLET6 "ATO"
 #define OUTLET7 "Skimmer"
 #define OUTLET8 "Return"
-#define OUTLET9 "Unused9"
-#define OUTLET10 "Unused10"
-#define OUTLET11 "Unused11"
-#define OUTLET12 "Unused12"
-#define OUTLET13 "Unused13"
-#define OUTLET14 "Unused14"
-#define OUTLET15 "Unused15"
-#define OUTLET16 "Unused16"
+#define OUTLET9 "Outlet9"
+#define OUTLET10 "Outlet10"
+#define OUTLET11 "Outlet11"
+#define OUTLET12 "Outlet12"
+#define OUTLET13 "Outlet13"
+#define OUTLET14 "Outlet14"
+#define OUTLET15 "Outlet15"
+#define OUTLET16 "Outlet16"
 
 #define MACRO1 "Feed Now"
 #define MACRO2 "Feed"
@@ -162,7 +189,7 @@
 #define NORMALCYCLE 0
 
 #define OUTLETDEFS WP25, Unused2, LED, Pump, Fan, ATO, Skimmer, Return,\
-                   Unused9, Unused10, Unused11, Unused12, Unused13, Unused14, Unused15, Unused16
+                   Outlet9, Outlet0, Outlet11, Outlet12, Outlet13, Outlet14, Outlet15, Outlet16
 //define the default outlet program here. outlets must appear in exact order defined in outlet names definition
 //program outletname, initial off time, on time, off time, days active, mode
 //days active can be set by ORing the days or use EVERYDAY
@@ -178,6 +205,14 @@
                         {OUTLET6,0,0,0,EVERYDAY,_auto},\
                         {OUTLET7,0,3*SECS_PER_HOUR,SECS_PER_HOUR,EVERYDAY,_auto},\
                         {OUTLET8,0,SECS_PER_DAY,0,EVERYDAY,_auto}}
+//                        ,{OUTLET9,0,0,0,EVERYDAY,_auto},\
+//                        {OUTLET10,0,0,0,EVERYDAY,_auto},\
+//                        {OUTLET11,0,0,0,EVERYDAY,_auto},\
+//                        {OUTLET12,0,0,0,EVERYDAY,_auto},\
+//                        {OUTLET13,0,0,0,EVERYDAY,_auto},\
+//                        {OUTLET14,0,0,0,EVERYDAY,_auto},\
+//                        {OUTLET15,0,0,0,EVERYDAY,_auto},\
+//                        {OUTLET16,0,0,0,EVERYDAY,_auto}}
 #define MACROSDEFAULT {{MACRO1,0,10,0,0xff,_disabled},\
                        {MACRO2,15*SECS_PER_HOUR,240,SECS_PER_DAY-15*SECS_PER_HOUR-240,SUN|TUE|THU|SAT,_auto},\
                        {MACRO3, 0,10*SECS_PER_MIN,0,EVERYDAY,_disabled},\
@@ -187,7 +222,7 @@
                         {{WP25,0,600}, {Pump0,600,0}, {End,0,0}, {End,0,0}, {End,0,0}, {End,0,0}},\
                         {{WP25,600,0}, {End,0,0}, {End,0,0}, {End,0,0}, {End,0,0}, {End,0,0}}}
 //controls 1-2 pwm pumps                        
-#define _PWMA
+#define _PWMA //must be defined
 //uncomment if you have 3 or 4 pumps
 //#define _PWMB
 #if defined(_PWMB)
@@ -195,7 +230,7 @@
 #elif !defined(_PWMB)
 #define MAXPWMPUMPS 2
 #endif
-//change wavemode 6x per day at the followiing time (hours)
+//change wavemode 6x per day at the following time (hours)
 #define MAXINTERVALS 6
 #define INTERVALS  {0,6,9,12,18,22}
 
@@ -216,6 +251,17 @@
                        128,177,218,246,255,246,218,177}     
 #define CUSTOMPATTERNSTEPS 32
 
+#define _PWMFAN
+#define MAXPWMFANS 3  //maximum 3
+#ifndef _PWMFAN
+#define MAXPWMFANS 0
+#endif
+//define name,tempsensor#,low temp, high temp, low fan level, high fan level, mode, alert
+#define PWMFANDEF {{"DispFan",0,78,82,30,100,_auto,1500,false},{"SumpF1",1,76,80,30,100,_auto,1200,false},{"SumpF2",1,76,80,30,100,_auto,1200,false}}
+
+#if defined(_PWMFAN) && !defined(_TEMP)
+#error _TEMP must be defined if _PWMFAN is defined
+#endif
 /////////////////////////////////
 //   typedefs
 /////////////////////////////////
@@ -223,7 +269,7 @@ enum {_auto, _manual, _disabled, _macro };
 //pump 0 is always master
 //pumps 1,2,3 can run in sync or antisync with respect to pump 0
 enum {_master,_sync,_antisync};
-enum {_temp,_ph,_orp,_cond,_sonar};
+enum {_temp,_ph,_orp,_cond,_sonar,_fantach};
 
 //function that returns 8 bit value for the given step over the resolution of the wave pattern
 typedef uint8_t(*PatternFP)(uint8_t);
@@ -279,12 +325,25 @@ typedef struct {
 } SensorAlert_t;
 
 typedef struct {
+  char name[8];
+  uint8_t tempsensor; //temp sensor associated with this fan
+  uint8_t templow;
+  uint8_t temphigh;
+  uint8_t levellow;
+  uint8_t levelhigh;
+  uint8_t mode;
+  uint16_t maxrpm;
+  boolean alert;
+} FanDef_t;
+
+typedef struct {
   ORec_t outletRec[MAXOUTLETS];
   ORec_t macrosRec[MAXMACROS];  
   MacroActions_t actions[MAXMACROS][MAXMACROACTIONS];
   PumpDef_t pump[MAXPWMPUMPS][MAXINTERVALS];
-  DoserDef_t doser[2];
+  DoserDef_t doser[MAXDOSERS];
   SensorAlert_t alert[TOTALSENSORS];
+  FanDef_t pwmfan[MAXPWMFANS];
   float htrlow;
   float htrhigh;
   float fanlow;
@@ -300,13 +359,14 @@ typedef struct {
 
 typedef struct {
   char name[8];
-  uint8_t type;
+  const uint8_t type;
   HardwareSerial& saddr;
   boolean initialized;
   char scratch[15];//store serial reading here
   uint8_t i;//current index to scratch
   boolean isReady;//scratch has complete value
   float value; //last reading value
+  float value2; //2 consecutive readings must be within +/- 10%
   float sum; //for calculating running average
   volatile float average; //the running average
 } AtlasSensorDef_t;

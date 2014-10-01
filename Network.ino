@@ -16,10 +16,11 @@ const char path8[] PROGMEM = "/config.json";
 const char path9[] PROGMEM = "/csutil.json";
 const char path10[] PROGMEM = "/pwmset.json";
 const char path11[] PROGMEM = "/doser.json";
-const char path12[] PROGMEM = "/cgi-bin/status.cgi";
-const char path13[] PROGMEM = "/upload/" "*";
-const char path14[] PROGMEM = "/delete/" "*";
-const char path15[] PROGMEM = "/" "*";
+const char path12[] PROGMEM = "/pwmfan.json";
+const char path13[] PROGMEM = "/cgi-bin/status.cgi";
+const char path14[] PROGMEM = "/upload/" "*";
+const char path15[] PROGMEM = "/delete/" "*";
+const char path16[] PROGMEM = "/" "*";
 const char head0[]  PROGMEM = "Content-Length";
 const char head1[]  PROGMEM = "Authorization";
 const char head2[]  PROGMEM = "Accept-Encoding";
@@ -38,10 +39,11 @@ TinyWebServer::PathHandler handlers[] = {
   {path9, TinyWebServer::POST, &apex_csutil_handler},
   {path10,TinyWebServer::POST, &apex_pwmset_handler},
   {path11,TinyWebServer::ANY,&apex_doser_handler},
-  {path12 , TinyWebServer::POST, &apex_command_handler},
-  {path13, TinyWebServer::PUT, &secure_put_handler},
-  {path14, TinyWebServer::GET, &delete_handler},
-  {path15, TinyWebServer::GET, &file_handler},
+  {path12,TinyWebServer::POST, &apex_pwmfan_handler},
+  {path13 , TinyWebServer::POST, &apex_command_handler},
+  {path14, TinyWebServer::PUT, &secure_put_handler},
+  {path15, TinyWebServer::GET, &delete_handler},
+  {path16, TinyWebServer::GET, &file_handler},
   {NULL}
 };
 
@@ -53,8 +55,7 @@ const char* headers[] = {
 };
 
 TinyWebServer web = TinyWebServer(handlers,headers);
-  byte mac[] = {
-    0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED    };
+  byte mac[] = MAC;
   IPAddress ip(LOCAL_IP);
   IPAddress router(ROUTER_IP);
 #ifdef DNS_IP
@@ -315,6 +316,11 @@ void sendEmail() {
       client << F("  Remaining Volume:") << conf.doser[i].fullvolume -dosedvolume[i]/100.0 << F("\r\n");
     }
 #endif
+#ifdef _PWMFAN
+    for (int i=0;i<MAXPWMFANS;i++) {
+      client << F("PWM Fan ") << i << F(" : ") << (const char*)conf.pwmfan[i].name << F(" : ") << getPWMFanRPM(i) << F("rpm\r\n");
+    }
+#endif
     client << F(".\r\n");
     if(!eRcv(client)) return;
     client << F("QUIT\r\n");    
@@ -533,7 +539,8 @@ unsigned long getNtpTime(IPAddress timeServer)
 void logNetworkAccess(TinyWebServer &web_server) {
   char* path = (char*)web_server.get_path();
   if (strcmp_P(path,PSTR("/pwmpumpdata.json"))==0 ||
-   strcmp_P(path,PSTR("/csutil.json"))==0) return;
+   strcmp_P(path,PSTR("/csutil.json"))==0 ||
+   strcmp_P(path,PSTR("/pwmfan.json"))==0) return;
   uint8_t remoteip[4];
   EthernetClient& client = web_server.get_client();
   client.getRemoteIP(remoteip);

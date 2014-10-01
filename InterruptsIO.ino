@@ -67,7 +67,7 @@ void beepx(uint8_t first, uint8_t second, uint8_t third,
 
 inline void beepoff() {
   buzzerbusy=false;
-  PORTF&=~_BV(PF0);
+  PORTD&=~_BV(PD7);
 }
 
 void alarmOn() {
@@ -91,14 +91,32 @@ ISR(PCINT2_vect) {
   static uint8_t lastPins;
   uint8_t mask = pins ^ lastPins;
   lastPins = pins;
-#ifdef _FEEDER
-  if (mask & _BV(PK2)) { //feeder
-    feederHandler(pins);
-  }
-#endif
 #ifdef _SONAR
   if (mask & _BV(PK5)) {
     sonarHandler(pins);
+  }
+#endif
+#ifdef _PWMFAN
+  if (mask & _BV(PK0)){
+    if (pins & _BV(PK0))
+      PWMFanHandler(0);
+  }
+#if (MAXPWMFANS>=2)
+  if (mask & _BV(PK1)) {
+    if (pins & _BV(PK1))
+      PWMFanHandler(1);
+  }
+#endif
+#if (MAXPWMFANS>=3)
+  if (mask & _BV(PK6)) {
+    if (pins & _BV(PK6))
+      PWMFanHandler(2);
+  }
+#endif
+#endif
+#ifdef _FEEDER
+  if (mask & _BV(PK2)) { //feeder
+    feederHandler(pins);
   }
 #endif
 }
@@ -191,21 +209,47 @@ void checkATO(){
 ////////////////////////////////
 //  Doser PUMPS
 ////////////////////////////////
+#ifdef _DOSER
 void initDosers(){
-  //PG0 Digital 39
-  //PG2 Digital 41
+  //PG0 Digital 41 doser0
+  //PG2 Digital 39 doser1
+  //PG1 Digital 40 doser2
+  //PL7 Digital 42 doser3
   readDoserStatus();
-  DDRG |= _BV(PG0)|_BV(PG2);
+#if (MAXDOSERS>=1)
+  DDRG |= _BV(PG0);
   PORTG&=~_BV(PG0);
+#endif
+#if (MAXDOSERS>=2)
+  DDRG |= _BV(PG2);
   PORTG&=~_BV(PG2);
+#endif
+#if (MAXDOSERS>=3)
+  DDRG |= _BV(PG1);
+  PORTG&=~_BV(PG1);
+#endif
+#if (MAXDOSERS==4)
+  DDRL |= _BV(PL7);
+  PORTL&=~_BV(PL7);
+#endif
   if (conf.doser[0].rate==0||conf.doser[1].rate==0) {
     p(F("Configure Doser."));
     logMessage(F("Please configure doser pumps before using."));
   } else {
     p(F("Dosers OK.      "));
     logMessage(F("Doser pumps initialized."));
+#if (MAXDOSERS>=1)
     logMessage(F("Doser0 dosed volume since reset is "),dosedvolume[0]/100.0);
+#endif
+#if (MAXDOSERS>=2)
     logMessage(F("Doser1 dosed volume since reset is "),dosedvolume[1]/100.0);
+#endif
+#if (MAXDOSERS>=3)
+    logMessage(F("Doser2 dosed volume since reset is "),dosedvolume[2]/100.0);
+#endif
+#if (MAXDOSERS==4)
+    logMessage(F("Doser3 dosed volume since reset is "),dosedvolume[3]/100.0);
+#endif
   }
   cli();
   for (int i=0;i<MAXDOSERS;i++){
@@ -231,7 +275,7 @@ inline void doserOn(uint8_t i, uint32_t countmatch) {
   if (isDoserOn(i) || dosercalibrating) return;
   uint8_t SaveREG=SREG;
   cli();
-  if (dosedvolume[i]>conf.doser[i].fullvolume*100ul) {
+  if (dosedvolume[i]>=conf.doser[i].fullvolume*100ul) {
     SREG=SaveREG;
     return;
   }
@@ -239,26 +283,40 @@ inline void doserOn(uint8_t i, uint32_t countmatch) {
   dosercountmatch[i]=countmatch;
   if (i==0) {
     PORTG|=_BV(PG0);
-  } else {
+    _outlogentry(Doser0,true);
+  } else if (i==1) {
     PORTG|=_BV(PG2);
+    _outlogentry(Doser1,true);
+  } else if (i==2) {
+    PORTG|=_BV(PG1);
+    _outlogentry(Doser2,true);
+  } else if (i==3) {
+    PORTL|=_BV(PL7);
+    _outlogentry(Doser3,true);
   }
   doseractive[i]=true;
-  _outlogentry((i==0?Doser0:Doser1),true);
   SREG=SaveREG;
 }
 
 inline void doserOff(uint8_t i) {
-    if (dosercalibrating) return calstop(i);
-    if (isDoserOn(i)) {
+  if (dosercalibrating) return calstop(i);
+  if (isDoserOn(i)) {
     uint8_t SaveSREG=SREG;
     cli();
     doseractive[i]=false;
     if (i==0) {
       PORTG&=~_BV(PG0);
-    } else  {
+      _outlogentry(Doser0,false);
+    } else if (i==1) {
       PORTG&=~_BV(PG2);
+      _outlogentry(Doser1,false);
+    } else if (i==2) {
+      PORTG&=~_BV(PG1);
+      _outlogentry(Doser2,false);
+    } else if (i==3) {
+      PORTL&=~_BV(PL7);
+      _outlogentry(Doser3,false);
     }
-    _outlogentry((i==0?Doser0:Doser1),false);
     //set log
     if (conf.doser[i].rate>0)
       dosedvolume[i]+=100ul*dosercounter[i]/conf.doser[i].rate;
@@ -274,8 +332,12 @@ inline void doserOff(uint8_t i) {
 inline boolean isDoserOn(uint8_t i){
   if (i==0)
     return PORTG & _BV(PG0);
-  else
+  else if (i==1)
     return PORTG & _BV(PG2);
+  else if (i==2)
+    return PORTG & _BV(PG1);
+  else if (i==3)
+    return PORTL & _BV(PL7);
 }
 
 void manualDoseOn(uint8_t i, uint16_t vol) {
@@ -315,8 +377,12 @@ void caladjust(uint8_t i,uint32_t addcount) {
   dosercounter[i] = 0;
   if (i==0) {
     PORTG|=_BV(PG0);
-  } else {
+  } else if (i==1) {
     PORTG|=_BV(PG2);
+  } else if (i==2) {
+    PORTG|=_BV(PG1);
+  } else if (i==3) {
+    PORTL|=_BV(PL7);
   }
   doseractive[i]=true;
   sei();
@@ -342,7 +408,7 @@ void getdoserstatus(EthernetClient& client, uint8_t i) {
   SREG=saveSREG;
   client << F("\"}") << (i<MAXDOSERS-1?F(","):F(""));
 }
-
+#endif
 ////////////////////////////////////
 //  FEEDER
 ////////////////////////////////////
@@ -408,103 +474,6 @@ inline void feedHandler(){
   }
 }
 #endif
-///////////////////////////////////////////////
-//    PWM
-//////////////////////////////////////////////
-//these are standard arduino PWM
-//use analogWrite to set PWM duty cycle from main loop
-//these will work with your LED lights routine
-//add op amp circuit if you need 10v PWM
-//unused PWM pump pins can be used here for a total of up to 12 PWM lines
-#define PWM1 2
-#define PWM2 3
-//#define PWM3 5
-//#define PWM4 6
-//#define PWM5 7
-//#define PWM6 8
-//#define PWM7 9
-//#define PWM8 46
-//#ifndef _PWMB
-//#define PWM9 44
-//#define PWM10 45
-//#endif
-//#ifndef _PWMA
-//#define PWM11 11
-//#define PWM12 12
-//#endif
-
-void initPWM() {
-  #ifdef PWM1
-  pinMode(PWM1,OUTPUT);
-  analogWrite(PWM1,0);
-  #endif
-  #ifdef PWM2
-  pinMode(PWM2,OUTPUT); 
-  analogWrite(PWM2,0);
-  #endif
-  #ifdef PWM3
-  pinMode(PWM3,OUTPUT);
-  analogWrite(PWM3,0);
-  #endif
-  #ifdef PWM4
-  pinMode(PWM4,OUTPUT); 
-  analogWrite(PWM4,0);
-  #endif
-  #ifdef PWM5
-  pinMode(PWM5,OUTPUT);
-  analogWrite(PWM5,0);
-  #endif
-  #ifdef PWM6
-  pinMode(PWM6,OUTPUT); 
-  analogWrite(PWM6,0);
-  #endif
-  #ifdef PWM7
-  pinMode(PWM7,OUTPUT);
-  analogWrite(PWM7,0);
-  #endif
-  #ifdef PWM8
-  pinMode(PWM8,OUTPUT); 
-  analogWrite(PWM8,0);
-  #endif
-  #ifdef PWM9
-  pinMode(PWM9,OUTPUT);
-  analogWrite(PWM9,0);
-  #endif
-  #ifdef PWM10
-  pinMode(PWM10,OUTPUT); 
-  analogWrite(PWM10,0);
-  #endif
-  #ifdef PWM11
-  pinMode(PWM11,OUTPUT);
-  analogWrite(PWM11,0);
-  #endif
-  #ifdef PWM12
-  pinMode(PWM12,OUTPUT); 
-  analogWrite(PWM12,0);
-  #endif
-}
-
-void testPWM(){
-  static boolean up = true;
-  static int fadeValue = 0;
-  
-  analogWrite(PWM1, fadeValue);         
-  analogWrite(PWM2, fadeValue);             
-  if (up) {
-    fadeValue += 5;
-    if (fadeValue>255) {
-      up = false;
-      fadeValue = 255;
-    }
-  } else {
-    fadeValue -=5; 
-    if (fadeValue<0) {
-      up = true;
-      fadeValue = 0;
-    }
-  }
-  
-}
 
 ////////////////////////////
 //  SONAR
@@ -551,7 +520,7 @@ void updateSonar()
   uint16_t tmpdist=sonarDistance;
   SREG=saveSREG;
 
-  if (sonarDistance>0) {
+  if (tmpdist>0) {
     if (sum)
       sum = (sum - tmpavg) + tmpdist;
     else {
