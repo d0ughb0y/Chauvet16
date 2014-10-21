@@ -435,7 +435,7 @@ void logOutlet() {
           fileout_ << F("Doser1");
         } else if (_outlog[ltail].changed==Doser2) {
           fileout_ << F("Doser2");
-        } else if (_outlog[ltail].changed=Doser3) {
+        } else if (_outlog[ltail].changed==Doser3) {
           fileout_ << F("Doser3");
         } else {
           fileout_ << (const char*)conf.outletRec[_outlog[ltail].changed].name;
