@@ -581,6 +581,8 @@
 				<ul>
 					<li><a href="#" class="ui-btn-active-ui-state-persist" id="dosernav0">Doser 0</a> </li>
 					<li><a href="#" id="dosernav1">Doser 1</a> </li>
+					<li><a href="#" id="dosernav2">Doser 2</a> </li>
+					<li><a href="#" id="dosernav3">Doser 3</a> </li>
 				</ul>
 			</div>
 			<div data-role="content">
@@ -2368,6 +2370,13 @@ $('#csform').on('pagebeforecreate', function(e) {
 	}
 	if (config.dosers.length==0){
 		$('#contentdosers').html("<h1>No dosers defined.</h1>")
+	}	else {
+		if (config.dosers.length<4)
+			$("#dosernav3").parent("li").remove();
+		if (config.dosers.length<3)
+			$("#dosernav2").parent("li").remove();
+		if (config.dosers.length<2)
+			$('#dosernav1').parent("li").remove();
 	}
 	if (config.alerts.length==0){
 		$('#contentsensors').html("<h1>No sensors defined.</h1>")
@@ -2425,7 +2434,6 @@ $('#csform').on('pagebeforecreate', function(e) {
 		  $("#pwmfannav2").parent("li").remove();
 		if (config.pwmfans.length<2)
 			$("#pwmfannav1").parent("li").remove();
-
 	}
 }).on('pagehide', function(e, data) {
 	if (data.nextPage[0].id=='pumpprogramedit' || data.nextPage[0].id=='editaction') return;
