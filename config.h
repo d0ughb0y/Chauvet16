@@ -18,8 +18,8 @@
 // I do not recommend using more than 2 sensors
 //////////////////////////////////////////////////
 #define _TEMP  //comment out if no temp probe
-//#define CELSIUS //uncomment if using celsius unit
-#define MAXTEMP 2 //number of temp sensors
+//#define CELSIUS  //uncomment if using celsius unit
+#define MAXTEMP 2 //number of temp sensors, up to 3 max, over 3 not recommended
 #if !defined(_TEMP)
 #define MAXTEMP 0
 #endif
@@ -36,15 +36,20 @@
 // As there are only 3 available Serial ports
 //////////////////////////////////////////////////
 //#define _PH  //comment out if no ph probe or ph stamp
-//uncomment the next line if you are using the new EZO pH stamp
-//#define _PH_EZO
 #define MAXPH 1 //number of ph stamps
 #if !defined(_PH)
 #define MAXPH 0
 #endif
-//define the Name, sensor type, Serial port, you can define up to 3 ph sensors (separated by comma)
-//two ph probes example  #define PHDEF {{"pH",_ph,Serial1},{"CalRX",_ph,Serial2}}
-#define PHDEF {{"pH",_ph,Serial1}}
+#define _PH1_NAME "pH"
+#define _PH1_EZO false
+#define _PH1_SERIAL Serial1 //you can select serial or i2c but not both
+//#define _PH1_I2C 99  //default address is 99
+
+#define _PH2_NAME "CalRX"
+#define _PH2_EZO true
+//#define _PH2_SERIAL Serial2 //you can select serial or i2c but not both
+#define _PH2_I2C 99  //make sure i2c address is unique
+
 #define PHALERT {{7.5,9.0}}
 //uncomment the next line you have Atlas Orp sensor and make sure the addr has the right serial port
 //#define _ORP
@@ -53,21 +58,23 @@
 #else
 #define MAXORP 1
 #endif
-#define ORPDEF {"Orp",_orp,Serial2}
+#define _ORP_NAME "ORP"
+//#define _ORP_SERIAL Serial2 //you can select serial or i2c but not both
+#define _ORP_I2C 98  //default address is 98
+#define _ORP_EZO true
 #define ORPALERT {200,300}
-//uncomment the next line if you have Atlas Conductivity sensor and make sure the addr has the right serial port
-//You must configure the Atlas stamp to K=1 by sending K1 command using atlas sketch for conductivity stamp
-//You must also configure this stamp to return salinity only. Send the following command O,EC,0<CR>O,TDS,0<CR>O,SG,0<CR>
-//#define _COND
+//uncomment the next line if you have Atlas Conductivity sensor and make sure the addr has the right serial port or I2C address
+#define _COND
 #if !defined(_COND)
 #define MAXCOND 0
 #else
 #define MAXCOND 1
 #endif
-#define CONDDEF {"Cond",_cond,Serial3}  //use this for serial connection
+#define _COND_NAME "Cond"
+//#define _COND_SERIAL Serial3 //you can select serial or i2c but not both
+#define _COND_I2C 100  //default address is 100
 #define CONDALERT {25,45}
 #define TOTALSENSORS MAXTEMP+MAXPH+MAXORP+MAXCOND
-//#define ATLASTEMPCOMPENSATE
 ////////////////////////////////////////////////////
 // End Atlas Stamps Sensor Section
 ////////////////////////////////////////////////////
@@ -98,6 +105,7 @@
 #define TW_400
 #define RTC_ADDR 0x68
 
+#define LCD_BACKLIGHT_OFF_DELAY_MINS 10
 //I2C LCD Setting 1
 #define LCD_ADDR 0x20
 #define LCD_ROWS 2
@@ -356,20 +364,6 @@ typedef struct {
   boolean emailalert;
   uint8_t initialized;
 } conf_t;
-
-typedef struct {
-  char name[8];
-  const uint8_t type;
-  HardwareSerial& saddr;
-  boolean initialized;
-  char scratch[15];//store serial reading here
-  uint8_t i;//current index to scratch
-  boolean isReady;//scratch has complete value
-  float value; //last reading value
-  float value2; //2 consecutive readings must be within +/- 10%
-  float sum; //for calculating running average
-  volatile float average; //the running average
-} AtlasSensorDef_t;
 
 typedef struct {
   char name[8];

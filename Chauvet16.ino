@@ -19,19 +19,23 @@
 #include <Flash.h>
 #include <stdlib.h>
 #include "TinyWebServer.h"
+#include "Sensor.h"
 #include "config.h"
 
 static uint32_t currentTime = 0;
 static uint32_t previousTime = 0;
 static uint16_t deltaTime = 0;
-static uint8_t  counter = 0;
+static uint16_t  counter = 0;
 
 SdFat sd;
 SdFile file_;
 volatile uint32_t debug1=0;
 volatile uint32_t debug2=0;
 LiquidCrystal_I2C lcd(LCD_ADDR,LCD_EN,LCD_RW,LCD_RS,LCD_D4,LCD_D5,LCD_D6,LCD_D7,LCD_BACKLIGHT,LCD_POLARITY);
-
+#ifdef LCD_BACKLIGHT_OFF_DELAY_MINS
+unsigned long lcdontime = 0;
+boolean backlighton = true;
+#endif
 enum outlet {OUTLETDEFS, Feeder=20, Doser0=23, Doser1=24, Doser2=25, Doser3=26, Pump0=30, Pump1=31, Pump2=32, Pump3=33, PWMFan0=40, PWMFan1=41, PWMFan2=42, End=255};
 
 volatile uint8_t _ActiveMacro = 4;
@@ -59,14 +63,39 @@ volatile uint8_t maxsensors = 0;
 TempSensorDef_t tempdata[] = TEMPDEF;
 #endif
 #ifdef _PH
-AtlasSensorDef_t phdata[MAXPH] = PHDEF;
+Sensor* ph[MAXPH];
+#if (MAXPH>=1)
+#if defined(_PH1_SERIAL)
+SensorSerial ph1 = SensorSerial(_PH1_NAME,Sensor::_ph,&_PH1_SERIAL,_PH1_EZO);
+#endif
+#if defined (_PH1_I2C)
+SensorI2C ph1 = SensorI2C(_PH1_NAME,Sensor::_ph,_PH1_I2C);
+#endif
+#endif
+#if (MAXPH==2)
+#if defined(_PH2_SERIAL)
+SensorSerial ph2 = SensorSerial(_PH2_NAME,Sensor::_ph,&_PH2_SERIAL,_PH2_EZO);
+#endif
+#if defined (_PH2_I2C)
+SensorI2C ph2 = SensorI2C(_PH2_NAME,Sensor::_ph,_PH2_I2C);
+#endif
+#endif
 #endif
 #ifdef _ORP
-AtlasSensorDef_t orpdata = ORPDEF;
+#ifdef _ORP_SERIAL
+SensorSerial orp = SensorSerial(_ORP_NAME,Sensor::_orp,&_ORP_SERIAL,_ORP_EZO);
+#endif
+#ifdef _ORP_I2C
+SensorI2C orp = SensorI2C(_ORP_NAME,Sensor::_orp,_ORP_I2C);
+#endif
 #endif
 #ifdef _COND
-AtlasSensorDef_t conddata = CONDDEF;
-long ec;
+#ifdef _COND_SERIAL
+SensorSerial cond = SensorSerial(_COND_NAME,Sensor::_cond,&_COND_SERIAL,true);
+#endif
+#ifdef _COND_I2C
+SensorI2C cond = SensorI2C(_COND_NAME,Sensor::_cond,_COND_I2C);
+#endif
 #endif
 #ifdef _DOSER
 volatile boolean doseractive[MAXDOSERS];
@@ -79,6 +108,14 @@ volatile uint16_t calibrationcount = 0;
 #endif
 
 void setup() {
+#ifdef _PH
+#if (MAXPH>=1)
+    ph[0]=&ph1;
+#endif
+#if (MAXPH==2)
+    ph[1]=&ph2;
+#endif
+#endif
   initBuzzer();
   initTimer();
   beep();
@@ -134,7 +171,6 @@ void loop() {
   deltaTime = currentTime - previousTime;
   if (deltaTime > 16) { //60hz ~ every 16ms
     counter++;
-    counter%=60;
     profile(true);
     time_t timenow = now();
     static time_t lasttimenow = 0;
@@ -167,13 +203,19 @@ void loop() {
 #endif
       }
       lastdisplaymode = displaymode;
+#if (LCD_BACKLIGHT_OFF_DELAY_MINS>0)
+      if (backlighton && (currentTime-lcdontime)>LCD_BACKLIGHT_OFF_DELAY_MINS*60000) {
+        backlighton=false;
+        lcd.setBacklight(LOW);
+      }
+#endif
     }
-    #ifdef AUTODST
+#ifdef AUTODST
     if (testDst) {
       autoDST(timenow);
       testDst = false;
     }
-    #endif
+#endif
     if (logSensorsFlag) { //every 10 minutes only
       logSensorsFlag = false;
       logSensors();
@@ -200,28 +242,32 @@ void loop() {
       updateDoserStatusFlag=false;
     }
 #endif
+#ifdef _SONAR
+    if (counter%50==0) {
+      updateSonar();
+    }
+#endif
+#ifdef _PWMFAN
+    if (counter%60==0) {
+      updatePWMFans();
+    }
+#endif
 #ifdef _PH
-    static uint8_t phidx = 0;
-    if (counter==30) {
-      updateAtlas(phdata[phidx++]);
+    if (counter%65==0) {
+      static uint8_t phidx = 0;
+      ph[phidx++]->update();
       phidx%=MAXPH;
     }
 #endif
 #ifdef _ORP
-    if (counter==35)
-      updateAtlas(orpdata);
+    if (counter%70==0) {
+      orp.update();
+    }
 #endif
 #ifdef _COND
-    if (counter==40)
-      updateAtlas(conddata);
-#endif
-#ifdef _SONAR
-    if (counter==45)
-      updateSonar();
-#endif
-#ifdef _PWMFAN
-    if (counter==50)
-      updatePWMFans();
+    if (counter%80==0) {
+      cond.update();
+    }
 #endif
     logOutlet();
     previousTime = currentTime;

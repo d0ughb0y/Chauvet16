@@ -296,14 +296,14 @@ void sendEmail() {
 #endif
 #ifdef _PH
     for (int i=0;i<MAXPH;i++) {
-      client << (const char*)phdata[i].name << ": " << getAtlasAvg(phdata[i]) << F("\r\n");
+      client << (const char*)ph[i]->getName() << ": " << ph[i]->getAvg() << F("\r\n");
     }
 #endif
 #ifdef _COND
-    client << F("Cond: ") << getAtlasAvg(conddata) << F("\r\n");
+    client << F("Cond: ") << cond.getAvg() << F("\r\n");
 #endif
 #ifdef _ORP
-    client << F("Orp: ") << getAtlasAvg(orpdata) << F("\r\n");
+    client << F("Orp: ") << orp.getAvg() << F("\r\n");
 #endif
 #ifdef _SONAR
     client << F("Top Off water level: ") << (int)getSonarPct() << F("%\r\n");

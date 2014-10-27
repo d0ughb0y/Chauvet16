@@ -24,7 +24,7 @@ void initSensors() {
 #endif
 #ifdef _PH
   for (uint8_t i=0;i<MAXPH;i++) {
-    if (initAtlas(phdata[i])) {
+    if (ph[i]->init()) {
       p(F("pH OK.          "));
       logMessage(F("pH initialized. ph "),i);
     } else {
@@ -36,7 +36,7 @@ void initSensors() {
 #endif
 #ifdef _ORP
   maxsensors++;
-  if (initAtlas(orpdata)) {
+  if (orp.init()) {
     p(F("ORP OK.         "));
     logMessage(F("ORP sensor initialized."));
   } else {
@@ -47,7 +47,8 @@ void initSensors() {
 #endif
 #ifdef _COND
   maxsensors++;
-  if (initAtlas(conddata)) {
+//  if (initAtlas(conddata)) {
+  if (cond.init()) {
     p(F("Cond OK.        "));
     logMessage(F("Conductivity sensor initialized."));
   } else {
@@ -57,10 +58,6 @@ void initSensors() {
   }
 #endif
 }
-
-boolean phinit = false;
-boolean condinit = false;
-boolean orpinit = false;
 
 boolean initTemp() {
 #ifdef _TEMP
@@ -112,7 +109,7 @@ if (ds.reset()) {
         return false;
       }
       uint16_t tval = data[1] << 8 | data[0];
-      if (tval > 256 && tval < 784 ) {
+      if (tval > 0 ) {
         tempdata[x].sum = tval * numReadings;
         tempdata[x].average = tval;
         tempdata[x].initialized=true;
@@ -273,16 +270,17 @@ void checkAlarm() {
 #endif
 #ifdef _PH
   for (int i=0;i<MAXPH;i++) {
-    if (phdata[i].initialized && (getAtlasAvg(phdata[i])>conf.alert[MAXTEMP+i].highalert || getAtlasAvg(phdata[i])<conf.alert[MAXTEMP+i].lowalert))
+    if (ph[i]->isInitialized() && (ph[i]->getAvg()>conf.alert[MAXTEMP+i].highalert || ph[i]->getAvg()<conf.alert[MAXTEMP+i].lowalert))
       return setAlarm(true);
   }
 #endif
 #ifdef _ORP
-  if (orpdata.initialized && (getAtlasAvg(orpdata)>conf.alert[MAXTEMP+MAXPH].highalert || getAtlasAvg(orpdata)<conf.alert[MAXTEMP+MAXPH].lowalert))
+  if (orp.isInitialized() && (orp.getAvg()>conf.alert[MAXTEMP+MAXPH].highalert || orp.getAvg()<conf.alert[MAXTEMP+MAXPH].lowalert))
       return setAlarm(true);
 #endif
 #ifdef _COND
-  if (conddata.initialized && (getAtlasAvg(conddata)>conf.alert[MAXTEMP+MAXPH+MAXORP].highalert || getAtlasAvg(conddata)<conf.alert[MAXTEMP+MAXPH+MAXORP].lowalert))
+//  if (conddata.initialized && (getAtlasAvg(conddata)>conf.alert[MAXTEMP+MAXPH+MAXORP].highalert || getAtlasAvg(conddata)<conf.alert[MAXTEMP+MAXPH+MAXORP].lowalert))
+  if (cond.isInitialized() && (cond.getAvg()>conf.alert[MAXTEMP+MAXPH+MAXORP].highalert || cond.getAvg()<conf.alert[MAXTEMP+MAXPH+MAXORP].lowalert))
       return setAlarm(true);
 #endif
 #ifdef _SONAR
@@ -327,236 +325,5 @@ void setAlarm(boolean state){
       beepoff();
     }
   }
-}
-
-/////////////////////////////////////////////////////////
-// Atlas Sensors Functions
-/////////////////////////////////////////////////////////
-boolean initAtlas(AtlasSensorDef_t &data) {
-  char responsechars[15];
-  data.saddr.begin(38400);
-  responsechars[0]=0;
-  for (int i=0;i<255,strlen(responsechars)==0;i++) {
-    responsechars[0]=0;
-#ifdef _COND
-    if (data.type==_cond) { //set conductivity stamp to return SG only, K=1.0
-      data.saddr.print("\r");
-      delay(300);
-      getresponse(data,responsechars);
-      responsechars[0]=0;
-      data.saddr.print("response,0\rl,0\rc,0\ro,ec,1\ro,tds,0\ro,sg,0\ro,s,1\rk,1.0\rr\r");
-    } else
-#endif
-#ifdef _PH_EZO
-      if (data.type==_ph) {
-        data.saddr.print("\r");
-        delay(300);
-        getresponse(data,responsechars);
-        responsechars[0]=0;
-        data.saddr.print("rresponse,0\rl,0\rc,0\rr\r");
-      } else
-#endif
-      data.saddr.print("e\rr\r");
-    data.average=0;
-    while (!data.saddr.available()) delay(100);
-    delay(300);
-    getresponse(data, responsechars);
-//    logMessage(responsechars);
-  }
-  if (strlen(responsechars)==0) {
-    data.initialized=false;
-    return false;
-  }
-#ifdef _COND
-  if (data.type==_cond) {
-    char* v = strchr(responsechars,',');
-    if (v==0) return false;
-    data.value=atof(v+1);
-  } else
-#endif
-    data.value=atof(responsechars);
-  if (data.value>0) {
-    data.isReady=true;
-    data.initialized=true;
-    updateAtlas(data);
-    data.isReady=false;
-    return true;
-  }
-  return false;
-}
-
-void getresponse(AtlasSensorDef_t& data, char* response){
-  int i = 0;
-  while (data.saddr.available()) {
-    char c = (char)data.saddr.read();
-    if (c=='\r') {
-      response[i]=0;
-      i=0;
-      return;
-    } else {
-      response[i++]=c;
-      if (i==14) {
-        i=0;
-        response[0]=0;
-        return;
-      }
-    }
-  }
-}
-
-void updateAtlas(AtlasSensorDef_t& data) {
-  if (!data.initialized) return;
-  if (data.isReady) {
-    data.isReady=false;
-#ifdef ATLASTEMPCOMPENSATE
-    if (data.type==_cond) {
-       data.saddr.print("t,");
-       #ifdef CELSIUS
-       data.saddr.print(getTemp(0));
-       #else
-       data.saddr.print((getTemp(0)-32)/1.8);
-       #endif
-       data.saddr.print("\r");
-    }
-#endif
-    data.saddr.print("r\r");
-//    if (data.type==_cond) {
-//      if (data.value < 30.0 || data.value > 40.0)
-//        return; //skip value
-//    } else if (data.type==_ph) {
-//      if (data.value < 6.0 || data.value > 10.0)
-//        return; //skip value
-//    } else if (data.type==_orp) {
-//      if (data.value < 200.0 || data.value > 500.0)
-//        return; //skip value
-//    }
-    if (data.value>0) {
-      if (data.average) {
-        if (fabs(data.value-data.value2)<data.value2*0.1) {
-          data.sum = (data.sum-data.average)+data.value;
-          cli();
-          data.average = data.sum / numReadings;
-          sei();
-        }
-        data.value2 = data.value;
-      } else {
-        data.sum = data.value*numReadings;
-        cli();
-        data.average = data.value;
-        sei();
-      }
-    }
-  }
-}
-
-float getAtlasAvg(AtlasSensorDef_t& data) {
-  if (!data.initialized) return 0.0;
-  uint8_t saveSREG=SREG;
-  cli();
-  float p = data.average;
-  SREG=saveSREG;
-  return p;
-}
-
-void calibrateLow(AtlasSensorDef_t& data) {
-  if (data.type==_ph) {
-    //calibrate ph 7
-#ifdef _PH_EZO
-    data.saddr.print("cal,mid,7.00\r");
-#else
-    data.saddr.print("s\r");
-#endif
-  } else if (data.type==_orp) {
-    data.saddr.print("-\r");
-  } else if (data.type==_cond) {
-    data.saddr.print("cal,dry\r");
-  }
-}
-
-void calibrateHigh(AtlasSensorDef_t& data, long val) {
-  if (data.type==_ph) {
-    //calibrate ph 10
-#ifdef _PH_EZO
-    data.saddr.print("cal,high,10.00\r");
-#else
-    data.saddr.print("t\r");
-#endif
-  } else if (data.type==_orp) {
-    data.saddr.print("+\r");
-  } else if (data.type==_cond) {
-    data.saddr.print("cal,one,");
-    data.saddr.print(val);
-    data.saddr.print("\r");
-  }
-}
-
-void atlasSerialHandler(){
-#ifdef _PH
-  for (int i=0;i<MAXPH;i++) {
-     if (phdata[i].saddr.available())
-      return atlasHandler(phdata[i]);
-  }
-#endif
-#ifdef _ORP
-  if (orpdata.saddr.available())
-    return atlasHandler(orpdata);
-#endif
-#ifdef _COND
-  if (conddata.saddr.available())
-    return atlasHandler(conddata);
-#endif
-}
-
-void atlasHandler(AtlasSensorDef_t &data) {
-  int ccount = data.saddr.available();
-  for (int i=0;i<ccount;i++) {
-    char c = (char)data.saddr.read();
-    if (c=='\r') {
-      data.scratch[data.i]=0;
-      data.i=0;
-#ifdef _COND
-      if (data.type==_cond) {
-        char* v = strchr(data.scratch,',');
-        if (v==0) {
-          data.isReady=true;
-          return;
-        }
-        data.value=atof(v+1);
-        *v=0;
-        ec=atol(data.scratch);
-      } else
-#endif
-        data.value=atof(data.scratch);
-      data.isReady=true;
-      return;
-    } else {
-      data.scratch[data.i++]=c;
-      if (data.i==14) {
-        data.i=0;
-        data.scratch[0]=0;
-        data.value=0;
-        data.isReady=true;
-        return;
-      }
-    }
-  }
-}
-
-
-/////////////////////////////////////////////////////////
-// Serial Event Handlers
-/////////////////////////////////////////////////////////
-//uncomment the serialEvent function corresponding to the Serial port with atlas stamp connected, and
-//set the parameter to the corresponding sensor variable.
-void serialEvent1() {
-  atlasSerialHandler();
-}
-
-void serialEvent2(){
-  atlasSerialHandler();
-}
-
-void serialEvent3() {
-  atlasSerialHandler();
 }
 

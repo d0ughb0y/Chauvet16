@@ -1,3 +1,9 @@
+/*
+ * Copyright (c) 2013 by Jerry Sy aka d0ughb0y
+ * mail-to: j3rry5y@gmail.com
+ * Commercial use of this software without
+ * permission is absolutely prohibited.
+*/
 #ifdef _PWMFAN
 volatile uint16_t* __OCRn[] = {&OCR3A,&OCR3B,&OCR3C};
 volatile uint8_t mask[] = {0x01,0x02,0x40};

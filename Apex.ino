@@ -120,17 +120,17 @@ boolean apex_status_handler(TinyWebServer& webserver) {
 #endif
 #ifdef _PH
   for (int i=0;i<MAXPH;i++) {
-    client << apex_xml_probe1 << phdata[i].name << apex_xml_probe2 << dtostrf(getAtlasAvg(phdata[i]), 5,2, (char*)tmp);
+    client << apex_xml_probe1 << ph[i]->getName() << apex_xml_probe2 << dtostrf(ph[i]->getAvg(), 5,2, (char*)tmp);
     client << apex_xml_probe3 << F("pH") << apex_xml_probe4;
   }
   client.flush();
 #endif
 #ifdef _COND
-  client << apex_xml_probe1 << F("Cond") << apex_xml_probe2 << dtostrf(getAtlasAvg(conddata), 4,1, (char*)tmp);
+  client << apex_xml_probe1 << F("Cond") << apex_xml_probe2 << dtostrf(cond.getAvg(), 4,1, (char*)tmp);
   client << apex_xml_probe3 << F("Cond") << apex_xml_probe4;
 #endif
 #ifdef _ORP
-  client << apex_xml_probe1 << F("Orp") << apex_xml_probe2 << dtostrf(getAtlasAvg(orpdata), 3,0, (char*)tmp);
+  client << apex_xml_probe1 << F("Orp") << apex_xml_probe2 << dtostrf(orp.getAvg(), 3,0, (char*)tmp);
   client << apex_xml_probe3 << F("Orp") << apex_xml_probe4;
 #endif
   client << apex_xml_probe5;
@@ -345,6 +345,13 @@ boolean apex_command_handler(TinyWebServer& webserver) {
 
 boolean apex_status_json_handler(TinyWebServer& webserver) {
   if (!check_auth(webserver)) return true;
+#ifdef LCD_BACKLIGHT_OFF_DELAY_MINS
+  if (!backlighton) {
+    backlighton = true;
+    lcd.setBacklight(HIGH);
+  }
+  lcdontime=millis();
+#endif
   webserver.send_error_code(200);
   webserver.send_content_type(F("application/json"));
   webserver.end_headers();
@@ -368,21 +375,21 @@ boolean apex_status_json_handler(TinyWebServer& webserver) {
 #endif
 #ifdef _PH
   for (int i=0;i<MAXPH;i++) {
-    client << apex_json_probe1 << F("pH") << i << apex_json_probe2 << F("pH") << apex_json_probe3 << phdata[i].name;
-    client << apex_json_probe4 << dtostrf(getAtlasAvg(phdata[i]),5,2,buffer) << apex_json_probe5;
+    client << apex_json_probe1 << F("pH") << i << apex_json_probe2 << F("pH") << apex_json_probe3 << ph[i]->getName();
+    client << apex_json_probe4 << dtostrf(ph[i]->getAvg(),5,2,buffer) << apex_json_probe5;
     if (++sensorcount<maxsensors)
       client << F(",");
   }
 #endif
 #ifdef _COND
     client << apex_json_probe1 << F("Cond") << apex_json_probe2 << F("Cond") << apex_json_probe3 << F("Cond");
-    client << apex_json_probe4 << dtostrf(getAtlasAvg(conddata),4,1,buffer) << apex_json_probe5;
+    client << apex_json_probe4 << dtostrf(cond.getAvg(),4,1,buffer) << apex_json_probe5;
     if (++sensorcount<maxsensors)
       client << F(",");
 #endif
 #ifdef _ORP
   client << apex_json_probe1 << F("Orp") << apex_json_probe2 << F("Orp") << apex_json_probe3 << F("Orp");
-  client << apex_json_probe4 << dtostrf(getAtlasAvg(orpdata),3,0,buffer) << apex_json_probe5;
+  client << apex_json_probe4 << dtostrf(orp.getAvg(),3,0,buffer) << apex_json_probe5;
     if (++sensorcount<maxsensors)
       client << F(",");
 #endif
@@ -433,7 +440,7 @@ boolean apex_pwmfan_handler(TinyWebServer& webserver) {
   if (hdrlen!=NULL) {
     int len = atol(hdrlen)+1;
     char json[len];
-    char command[8];
+    char* command;
     int idx;
     long value;
     char* scratch;
@@ -446,12 +453,12 @@ boolean apex_pwmfan_handler(TinyWebServer& webserver) {
     scratch = strtok(json,delims);
     while (scratch!=NULL){
       if (strcmp_P(scratch,PSTR("cmd"))==0) {
-        strcpy(command,strtok(NULL,delims));
+        command=strtok(NULL,delims);
       } else if (strcmp_P(scratch,PSTR("idx"))==0) {
-        strcpy(scratch,strtok(NULL,delims));
+        scratch=strtok(NULL,delims);
         idx = atoi(scratch);
       } else if (strcmp_P(scratch,PSTR("value"))==0){
-        strcpy(scratch,strtok(NULL,delims));
+        scratch=strtok(NULL,delims);
         value=atol(scratch);
       } else {
         return apex_error(webserver,F("Invalid pwmfan data."),0);
@@ -922,7 +929,7 @@ boolean apex_csutil_handler(TinyWebServer& webserver) {
   if (hdrlen!=NULL) {
     int len = atol(hdrlen)+1;
     char json[len];
-    char command[8];
+    char* command;
     int sensortype;
     long value;
     char* scratch;
@@ -935,12 +942,12 @@ boolean apex_csutil_handler(TinyWebServer& webserver) {
     scratch = strtok(json,delims);
     while (scratch!=NULL){
       if (strcmp_P(scratch,PSTR("cmd"))==0) {
-         strcpy(command,strtok(NULL,delims));
+         command=strtok(NULL,delims);
       } else if (strcmp_P(scratch,PSTR("type"))==0) {
-         strcpy(scratch,strtok(NULL,delims));
+        scratch=strtok(NULL,delims);
         sensortype = atoi(scratch);
       } else if (strcmp_P(scratch,PSTR("value"))==0){
-        strcpy(scratch,strtok(NULL,delims));
+        scratch=strtok(NULL,delims);
         value=atol(scratch);
       } else {
         return apex_error(webserver,F("Invalid csutil data."),0);
@@ -961,11 +968,9 @@ boolean apex_csutil_handler(TinyWebServer& webserver) {
       if (value<0 || value>=MAXPH)
         return apex_error(webserver,F("Invalid csutil data."),2);
       if (strcmp_P(command,PSTR("getval"))==0) {
-        return csutilreply(webserver, phdata[value].value);
-      } else if (strcmp_P(command,PSTR("clow"))==0) {
-        calibrateLow(phdata[value]);
-      } else if (strcmp_P(command,PSTR("chigh"))==0) {
-        calibrateHigh(phdata[value],0);
+        return csutilreply(webserver, ph[value]->getVal());
+      } else if (strncmp_P(command,PSTR("cal_"),4)==0) {
+        ph[value]->calibrate(fixcalstr(command));
       } else {
         return apex_error(webserver,F("Invalid csutil data."),3);
       }
@@ -973,27 +978,24 @@ boolean apex_csutil_handler(TinyWebServer& webserver) {
 #ifdef _ORP
     } else if (sensortype==_orp) {
       if (strcmp_P(command,PSTR("getval"))==0) {
-        return csutilreply(webserver, orpdata.value);
-      } else if (strcmp_P(command,PSTR("clow"))==0) {
-        calibrateLow(orpdata);
-      } else if (strcmp_P(command,PSTR("chigh"))==0) {
-        calibrateHigh(orpdata,0);
-      } else {
+        return csutilreply(webserver, orp.getVal());
+      } else if (strncmp_P(command,PSTR("cal_"),4)==0) {
+        if (command[4]=='-' || command[4]=='+') {
+          command+=4;
+        }
+        orp.calibrate(fixcalstr(command));
+      } else  {
         return apex_error(webserver,F("Invalid csutil data."),4);
       }
 #endif
 #ifdef _COND
     } else if (sensortype==_cond) {
       if (strcmp_P(command,PSTR("getval"))==0) {
-        return csutilreply(webserver, ec);
-      } else if (strcmp_P(command,PSTR("clow"))==0) {
-        calibrateLow(conddata);
-      } else if (strcmp_P(command,PSTR("chigh"))==0) {
-        if (value==0)
-          return apex_error(webserver,F("Invalid csutil data."),5);
-        calibrateHigh(conddata,value);
+        return csutilreply(webserver, cond.getEC());
+      } else if (strncmp_P(command,PSTR("cal_"),4)==0) {
+        cond.calibrate(fixcalstr(command));
       } else {
-        return apex_error(webserver,F("Invalid csutil data."),6);
+        return apex_error(webserver,F("Invalid csutil data."),5);
       }
 #endif
 #ifdef _PWMFAN
@@ -1009,7 +1011,7 @@ boolean apex_csutil_handler(TinyWebServer& webserver) {
         webserver.get_client() << F("]}");
         return true;
       } else {
-        return apex_error(webserver,F("Invalid csutil data."),4);
+        return apex_error(webserver,F("Invalid csutil data."),6);
       }
 #endif
     } else {
@@ -1023,6 +1025,16 @@ boolean apex_csutil_handler(TinyWebServer& webserver) {
     return true;
   } 
   return apex_error(webserver,F("incorrect csutil data."),8);
+}
+
+char* fixcalstr(char* calstr){
+  char* c;
+  while ((c = strchr(calstr,'_'))!=0) {
+    if (c) {
+      calstr[c-calstr]=',';
+    }
+  }
+  return calstr;
 }
 
 boolean csutilreply(TinyWebServer& webserver, float val) {

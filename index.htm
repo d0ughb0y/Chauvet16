@@ -489,17 +489,13 @@
 			<label for="selectrec" class="select">Name:</label>
 			<select name="selectmenu" id="selectrec" data-mini="true"></select>
 			<label for="initoff">Initial Off Time (hh:mm:ss):</label>
-			<input type="text" name="initoff" id="initoff" value=""	data-mini="true"
-				pattern="^([01][0-9]|2[0-4]):[0-5][0-9]:[0-5][0-9]$"/>
+			<input type="text" name="initoff" id="initoff" value=""	data-mini="true"	pattern="^([01][0-9]|2[0-4]):[0-5][0-9]:[0-5][0-9]$"/>
 			<label for="ontime">On Time	(hh:mm:ss):</label>
-			<input type="text" name="ontime" id="ontime" value="" data-mini="true"
-				pattern="^([01][0-9]|2[0-4]):[0-5][0-9]:[0-5][0-9]$"/>
+			<input type="text" name="ontime" id="ontime" value="" data-mini="true"	pattern="^([01][0-9]|2[0-4]):[0-5][0-9]:[0-5][0-9]$"/>
 			<label for="offtime">Off Time	(hh:mm:ss):</label>
-			<input type="text" name="offtime" id="offtime" value="" data-mini="true"
-				pattern="^([01][0-9]|2[0-4]):[0-5][0-9]:[0-5][0-9]$"/>
+			<input type="text" name="offtime" id="offtime" value="" data-mini="true"	pattern="^([01][0-9]|2[0-4]):[0-5][0-9]:[0-5][0-9]$"/>
 			<label for="cycletime">Cycle Time (hh:mm:ss):</label>
-			<input type="text" name="cycletime" id="cycletime" value="" readonly data-mini="true"
-				pattern="^([01][0-9]|2[0-4]):[0-5][0-9]:[0-5][0-9]$"/>
+			<input type="text" name="cycletime" id="cycletime" value="" readonly data-mini="true"	pattern="^([01][0-9]|2[0-4]):[0-5][0-9]:[0-5][0-9]$"/>
 			<label for="days" class="select">Active Days:</label>
 			<select name="days" id="days" multiple data-native-menu="false" data-mini="true">
 				<option value="1">Sun</option>
@@ -558,17 +554,13 @@
 				</div>
 				<div data-role="rangeslider" data-mini="true">
 					<label for="_fantemplow" data-mini="true" style="width: 80%">Temp Range:</label>
-					<input name="_fantemplow" id="_fantemplow" min="70" max="100" step="1" value="75"
-						data-mini="true" type="range"/>
-					<input name="_fantemohigh" id="_fantemphigh" min="70" max="100" step="1" value="80" data-mini="true"
-						type="range"/>
+					<input name="_fantemplow" id="_fantemplow" min="70" max="100" step="1" value="75"	data-mini="true" type="range"/>
+					<input name="_fantemohigh" id="_fantemphigh" min="70" max="100" step="1" value="80" data-mini="true"	type="range"/>
 				</div>
 				<div data-role="rangeslider" data-mini="true" id="_fanlevelrange">
 					<label for="_fanlevellow" data-mini="true" style="width: 80%">Duty Cycle Ramp:</label>
-					<input name="_fanlevellow" id="_fanlevellow" min="30" max="100" step="1" value="30" data-mini="true"
-						type="range"/>
-					<input name="_fanlevelhigh" id="_fanlevelhigh" min="30" max="100" step="1" value="100" data-mini="true"
-						type="range"/>
+					<input name="_fanlevellow" id="_fanlevellow" min="30" max="100" step="1" value="30" data-mini="true"	type="range"/>
+					<input name="_fanlevelhigh" id="_fanlevelhigh" min="30" max="100" step="1" value="100" data-mini="true"	type="range"/>
 				</div>
 				<div data-role="fieldcontain" data-mini="true">
 					<label for="_fanalarm" data-mini="true" style="width: 80%">Alarm if Stalled</label>
@@ -628,8 +620,7 @@
 					<input data-mini="true" type="number" name="_doserfv" id="_doserfv" min="1"/>
 				</div>
 				<h4 style="text-align: center">Calibrate</h4>
-				<a href="#_dosercalibrate" data-rel="dialog" data-role="button" id="dcalstart" data-mini="true" data-theme="c">Start
-					Calibration</a>
+				<a href="#_dosercalibrate" data-rel="dialog" data-role="button" id="dcalstart" data-mini="true" data-theme="c">Start	Calibration</a>
 			</div>
 		</div>
 		<div id="contentsensors">
@@ -648,30 +639,26 @@
 					<h4 style="text-align: center">Calibrate</h4>
 					<label for="_sensorphvalue" data-mini="true">Sensor Reading:</label>
 					<input data-mini="true" name="_sensorphvalue" id="_sensorphvalue" readonly/>
-					<button data-mini="true" id="_sensorphcal7"
-						onclick="csutil({'cmd':'clow','type':'1','value':'0'});">Calibrate 7</button>
-					<button data-mini="true" id="_sensorphcal10"onclick="csutil({'cmd':'chigh','type':'1','value':'0'});">Calibrate 10</button>
+					<button data-mini="true" id="_sensorphcal7"	onclick="csutil({'cmd':'cal_mid_7.00','type':'1','value':'0'});">Calibrate 7</button>
+					<button data-mini="true" id="_sensorphcal4"	onclick="csutil({'cmd':'cal_low_4.00','type':'1','value':'0'});">Calibrate 4</button>
+					<button data-mini="true"	id="_sensorphcal10"onclick="csutil({'cmd':'cal_high_10.00','type':'1','value':'0'});">Calibrate 10</button>
 				</div>
 				<div id="_sensororpcalibrate">
 					<h4 style="text-align: center">Calibrate</h4>
-					<label for="_sensororpvalue" data-mini="true">Sensor Reading:</label>
+					<label for="_sensororpvalue" data-mini="true">Sensor Reading (mv):</label>
 					<input data-mini="true" name="_sensororpvalue" id="_sensororpvalue" readonly/>
-					<button data-mini="true" id="_sensororpcalminus"
-						onclick="csutil({'cmd':'clow','type':'2','value':'0'});">Calibrate -</button>
-					<button data-mini="true"
-						id="_sensororpcalplus"onclick="csutil({'cmd':'chigh','type':'2','value':''+sensoridx-numtemp});">Calibrate
-						+</button>
+					<button data-mini="true" id="_sensororpcalezo"	onclick="csutil({'cmd':'cal_225','type':'2','value':'0'});">Calibrate EZO 225</button>
+					<button data-mini="true"	id="_sensororpcalminus" onclick="csutil({'cmd':'cal_-','type':'2','value':'0'});">Calibrate -</button>
+					<button	data-mini="true" id="_sensororpcalplus"onclick="csutil({'cmd':'cal_+','type':'2','value':''+sensoridx-numtemp});">Calibrate	+</button>
 				</div>
 				<div id="_sensorcondcalibrate">
 					<h4 style="text-align: center">Calibrate</h4>
-					<label for="_sensorcondvalue" data-mini="true">Sensor Reading:</label>
+					<label for="_sensorcondvalue" data-mini="true">Sensor Reading (us):</label>
 					<input data-mini="true" name="_sensorcondvalue" id="_sensorcondvalue" readonly/>
-					<label for="_sensorcondcalvalue" data-mini="true">Calibration Reference (us):</label>
-					<input data-mini="true" name="_sensorcondcalvalue" id="_sensorcondcalvalue" type="number" max="80000"/>
-					<button data-mini="true" id="_sensorcondcaldry"
-						onclick="csutil({'cmd':'clow','type':'3','value':'0'});">Calibrate Dry</button>
-					<button data-mini="true"
-						id="_sensorcondcalwet"onclick="csutil({'cmd':'chigh','type':'3','value':''+$('#_sensorcondcalvalue').value()});">Calibrate Single</button>
+					<button data-mini="true" id="_sensorcondcaldry"	onclick="csutil({'cmd':'cal_dry','type':'3','value':'0'});">Calibrate Dry</button>
+					<button data-mini="true" id="_sensorcondcallow"	onclick="csutil({'cmd':'cal_low_12880','type':'3','value':'0'});">Calibrate	12,880</button>
+					<button data-mini="true" id="_sensorcondcalhigh"	onclick="csutil({'cmd':'cal_high_80000','type':'3','value':'0'});">Calibrate	80,000</button>
+					<button data-mini="true" id="_sensorcondcalhigh2"	onclick="csutil({'cmd':'cal_high_150000','type':'3','value':'0'});">Calibrate	150,000</button>
 				</div>
 			</div>
 		</div>
@@ -714,9 +701,9 @@
 	</div>
 	<div data-role="content">
 		<label for="editoutlet">Outlet:</label>
-		<input type="number" name="editoutlet" id="editoutlet" value="" data-mini="true"/> <label for="editoff">Init
-		Off:</label> <input type="number" name="editoff" id="editoff" value="" data-mini="true"/> <label for="editon">On
-		Time:</label> <input type="number" name="editon" id="editon" value="" data-mini="true"/>
+		<input type="number" name="editoutlet" id="editoutlet" value="" data-mini="true"/> <label for="editoff">Init	Off:</label>
+		<input type="number" name="editoff" id="editoff" value="" data-mini="true"/>
+		<label for="editon">On	Time:</label> <input type="number" name="editon" id="editon" value="" data-mini="true"/>
 		<button onClick="saveaction();" data-mini="true">Save</button>
 	</div>
 </div>
@@ -735,13 +722,11 @@
 		</select>
 		<div data-role="fieldcontain">
 			<label for="_level">Max Speed:</label>
-			<input type="range" name="_slider2" id="_level" value="50" min="0" max="100" step="1"	data-highlight="true"
-				data-mini="true"/>
+			<input type="range" name="_slider2" id="_level" value="50" min="0" max="100" step="1"	data-highlight="true"	data-mini="true"/>
 		</div>
 		<div data-role="fieldcontain">
 			<label for="pulsewidth">Pulse Width:</label>
-			<input type="range" name="_slider3" id="_pulsewidth" value="10" min="0" max="10" step="1"	data-highlight="true"
-				data-mini="true"/>
+			<input type="range" name="_slider3" id="_pulsewidth" value="10" min="0" max="10" step="1"	data-highlight="true"	data-mini="true"/>
 		</div>
 		<button onclick="savePumpProgram();" data-mini="true">Save</button>
 	</div>
@@ -802,8 +787,7 @@
 		<label for="_dosercaltotaltime">Current Total Time Units:</label>
 		<input type="number" name="_dosercaltotaltime" id="_dosercaltotaltime" value="0" data-mini="true" readonly/>
 		<label for="_dosercaltime" data-mini="true">ON Time Units (1 unit=1.02ms, min=98, max=5000):</label>
-		<input type="number" name="_dosercaltime" id="_dosercaltime" value="" min="100" max="5000" step="1"
-			data-mini="true"/>
+		<input type="number" name="_dosercaltime" id="_dosercaltime" value="" min="100" max="5000" step="1"	data-mini="true"/>
 		<button onclick="doserCommand('cstart');" data-mini="true" id="_dosercalstart">Start</button>
 		<button onclick="doserCommand('cadj');" data-mini="true" id="_dosercaladjust">+Dose</button>
 		<button onclick="doserCommand('csave');" data-mini="true" id="_dosercalsave">Save</button>
@@ -1534,7 +1518,7 @@ function renderPage(f) {
 			places=0;
 		}
 		$("#"+probe.did).html(val.toFixed(places));
-		if (probe.t==="Cond" && val<40.0) {
+		if (probe.t==="Cond") {
 			var sg = val/35.0*0.0264+1.0;
 			$('#'+probe.did+'_sg').html("SG "+sg.toFixed(4));
 		}
@@ -2702,7 +2686,7 @@ function csutil(param){
 		}).always(function(data, textStatus, errorThrown) {
 			if (param.type==5 && pwmfansopen==false)
 				return;
-			if (param.type!=0)
+			if (param.type!=0 && param.cmd=='getval')
 				csutilfunction=setTimeout(function(){csutil(param);},1000);
 		})
 }

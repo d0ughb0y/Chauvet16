@@ -192,6 +192,10 @@ void initLCD(){
   TWBR=12;
 #endif
   lcdpresent = checkLCD();
+#ifdef LCD_BACKLIGHT_OFF_DELAY_MINS
+  backlighton = true;
+  lcdontime=millis();
+#endif
   p(F("LCD init.       "));
 }
 
@@ -251,13 +255,13 @@ boolean psensors() {
 case 1:
 #ifdef _PH
 #if MAXPH==1
-  lcd << F("pH:") << getAtlasAvg(phdata[0])  << F(" ");
+  lcd << F("pH:") << ph[0]->getAvg()  << F(" ");
   x++;
   if (x%2==0) return x>=maxsensors;
 #else
   static int pindex = 0;
   while (pindex<MAXPH)  {
-    lcd << F("pH") << pindex << F(":") << getAtlasAvg(phdata[pindex])  << F(" ");
+    lcd << F("pH") << pindex << F(":") << ph[pindex]->getAvg()  << F(" ");
     x++;
     pindex++;
     if (x%2==0) return x>=maxsensors;
@@ -268,14 +272,14 @@ case 1:
   state=2;
  case 2:
 #ifdef _COND
- lcd << F("C:") << getAtlasAvg(conddata);
+ lcd << F("C:") << cond.getAvg();
  x++;
  if (x%2==0) return x>=maxsensors;
 #endif
   state=3;
   case 3:
 #ifdef _ORP
-    lcd << F("O:") << getAtlasAvg(orpdata);
+    lcd << F("O:") << orp.getAvg();
     x++;
     if (x%2==0) return x>=maxsensors;
 #endif
@@ -470,20 +474,20 @@ void logSensors() {
 #endif
 #ifdef _PH
     for (int i=0;i<MAXPH;i++) {
-      fileout_ << F("<probe><name>") << phdata[i].name << F("</name><value>");
+      fileout_ << F("<probe><name>") << ph[i]->getName() << F("</name><value>");
       fileout_ << setprecision(2);
-      fileout_ << (getAtlasAvg(phdata[i])<10.0?" ":"") << getAtlasAvg(phdata[i]) << F("</value></probe>");
+      fileout_ << (ph[i]->getAvg()<10.0?" ":"") << ph[i]->getAvg() << F("</value></probe>");
     }
 #endif
 #ifdef _COND
       fileout_ << F("<probe><name>Cond</name><value>");
       fileout_ << setprecision(1);
-      fileout_ << getAtlasAvg(conddata) << F("</value></probe>");
+      fileout_ << cond.getAvg() << F("</value></probe>");
 #endif
 #ifdef _ORP
       fileout_ << F("<probe><name>Orp</name><value>");
       fileout_ << setprecision(0);
-      fileout_ << getAtlasAvg(orpdata) << F("</value></probe>");
+      fileout_ << orp.getAvg() << F("</value></probe>");
 #endif
     fileout_ << F("</record>\n");
     fileout_.close();
@@ -531,14 +535,14 @@ void logAlarm() {
 #endif
 #ifdef _PH
     for (uint8_t i=0;i<MAXPH;i++) {
-      fileout_ << (const char*)phdata[i].name << F(":") << getAtlasAvg(phdata[i]) << F(" ");
+      fileout_ << (const char*)ph[i]->getName() << F(":") << ph[i]->getAvg() << F(" ");
     }
 #endif
 #ifdef _COND
-    fileout_ << F("Cond:") << getAtlasAvg(conddata) << F(" ");
+    fileout_ << F("Cond:") << cond.getAvg() << F(" ");
 #endif
 #ifdef _ORP
-    fileout_ << F("Orp:") << getAtlasAvg(orpdata) << F(" ");
+    fileout_ << F("Orp:") << orp.getAvg() << F(" ");
 #endif
 #ifdef _DOSER
     for (int i=0;i<MAXDOSERS;i++) {
