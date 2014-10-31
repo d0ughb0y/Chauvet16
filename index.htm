@@ -2686,7 +2686,7 @@ function csutil(param){
 		}).always(function(data, textStatus, errorThrown) {
 			if (param.type==5 && pwmfansopen==false)
 				return;
-			if (param.type!=0 && param.cmd=='getval')
+			if (param.type==config.alerts[sensoridx].t && param.cmd=='getval')
 				csutilfunction=setTimeout(function(){csutil(param);},1000);
 		})
 }
