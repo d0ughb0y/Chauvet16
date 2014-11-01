@@ -2654,10 +2654,10 @@ function csutil(param){
 			if (param.cmd=='getval'){
 				switch (parseInt(param.type)){
 				case 1:
-					$('#_sensorphvalue').val(data.value);
+					$('#_sensorphvalue').val(parseFloat(data.value).toFixed(2));
 					break;
 				case 2:
-					$('#_sensororpvalue').val(data.value);
+					$('#_sensororpvalue').val(parseFloat(data.value).toFixed(0));
 					break;
 				case 3:
 					$('#_sensorcondvalue').val(parseFloat(data.value).toFixed(0));
@@ -2686,8 +2686,9 @@ function csutil(param){
 		}).always(function(data, textStatus, errorThrown) {
 			if (param.type==5 && pwmfansopen==false)
 				return;
-			if (param.type==config.alerts[sensoridx].t && param.cmd=='getval')
+			if (param.type==config.alerts[sensoridx].t && param.cmd=='getval'){
 				csutilfunction=setTimeout(function(){csutil(param);},1000);
+			}
 		})
 }
 function removelinks(id) {
