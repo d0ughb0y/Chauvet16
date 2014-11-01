@@ -42,6 +42,7 @@ boolean Sensor::init() {
     send("r");
   } else {
     send("e");
+    delay(300);
     send("r");
   }
   delay(1500);
