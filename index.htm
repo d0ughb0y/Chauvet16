@@ -2684,11 +2684,13 @@ function csutil(param){
 		}).fail(function(jqXHR, textStatus, errorThrown) {
 			console.log('CS call failed. '+textStatus);
 		}).always(function(data, textStatus, errorThrown) {
+			if (param.cmd!='getval')
+				return;
 			if (param.type==5 && pwmfansopen==false)
 				return;
-			if (param.type==config.alerts[sensoridx].t && param.cmd=='getval'){
-				csutilfunction=setTimeout(function(){csutil(param);},1000);
-			}
+			if (param.type<4 && param.type!=config.alerts[sensoridx].t)
+				return;
+			csutilfunction=setTimeout(function(){csutil(param);},1000);
 		})
 }
 function removelinks(id) {
