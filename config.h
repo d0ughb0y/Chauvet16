@@ -270,6 +270,9 @@
 #if defined(_PWMFAN) && !defined(_TEMP)
 #error _TEMP must be defined if _PWMFAN is defined
 #endif
+
+//connect buzzer to pin D9, uncomment next line if buzzer is passive type
+#define PASSIVEBUZZER
 /////////////////////////////////
 //   typedefs
 /////////////////////////////////

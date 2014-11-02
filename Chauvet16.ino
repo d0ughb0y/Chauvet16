@@ -120,30 +120,30 @@ void setup() {
   initTimer();
   beep();
   initializeEEPROM();
-  #if defined(_FEEDER) || defined(_FEEDER_V2)
+#if defined(_FEEDER) || defined(_FEEDER_V2)
   initFeeder();
-  #endif
-  #ifdef _PWMFAN
+#endif
+#ifdef _PWMFAN
   initPWMFan();
-  #endif
+#endif
   initATO();
-  #ifdef _SONAR
+#ifdef _SONAR
   initSonar();
-  #endif
+#endif
   enablePCINT();
   initUtils(); //init led, i2c pullup, lcd, SD
   lightOn();
   initNetwork(); //ethernet, clock, webserver, start logging here
   initSensors(); //temp and ph
   initOutlets();
-  #ifdef _DOSER
+#ifdef _DOSER
   initDosers();
-  #endif
-  #ifdef _PWMA
+#endif
+#ifdef _PWMA
   initPWMPumps();
-  #endif
+#endif
   lightOff();
-  #ifdef _SONAR
+#ifdef _SONAR
   for (int i=0;i<255;i++) {
     updateSonar();
     delay(2);
@@ -152,11 +152,11 @@ void setup() {
       break;
     }
   }  
-  #endif
+#endif
   startTimer();
-  #ifdef _PWMA
+#ifdef _PWMA
   startPumps();
-  #endif
+#endif
   p(F("Boot Completed. "));
   logMessage(F("Initialization Completed."));
   logMessage(freeRam());

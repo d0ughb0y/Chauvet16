@@ -67,7 +67,10 @@ void beepx(uint8_t first, uint8_t second, uint8_t third,
 
 inline void beepoff() {
   buzzerbusy=false;
-  PORTD&=~_BV(PD7);
+#ifdef PASSIVEBUZZER
+  TCCR2A &= ~_BV(COM2B0);
+#endif
+  PORTH&=~_BV(PH6);
 }
 
 void alarmOn() {
@@ -146,13 +149,19 @@ ISR(TIMER1_COMPC_vect) { //interrupts every 1.02 ms
 }
 
 void initBuzzer(){
-  DDRD |= _BV(PD7);
-  PORTD &= ~_BV(PD7);  
+  DDRH |= _BV(PH6); //pin D9 (PH6) output
+  PORTH &= ~_BV(PH6);
+#ifdef PASSIVEBUZZER
+  TCCR2A=TCCR2B=0;
+  TCCR2A|=_BV(COM2B0)|_BV(WGM21);  //ctc toggle
+  TCCR2B|=_BV(CS21)|_BV(CS20); //clk/32
+  OCR2A=108; //2300 hz
+#endif
   buzzerbusy=false;
 }
 
 inline void buzzerHandler(){
-  //buzzer pin D38 PD7
+  //buzzer pin D9 PH6
   static uint8_t state = 0;
   static uint16_t counter = 0;
   if (!buzzerbusy) {
@@ -161,8 +170,13 @@ inline void buzzerHandler(){
     return;
   }
   if (counter++ < beepcount[state]) {
-    if (!(state%2))
-      PORTD |= _BV(PD7);
+    if (!(state%2)) {
+#ifdef PASSIVEBUZZER
+      TCCR2A |= _BV(COM2B0);
+#else
+      PORTH |= _BV(PH6);
+#endif
+    }
   } else {
     if (state==5 && beepcount[5]==0) {
       buzzerbusy=false;
@@ -170,7 +184,10 @@ inline void buzzerHandler(){
     counter=0;
     state++;
     if (state>5) state=0;
-    PORTD &= ~_BV(PD7);
+#ifdef PASSIVEBUZZER
+    TCCR2A &= ~_BV(COM2B0);
+#endif
+    PORTH &= ~_BV(PH6);
   }
 }
 //////////////////////////////////////////

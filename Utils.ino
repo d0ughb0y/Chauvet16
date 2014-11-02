@@ -49,7 +49,7 @@ void writeEEPROM() {
 #ifdef _DOSER
 void readDoserStatus(){
   eeprom_read_block((void*)&dosedvolume, (void*)(DCADDR), DOSERBLOCKSIZE);
-  if (dosedvolume[0]>conf.doser[0].fullvolume) {
+  if (dosedvolume[0]>conf.doser[0].fullvolume*100ul) {
      //initialize
     memset((void*)&dosedvolume,0,DOSERBLOCKSIZE);
     writeDoserStatus();
@@ -296,6 +296,10 @@ void ptime(time_t t) {
   if (!lcdpresent) {
     if (checkLCD()) {
       lcd.begin(LCD_COLS,LCD_ROWS);
+#if (LCD_BACKLIGHT_OFF_DELAY_MINS>0)
+      backlighton=true;
+      lcdontime=millis();
+#endif
     } else {
       return;
     }
@@ -312,7 +316,7 @@ void ptime(time_t t) {
   lcd << (tm.Second<10?"0":"") << tm.Second;
   if (lcdpresent!=checkLCD()) {
     lcdpresent = checkLCD();
-    if (lcdpresent) 
+    if (lcdpresent)
       logMessage(F("LCD is present."));
     else
       logMessage(F("LCD not connected."));

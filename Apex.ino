@@ -363,12 +363,11 @@ boolean apex_status_json_handler(TinyWebServer& webserver) {
   client << apex_json3a;
   client << getFeedActive();
   client << apex_json3b;
-  char buffer[6];
   int sensorcount = 0;
 #ifdef _TEMP
   for (int i=0;i<MAXTEMP;i++) {
     client << apex_json_probe1 << F("Temp") << i << apex_json_probe2 << F("Temp") << apex_json_probe3 << tempdata[i].name;
-    client << apex_json_probe4 << dtostrf(getTemp(i),4,1,buffer) << apex_json_probe5;
+    client << apex_json_probe4 << getTemp(i) << apex_json_probe5;
     if (++sensorcount<maxsensors)
       client << F(",");
   }
@@ -376,20 +375,20 @@ boolean apex_status_json_handler(TinyWebServer& webserver) {
 #ifdef _PH
   for (int i=0;i<MAXPH;i++) {
     client << apex_json_probe1 << F("pH") << i << apex_json_probe2 << F("pH") << apex_json_probe3 << ph[i]->getName();
-    client << apex_json_probe4 << dtostrf(ph[i]->getAvg(),5,2,buffer) << apex_json_probe5;
+    client << apex_json_probe4 << ph[i]->getAvg() << apex_json_probe5;
     if (++sensorcount<maxsensors)
       client << F(",");
   }
 #endif
 #ifdef _COND
     client << apex_json_probe1 << F("Cond") << apex_json_probe2 << F("Cond") << apex_json_probe3 << F("Cond");
-    client << apex_json_probe4 << dtostrf(cond.getAvg(),4,1,buffer) << apex_json_probe5;
+    client << apex_json_probe4 << cond.getAvg() << apex_json_probe5;
     if (++sensorcount<maxsensors)
       client << F(",");
 #endif
 #ifdef _ORP
   client << apex_json_probe1 << F("Orp") << apex_json_probe2 << F("Orp") << apex_json_probe3 << F("Orp");
-  client << apex_json_probe4 << dtostrf(orp.getAvg(),3,0,buffer) << apex_json_probe5;
+  client << apex_json_probe4 << orp.getAvg() << apex_json_probe5;
     if (++sensorcount<maxsensors)
       client << F(",");
 #endif
