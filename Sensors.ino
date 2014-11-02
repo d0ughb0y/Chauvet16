@@ -25,11 +25,11 @@ void initSensors() {
 #ifdef _PH
   for (uint8_t i=0;i<MAXPH;i++) {
     if (ph[i]->init()) {
-      p(F("pH OK.          "));
+      p(i?F("pH1 OK.         "):F("pH OK.          "));
       logMessage(F("pH initialized. ph "),i);
     } else {
       beepFail();
-      p(F("pH init failed. "));
+      p(i?F("pH1 init failed."):F("pH init failed. "));
       logMessage(F("pH init failed. ph "),i);
     }
   }

@@ -18,14 +18,15 @@ Sensor::Sensor(char* name, SensorType type, SensorAddrType addrType, boolean isE
 boolean Sensor::init() {
   _initialized=false;
   if (_isEZO) {
-    send("");
-    delay(300);
-    getresponse();
-    _scratch[0]=0;
-    if (_addrType==_i2c) {
+    if (_addrType==_serial) {
+      send("");
+      delay(300);
+      getresponse();
+      _scratch[0]=0;
       send("response,0");
       send("c,0");
     }
+    send("L,1");
     if (_type==_cond) {
       send("o,ec,1");
       delay(300);
@@ -41,8 +42,9 @@ boolean Sensor::init() {
     }
     send("r");
   } else {
+    send("");
+    send("L1");
     send("e");
-    delay(300);
     send("r");
   }
   delay(1500);

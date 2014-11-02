@@ -253,7 +253,7 @@ void loop() {
     }
 #endif
 #ifdef _PH
-    if (counter%65==0) {
+    if (counter%(64/MAXPH)==0) {
       static uint8_t phidx = 0;
       ph[phidx++]->update();
       phidx%=MAXPH;
