@@ -916,9 +916,9 @@ boolean apex_config_get(TinyWebServer& webserver) {
   client << F("\",\n\"sh\":\"") << conf.sonarhigh;
   client << F("\",\n\"sav\":\"") << conf.sonaralertval;
   client << F("\",\n\"sa\":\"") << (conf.sonaralert?F("true"):F("false"));
-  client << F("\",\n\"snda\":") << (conf.soundalert?F("true"):F("false"));
-  client << F(",\n\"ema\":") << (conf.emailalert?F("true"):F("false"));
-  client << F(",\n\"init\":\"")<< conf.initialized << F("\"}}}\n");
+  client << F("\",\n\"snda\":\"") << (conf.soundalert?F("true"):F("false"));
+  client << F("\",\n\"ema\":\"") << (conf.emailalert?F("true"):F("false"));
+  client << F("\",\n\"init\":\"")<< conf.initialized << F("\"}}}\n");
   return true;     
 }
 

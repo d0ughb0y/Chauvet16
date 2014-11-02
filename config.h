@@ -7,7 +7,7 @@
 //#define SHOWDEBUGONLCD
 #define CONTROLLER_NAME "Jerry's Reef" //change this to your controller name
 #define NTPSERVER 76,73,0,4  //pool.ntp.org, used if dns lookup fails
-#define LOCAL_IP 192,168,0,150 //change this to a local fixed ip address
+#define LOCAL_IP 192,168,0,15 //change this to a local fixed ip address
 #define ROUTER_IP 192,168,0,1 //change this to your router ip address
 #define DNS_IP 75,75,75,75 //dns of your internet service provider
 #define MAC {0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED}
@@ -26,7 +26,7 @@
 //edit the next line to specify the temp sensor name and address pair. One entry for each temp sensor
 //The first temp is used to control heater and fan and MUST be present, the rest may not be present.
 #define TEMPDEF {{"Temp",{0x28, 0xdf, 0x5d, 0x89, 0x05, 0x00, 0x00, 0xf8}},{"Ambient",{0x28,0xde,0x18,0x5a,0x05,0x00,0x00,0x7d}}}
-#define TEMPALERT {{76,82},{65,88}}
+#define TEMPALERT {{72,82},{60,88}}
 //////////////////////////////////////////////////
 // End DS18B20 Temperature Sensor Section
 //////////////////////////////////////////////////
@@ -35,7 +35,7 @@
 // Make sure you do not exceed 3 sensors
 // As there are only 3 available Serial ports
 //////////////////////////////////////////////////
-//#define _PH  //comment out if no ph probe or ph stamp
+#define _PH  //comment out if no ph probe or ph stamp
 #define MAXPH 1 //number of ph stamps
 #if !defined(_PH)
 #define MAXPH 0
@@ -64,7 +64,7 @@
 #define _ORP_EZO true
 #define ORPALERT {200,300}
 //uncomment the next line if you have Atlas Conductivity sensor and make sure the addr has the right serial port or I2C address
-#define _COND
+//#define _COND
 #if !defined(_COND)
 #define MAXCOND 0
 #else
@@ -84,8 +84,8 @@
 //starttime (minutes since midnight), calibration value (0=uncalibrated), full volume in ml
 //MAKE SURE TO DEFINE AS MANY ENTRIES AS SPECIFIED IN MAXDOSERS
 #define DOSERDEFAULT {"Cal",24,12,0,0,100,500},{"Alk", 24,12,0,10,100,500}
-//#define _HEATER
-#define _FAN
+#define _HEATER
+//#define _FAN
 #define _SONAR
 //#define _FEEDER
 #define _FEEDER_V2
@@ -157,8 +157,8 @@
 #define OUTLOGSZ 6  //size of circular queue for outlet log
 
 #define MAXOUTLETS  8 //either 8 or 16
-#define OUTLET8INVERTED //uncomment this if you want outlets 1-8 to have inverse logic
-#define OUTLET16INVERTED  //uncomment this if you want outlets 9-16 to have inverse logic
+//#define OUTLET8INVERTED //uncomment this if you want outlets 1-8 to have inverse logic
+//#define OUTLET16INVERTED  //uncomment this if you want outlets 9-16 to have inverse logic
 #define MAXMACROS  4 //fixed
 #define MAXMACROACTIONS 6  //fixed for now, can be made longer if needed
 #define EEPROMSIG 0xA0 //change this everytime you want the eeprom defaults to change
@@ -167,7 +167,7 @@
 #define OUTLET2 "Unused2"
 #define OUTLET3 "LED"
 #define OUTLET4 "Pump"
-#define OUTLET5 "Fan"
+#define OUTLET5 "Heater"
 #define OUTLET6 "ATO"
 #define OUTLET7 "Skimmer"
 #define OUTLET8 "Return"
@@ -196,7 +196,7 @@
 #define INVCYCLE _BV(0)
 #define NORMALCYCLE 0
 
-#define OUTLETDEFS WP25, Unused2, LED, Pump, Fan, ATO, Skimmer, Return,\
+#define OUTLETDEFS WP25, Unused2, LED, Pump, Heater, ATO, Skimmer, Return,\
                    Outlet9, Outlet0, Outlet11, Outlet12, Outlet13, Outlet14, Outlet15, Outlet16
 //define the default outlet program here. outlets must appear in exact order defined in outlet names definition
 //program outletname, initial off time, on time, off time, days active, mode
@@ -259,7 +259,7 @@
                        128,177,218,246,255,246,218,177}     
 #define CUSTOMPATTERNSTEPS 32
 
-#define _PWMFAN
+//#define _PWMFAN
 #define MAXPWMFANS 3  //maximum 3
 #ifndef _PWMFAN
 #define MAXPWMFANS 0
