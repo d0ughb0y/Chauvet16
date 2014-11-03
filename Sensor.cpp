@@ -78,15 +78,17 @@ void Sensor::update() {
       }
     } else
       _value = atof(_scratch);
-    if (_value>0 && fabs(_value-_value2)<_value2*0.1) {
-      _sum = (_sum-_average)+_value;
-      cli();
-      _average = _sum / numReadings;
-      sei();
+    if (_value>0) {
+      if (fabs(_value-_value2)<_value2*0.1) {
+        _sum = (_sum-_average)+_value;
+        cli();
+        _average = _sum / numReadings;
+        sei();
+      }
+      _value2 = _value;
     }
-    _value2 = _value;
+    send("r");
   }
-  send("r");
 }
 
 float Sensor::getAvg() {

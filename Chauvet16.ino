@@ -243,7 +243,7 @@ void loop() {
     }
 #endif
 #ifdef _SONAR
-    if (counter%50==0) {
+    if (counter%15==0) {
       updateSonar();
     }
 #endif

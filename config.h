@@ -272,7 +272,7 @@
 #endif
 
 //connect buzzer to pin D9, uncomment next line if buzzer is passive type
-#define PASSIVEBUZZER
+//#define PASSIVEBUZZER
 /////////////////////////////////
 //   typedefs
 /////////////////////////////////

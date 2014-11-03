@@ -541,9 +541,9 @@ void updateSonar()
     if (sum)
       sum = (sum - tmpavg) + tmpdist;
     else {
-      sum = tmpdist*256;
+      sum = tmpdist*16;
     }
-    tmpavg = sum /256;
+    tmpavg = sum /16;
     saveSREG=SREG;
     cli();
     sonaravg=tmpavg;
