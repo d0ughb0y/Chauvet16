@@ -67,6 +67,10 @@ boolean Sensor::init() {
 }
 
 void Sensor::update() {
+  update(0);
+}
+
+void Sensor::update(uint16_t rawtemp) {
   if (!_initialized) return;
   if (getresponse()) {
     if (_type==_cond) {
@@ -86,6 +90,22 @@ void Sensor::update() {
         sei();
       }
       _value2 = _value;
+    }
+    if (rawtemp && rawtemp!=_temp) {
+      _temp=rawtemp;
+      if (_isEZO) {
+        char buffer[8];
+        buffer[0]='T';
+        buffer[1]=',';
+        dtostrf(_temp/16.0,5,2,(char*)buffer+2);
+        send(buffer);
+        delay(300);
+        getresponse();
+      } else if (_type==_ph) {
+        char buffer[6];
+        dtostrf(rawtemp/16.0,5,2,(char*)buffer);
+        send(buffer);
+      }
     }
     send("r");
   }
@@ -143,7 +163,10 @@ SensorSerial::SensorSerial(char* name,SensorType type, HardwareSerial* saddr, bo
   _saddr = saddr;
   if (type==_cond)
     _isEZO=true;
-  _saddr->begin(38400);
+  if (type==_orp && _isEZO==true)
+    _saddr->begin(9600);
+  else
+    _saddr->begin(38400);
   _initialized=false;
 }
 
@@ -201,5 +224,5 @@ boolean SensorI2C::getresponse(){
     }
   }
   Wire.endTransmission();
-  return _code==1;
+  return true;
 }

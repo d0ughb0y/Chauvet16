@@ -255,7 +255,11 @@ void loop() {
 #ifdef _PH
     if (counter%(64/MAXPH)==0) {
       static uint8_t phidx = 0;
-      ph[phidx++]->update();
+      ph[phidx++]->update(
+#ifdef _PHTEMPCOMPENSATE
+      getTempRaw(0)
+#endif
+      );
       phidx%=MAXPH;
     }
 #endif
@@ -266,7 +270,11 @@ void loop() {
 #endif
 #ifdef _COND
     if (counter%80==0) {
-      cond.update();
+      cond.update(
+#ifdef _CONDTEMPCOMPENSATE
+      getTempRaw(0)
+#endif
+      );
     }
 #endif
     logOutlet();

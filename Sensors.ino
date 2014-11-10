@@ -152,6 +152,15 @@ float getTemp(int i) {
   return lasttemp[i];
 }
 
+uint16_t getTempRaw(int i) {
+  if (!tempdata[i].initialized) return 0;
+  uint8_t saveSREG = SREG;
+  cli();
+  uint16_t t = tempdata[i].average;
+  SREG=saveSREG;
+  return t;
+}
+
 void updateTemp() {
   static uint8_t state = 0;
   static uint8_t t = 0;

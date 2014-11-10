@@ -36,6 +36,7 @@
 // As there are only 3 available Serial ports
 //////////////////////////////////////////////////
 #define _PH  //comment out if no ph probe or ph stamp
+#define _PHTEMPCOMPENSATE
 #define MAXPH 1 //number of ph stamps
 #if !defined(_PH)
 #define MAXPH 0
@@ -65,6 +66,7 @@
 #define ORPALERT {200,300}
 //uncomment the next line if you have Atlas Conductivity sensor and make sure the addr has the right serial port or I2C address
 //#define _COND
+#define _CONDTEMPCOMPENSATE
 #if !defined(_COND)
 #define MAXCOND 0
 #else

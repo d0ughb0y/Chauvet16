@@ -16,6 +16,7 @@ class Sensor {
     Sensor(char* name, SensorType type, SensorAddrType addr, boolean isEZO);
     virtual boolean init();
     virtual void update();
+    virtual void update(uint16_t rawtemp);
     virtual float getAvg();
     virtual float getVal();
     virtual void calibrate(char* calstr);
@@ -33,6 +34,7 @@ class Sensor {
     float _value; //last reading value
     float _value2; //2 consecutive readings must be within +/- 10%
     float _sum; //for calculating running average
+    uint16_t _temp; //temp used for temp compensation
     volatile float _average; //the running average
     virtual void send(char* command) {};
     virtual boolean getresponse() {};
