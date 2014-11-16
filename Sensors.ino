@@ -279,17 +279,16 @@ void checkAlarm() {
 #endif
 #ifdef _PH
   for (int i=0;i<MAXPH;i++) {
-    if (ph[i]->isInitialized() && (ph[i]->getAvg()>conf.alert[MAXTEMP+i].highalert || ph[i]->getAvg()<conf.alert[MAXTEMP+i].lowalert))
+    if (ph[i]->isInitialized() && (ph[i]->getVal()>conf.alert[MAXTEMP+i].highalert || ph[i]->getVal()<conf.alert[MAXTEMP+i].lowalert))
       return setAlarm(true);
   }
 #endif
 #ifdef _ORP
-  if (orp.isInitialized() && (orp.getAvg()>conf.alert[MAXTEMP+MAXPH].highalert || orp.getAvg()<conf.alert[MAXTEMP+MAXPH].lowalert))
+  if (orp.isInitialized() && (orp.getVal()>conf.alert[MAXTEMP+MAXPH].highalert || orp.getVal()<conf.alert[MAXTEMP+MAXPH].lowalert))
       return setAlarm(true);
 #endif
 #ifdef _COND
-//  if (conddata.initialized && (getAtlasAvg(conddata)>conf.alert[MAXTEMP+MAXPH+MAXORP].highalert || getAtlasAvg(conddata)<conf.alert[MAXTEMP+MAXPH+MAXORP].lowalert))
-  if (cond.isInitialized() && (cond.getAvg()>conf.alert[MAXTEMP+MAXPH+MAXORP].highalert || cond.getAvg()<conf.alert[MAXTEMP+MAXPH+MAXORP].lowalert))
+  if (cond.isInitialized() && (cond.getVal()>conf.alert[MAXTEMP+MAXPH+MAXORP].highalert || cond.getVal()<conf.alert[MAXTEMP+MAXPH+MAXORP].lowalert))
       return setAlarm(true);
 #endif
 #ifdef _SONAR
@@ -335,4 +334,3 @@ void setAlarm(boolean state){
     }
   }
 }
-

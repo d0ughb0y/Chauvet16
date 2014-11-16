@@ -36,7 +36,6 @@
 // As there are only 3 available Serial ports
 //////////////////////////////////////////////////
 #define _PH  //comment out if no ph probe or ph stamp
-#define _PHTEMPCOMPENSATE
 #define MAXPH 1 //number of ph stamps
 #if !defined(_PH)
 #define MAXPH 0
@@ -51,7 +50,7 @@
 //#define _PH2_SERIAL Serial2 //you can select serial or i2c but not both
 #define _PH2_I2C 99  //make sure i2c address is unique
 
-#define PHALERT {{7.5,9.0}}
+#define PHALERT {{7.5}}
 //uncomment the next line you have Atlas Orp sensor and make sure the addr has the right serial port
 //#define _ORP
 #if !defined(_ORP)
@@ -65,8 +64,8 @@
 #define _ORP_EZO true
 #define ORPALERT {200,300}
 //uncomment the next line if you have Atlas Conductivity sensor and make sure the addr has the right serial port or I2C address
-//#define _COND
-#define _CONDTEMPCOMPENSATE
+#define _COND
+//#define _CONDTEMPCOMPENSATE
 #if !defined(_COND)
 #define MAXCOND 0
 #else

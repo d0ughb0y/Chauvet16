@@ -228,6 +228,7 @@ void p(const __FlashStringHelper *ifsh) {
 boolean psensors() {
   static uint8_t state = 0;
   static uint8_t x=0;  //sensors printed so far, print 2 at a time
+  char buffer[5];
   if (!lcdpresent) return true;
   lcd.setCursor(0,1);
   if (x>=maxsensors) {
@@ -243,7 +244,7 @@ boolean psensors() {
 #else
     static int tindex = 0;
     while (tindex<MAXTEMP)  {
-      lcd << F("T") << tindex << F(":") << getTemp(tindex) << F(" ");
+      lcd << F("T") << tindex << F(":") << dtostrf(getTemp(tindex),4,1,buffer) << F(" ");
       x++;
       tindex++;
       if (x%2==0) return x>=maxsensors;
@@ -255,13 +256,13 @@ boolean psensors() {
 case 1:
 #ifdef _PH
 #if MAXPH==1
-  lcd << F("pH:") << ph[0]->getAvg()  << F(" ");
+  lcd << F("pH:") << ph[0]->getVal()  << F(" ");
   x++;
   if (x%2==0) return x>=maxsensors;
 #else
   static int pindex = 0;
   while (pindex<MAXPH)  {
-    lcd << F("pH") << pindex << F(":") << ph[pindex]->getAvg()  << F(" ");
+    lcd << F("P") << pindex<<  F(":") << ph[pindex]->getVal() << F(" ");
     x++;
     pindex++;
     if (x%2==0) return x>=maxsensors;
@@ -272,14 +273,14 @@ case 1:
   state=2;
  case 2:
 #ifdef _COND
- lcd << F("C:") << cond.getAvg();
+ lcd << F("C:") << cond.getVal() << F("  ");
  x++;
  if (x%2==0) return x>=maxsensors;
 #endif
   state=3;
   case 3:
 #ifdef _ORP
-    lcd << F("O:") << orp.getAvg();
+    lcd << F("O:") << orp.getVal() << F("   ");
     x++;
     if (x%2==0) return x>=maxsensors;
 #endif
@@ -480,18 +481,18 @@ void logSensors() {
     for (int i=0;i<MAXPH;i++) {
       fileout_ << F("<probe><name>") << ph[i]->getName() << F("</name><value>");
       fileout_ << setprecision(2);
-      fileout_ << (ph[i]->getAvg()<10.0?" ":"") << ph[i]->getAvg() << F("</value></probe>");
+      fileout_ << (ph[i]->getVal()<10.0?" ":"") << ph[i]->getVal() << F("</value></probe>");
     }
 #endif
 #ifdef _COND
       fileout_ << F("<probe><name>Cond</name><value>");
       fileout_ << setprecision(1);
-      fileout_ << cond.getAvg() << F("</value></probe>");
+      fileout_ << cond.getVal() << F("</value></probe>");
 #endif
 #ifdef _ORP
       fileout_ << F("<probe><name>Orp</name><value>");
       fileout_ << setprecision(0);
-      fileout_ << orp.getAvg() << F("</value></probe>");
+      fileout_ << orp.getVal() << F("</value></probe>");
 #endif
     fileout_ << F("</record>\n");
     fileout_.close();
@@ -539,14 +540,14 @@ void logAlarm() {
 #endif
 #ifdef _PH
     for (uint8_t i=0;i<MAXPH;i++) {
-      fileout_ << (const char*)ph[i]->getName() << F(":") << ph[i]->getAvg() << F(" ");
+      fileout_ << (const char*)ph[i]->getName() << F(":") << ph[i]->getVal() << F(" ");
     }
 #endif
 #ifdef _COND
-    fileout_ << F("Cond:") << cond.getAvg() << F(" ");
+    fileout_ << F("Cond:") << cond.getVal() << F(" ");
 #endif
 #ifdef _ORP
-    fileout_ << F("Orp:") << orp.getAvg() << F(" ");
+    fileout_ << F("Orp:") << orp.getVal() << F(" ");
 #endif
 #ifdef _DOSER
     for (int i=0;i<MAXDOSERS;i++) {

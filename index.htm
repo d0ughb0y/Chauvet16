@@ -639,22 +639,25 @@
 					<h4 style="text-align: center">Calibrate</h4>
 					<label for="_sensorphvalue" data-mini="true">Sensor Reading:</label>
 					<input data-mini="true" name="_sensorphvalue" id="_sensorphvalue" readonly/>
-					<button data-mini="true" id="_sensorphcal7"	onclick="csutil({'cmd':'cal_mid_7.00','type':'1','value':'0'});">Cal,Mid,7.00</button>
-					<button data-mini="true" id="_sensorphcal4"	onclick="csutil({'cmd':'cal_low_4.00','type':'1','value':'0'});">Cal,Low,4.00</button>
-					<button data-mini="true"	id="_sensorphcal10"onclick="csutil({'cmd':'cal_high_10.00','type':'1','value':'0'});">Cal,High,10.00</button>
+					<button data-mini="true" id="_sensorphreset"	onclick="csutil({'cmd':'reset','type':'1','value':''+sensoridx-numtemp});">Reset</button>
+					<button data-mini="true" id="_sensorphcal7"	onclick="csutil({'cmd':'cal_mid_7.00','type':'1','value':''+sensoridx-numtemp});">Cal,Mid,7.00</button>
+					<button data-mini="true" id="_sensorphcal4"	onclick="csutil({'cmd':'cal_low_4.00','type':'1','value':''+sensoridx-numtemp});">Cal,Low,4.00</button>
+					<button data-mini="true"	id="_sensorphcal10"onclick="csutil({'cmd':'cal_high_10.00','type':'1','value':''+sensoridx-numtemp});">Cal,High,10.00</button>
 				</div>
 				<div id="_sensororpcalibrate">
 					<h4 style="text-align: center">Calibrate</h4>
 					<label for="_sensororpvalue" data-mini="true">Sensor Reading (mv):</label>
 					<input data-mini="true" name="_sensororpvalue" id="_sensororpvalue" readonly/>
+					<button data-mini="true" id="_sensororpreset"	onclick="csutil({'cmd':'reset','type':'2','value':'0'});">Reset</button>
 					<button data-mini="true" id="_sensororpcalezo"	onclick="csutil({'cmd':'cal_225','type':'2','value':'0'});">Calibrate EZO 225</button>
 					<button data-mini="true"	id="_sensororpcalminus" onclick="csutil({'cmd':'cal_-','type':'2','value':'0'});">Calibrate -</button>
-					<button	data-mini="true" id="_sensororpcalplus"onclick="csutil({'cmd':'cal_+','type':'2','value':''+sensoridx-numtemp});">Calibrate	+</button>
+					<button	data-mini="true" id="_sensororpcalplus"onclick="csutil({'cmd':'cal_+','type':'2','value':'0'});">Calibrate	+</button>
 				</div>
 				<div id="_sensorcondcalibrate">
 					<h4 style="text-align: center">Calibrate</h4>
 					<label for="_sensorcondvalue" data-mini="true">Sensor Reading (us):</label>
 					<input data-mini="true" name="_sensorcondvalue" id="_sensorcondvalue" readonly/>
+					<button data-mini="true" id="_sensorcondreset"	onclick="csutil({'cmd':'reset','type':'3','value':'0'});">Reset</button>
 					<button data-mini="true" id="_sensorcondcaldry"	onclick="csutil({'cmd':'cal_dry','type':'3','value':'0'});">Cal,Dry</button>
 					<button data-mini="true" id="_sensorcondcalone"	onclick="csutil({'cmd':'cal_one_53000','type':'3','value':'0'});">Cal,One,53000</button>
 					<button data-mini="true" id="_sensorcondcallow"	onclick="csutil({'cmd':'cal_low_12880','type':'3','value':'0'});">Cal,Low,12880</button>
@@ -2690,6 +2693,8 @@ function csutil(param){
 			if (param.type==5 && pwmfansopen==false)
 				return;
 			if (param.type<4 && param.type!=config.alerts[sensoridx].t)
+				return;
+			if (param.type==1 && param.value!=(sensoridx-numtemp))
 				return;
 			csutilfunction=setTimeout(function(){csutil(param);},1000);
 		})

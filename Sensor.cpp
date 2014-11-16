@@ -8,10 +8,14 @@
 #include "Sensor.h"
 #include "Arduino.h"
 
+Sensor* ssensors[3];
+uint8_t idx = 0;
+
 Sensor::Sensor(char* name, SensorType type, SensorAddrType addrType, boolean isEZO){
   _type=type;
   _addrType = addrType;
   _isEZO = isEZO;
+  _retrycount=0;
   strcpy(_name,name);
 }
 
@@ -41,59 +45,63 @@ boolean Sensor::init() {
       getresponse();
     }
     send("r");
-  } else {
-    send("");
-    send("L1");
+  } else {//non EZO is always Serial
     send("e");
+    send("e");
+    send("L1");
     send("r");
   }
   delay(1500);
-  _average=0.0;
-  while (!getresponse() || strlen(_scratch)==0) delay(100);
+  int countdown = 50;
+  while (!getresponse() || _scratch[0]==0) {
+    if (countdown-- == 0)
+      return false;
+    delay(100);
+  }
   if (_type==_cond) {
     char* v = strchr(_scratch,',');
     if (v==0) return false;
     _value=atof(v+1);
-  } else
+  } else {
     _value=atof(_scratch);
+    if (_value==0 && _scratch[0]!='0')
+      return false;
+  }
   if (_value>=0) {
-    _sum = _value*numReadings;
-    _average = _value;
-    send("r");
+      send("r");
     _initialized=true;
     return true;
   }
   return false;
 }
 
-void Sensor::update() {
-  update(0);
-}
-
 void Sensor::update(uint16_t rawtemp) {
+  float _tmp=0;
   if (!_initialized) return;
   if (getresponse()) {
     if (_type==_cond) {
       char* v = strchr(_scratch,',');
       if (v) {
-        _value=atof(v+1);
+        _tmp=atof(v+1);
+        if (_tmp==0 && *(v+1)!='0')
+          _tmp=-1;
         *v=0;
         _ec=atol(_scratch);
+      } else {
+        _tmp=_value;
       }
-    } else
-      _value = atof(_scratch);
-    if (_value>0) {
-      if (fabs(_value-_value2)<_value2*0.1) {
-        _sum = (_sum-_average)+_value;
-        cli();
-        _average = _sum / numReadings;
-        sei();
-      }
-      _value2 = _value;
+    } else {
+      _tmp = atof(_scratch);
+      if (_tmp==0 && _scratch[0]!='0')
+        _tmp=-1;
     }
+    uint8_t saveSREG=SREG;
+    cli();
+    _value = _tmp;
+    SREG=saveSREG;
     if (rawtemp && rawtemp!=_temp) {
       _temp=rawtemp;
-      if (_isEZO) {
+      if (_isEZO && _type==_cond) {
         char buffer[8];
         buffer[0]='T';
         buffer[1]=',';
@@ -101,31 +109,26 @@ void Sensor::update(uint16_t rawtemp) {
         send(buffer);
         delay(300);
         getresponse();
-      } else if (_type==_ph) {
-        char buffer[6];
-        dtostrf(rawtemp/16.0,5,2,(char*)buffer);
-        send(buffer);
       }
     }
+    _ready=false;
     send("r");
+    _retrycount=0;
+  } else {
+    if (_retrycount++ >= 10) {
+      send("r");
+      _retrycount=0;
+      _value=-1;
+    }
   }
 }
 
-float Sensor::getAvg() {
-  if (!_initialized) return 0.0;
-  uint8_t saveSREG=SREG;
-  cli();
-  float p = _average;
-  SREG=saveSREG;
-  return p;
+void Sensor::update() {
+  update(0);
 }
 
 float Sensor::getVal() {
-  uint8_t saveSREG=SREG;
-  cli();
-  float p = _value;
-  SREG=saveSREG;
-  return p;
+  return _value;
 }
 
 void Sensor::calibrate(char* calstr) {
@@ -147,6 +150,17 @@ void Sensor::calibrate(char* calstr) {
   send(calstr);
 }
 
+void Sensor::reset(){
+  if (_isEZO) {
+    send("cal,clear");
+  } else {
+    send("x");
+    send("e");
+    send("L1");
+    send("r");
+  }
+}
+
 boolean Sensor::isInitialized(){
   return _initialized;
 }
@@ -160,6 +174,7 @@ char* Sensor::getName(){
 }
 
 SensorSerial::SensorSerial(char* name,SensorType type, HardwareSerial* saddr, boolean isEZO) :Sensor(name,type,_serial,isEZO) {
+  ssensors[idx++]=this;
   _saddr = saddr;
   if (type==_cond)
     _isEZO=true;
@@ -181,29 +196,24 @@ boolean SensorSerial::getresponse() {
     char c = (char)_saddr->read();
     if (c=='\r') {
       _scratch[i]=0;
+      _ready=true;
       i=0;
-      return true;
     } else {
       _scratch[i++]=c;
       if (i==14) {
-        i=0;
         _scratch[0]=0;
-        return true;
+        i=0;
+        _ready=false;
       }
     }
   }
-  return false;
+  return _ready;
 }
 
 SensorI2C::SensorI2C(char* name,SensorType type, uint8_t i2caddr) :Sensor(name,type,_i2c,true) {
   _i2caddr = i2caddr;
   _initialized=false;
 }
-
-//boolean SensorI2C::isPresent(){
-//  Wire.beginTransmission(_i2caddr);
-//  return Wire.endTransmission()==0;
-//}
 
 void SensorI2C::send(char* str) {
   Wire.beginTransmission(_i2caddr);
@@ -225,4 +235,9 @@ boolean SensorI2C::getresponse(){
   }
   Wire.endTransmission();
   return true;
+}
+void serialEventRun(){
+  for (uint8_t i=0;i<idx;i++) {
+    ssensors[i]->getresponse();
+  }
 }

@@ -7,7 +7,6 @@
 #ifndef _Sensor_h
 #define _Sensor_h
 #include "Arduino.h"
-#define numReadings 8
 
 class Sensor {
   public:
@@ -17,27 +16,26 @@ class Sensor {
     virtual boolean init();
     virtual void update();
     virtual void update(uint16_t rawtemp);
-    virtual float getAvg();
+    virtual boolean getresponse() {};
     virtual float getVal();
     virtual void calibrate(char* calstr);
+    virtual void reset();
     virtual boolean isInitialized();
     virtual long getEC();
     virtual char* getName();
   protected:
     boolean _initialized;
     boolean _isEZO;
+    boolean _ready;
     long _ec;
     char _name[8];
     SensorType _type;
     SensorAddrType _addrType;
     char _scratch[15];//store serial reading here
     float _value; //last reading value
-    float _value2; //2 consecutive readings must be within +/- 10%
-    float _sum; //for calculating running average
     uint16_t _temp; //temp used for temp compensation
-    volatile float _average; //the running average
+    uint8_t _retrycount;
     virtual void send(char* command) {};
-    virtual boolean getresponse() {};
 };
 
 

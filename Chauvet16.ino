@@ -255,21 +255,17 @@ void loop() {
 #ifdef _PH
     if (counter%(64/MAXPH)==0) {
       static uint8_t phidx = 0;
-      ph[phidx++]->update(
-#ifdef _PHTEMPCOMPENSATE
-      getTempRaw(0)
-#endif
-      );
+      ph[phidx++]->update();
       phidx%=MAXPH;
     }
 #endif
 #ifdef _ORP
-    if (counter%70==0) {
+    if (counter%65==0) {
       orp.update();
     }
 #endif
 #ifdef _COND
-    if (counter%80==0) {
+    if (counter%66==0) {
       cond.update(
 #ifdef _CONDTEMPCOMPENSATE
       getTempRaw(0)

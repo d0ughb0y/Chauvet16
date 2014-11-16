@@ -30,14 +30,14 @@ FLASH_STRING(apex_json1,"{\"pstat\":");
 FLASH_STRING(apex_json1b,"{\"hostname\":\"");
 FLASH_STRING(apex_json1c,"\",\"software\":\"4.20_1B13\",\"hardware\":\"1.0\",\"serial\":\"AC4:12345\",\"timezone\":\"");
 FLASH_STRING(apex_json2,"\",\"d\":");
-FLASH_STRING(apex_json3,",\"feed\":{\"name\":");
-FLASH_STRING(apex_json3a,",\"active\":");
-FLASH_STRING(apex_json3b,"},\"power\":{\"failed\":1367205445,\"restored\":1367205445},\"probes\":[");
+FLASH_STRING(apex_json3,",\"feed\":{\"name\":\"");
+FLASH_STRING(apex_json3a,"\",\"active\":\"");
+FLASH_STRING(apex_json3b,"\"},\"power\":{\"failed\":\"1367205445\",\"restored\":\"1367205445\"},\"probes\":[");
 FLASH_STRING(apex_json_probe1,"{\"did\":\"base_");
 FLASH_STRING(apex_json_probe2,"\",\"t\":\"");
 FLASH_STRING(apex_json_probe3,"\",\"n\":\"");
-FLASH_STRING(apex_json_probe4,"\",\"v\":");
-FLASH_STRING(apex_json_probe5,"}");
+FLASH_STRING(apex_json_probe4,"\",\"v\":\"");
+FLASH_STRING(apex_json_probe5,"\"}");
 FLASH_STRING(apex_json6,"],\"outlets\":[");
 FLASH_STRING(apex_json7,"{\"n\":\"");
 FLASH_STRING(apex_json8,"\",\"s\":\"");
@@ -120,17 +120,17 @@ boolean apex_status_handler(TinyWebServer& webserver) {
 #endif
 #ifdef _PH
   for (int i=0;i<MAXPH;i++) {
-    client << apex_xml_probe1 << ph[i]->getName() << apex_xml_probe2 << dtostrf(ph[i]->getAvg(), 5,2, (char*)tmp);
+    client << apex_xml_probe1 << ph[i]->getName() << apex_xml_probe2 << dtostrf(ph[i]->getVal(), 5,2, (char*)tmp);
     client << apex_xml_probe3 << F("pH") << apex_xml_probe4;
   }
   client.flush();
 #endif
 #ifdef _COND
-  client << apex_xml_probe1 << F("Cond") << apex_xml_probe2 << dtostrf(cond.getAvg(), 4,1, (char*)tmp);
+  client << apex_xml_probe1 << F("Cond") << apex_xml_probe2 << dtostrf(cond.getVal(), 4,1, (char*)tmp);
   client << apex_xml_probe3 << F("Cond") << apex_xml_probe4;
 #endif
 #ifdef _ORP
-  client << apex_xml_probe1 << F("Orp") << apex_xml_probe2 << dtostrf(orp.getAvg(), 3,0, (char*)tmp);
+  client << apex_xml_probe1 << F("Orp") << apex_xml_probe2 << dtostrf(orp.getVal(), 3,0, (char*)tmp);
   client << apex_xml_probe3 << F("Orp") << apex_xml_probe4;
 #endif
   client << apex_xml_probe5;
@@ -375,20 +375,20 @@ boolean apex_status_json_handler(TinyWebServer& webserver) {
 #ifdef _PH
   for (int i=0;i<MAXPH;i++) {
     client << apex_json_probe1 << F("pH") << i << apex_json_probe2 << F("pH") << apex_json_probe3 << ph[i]->getName();
-    client << apex_json_probe4 << ph[i]->getAvg() << apex_json_probe5;
+    client << apex_json_probe4 << ph[i]->getVal() << apex_json_probe5;
     if (++sensorcount<maxsensors)
       client << F(",");
   }
 #endif
 #ifdef _COND
     client << apex_json_probe1 << F("Cond") << apex_json_probe2 << F("Cond") << apex_json_probe3 << F("Cond");
-    client << apex_json_probe4 << cond.getAvg() << apex_json_probe5;
+    client << apex_json_probe4 << cond.getVal() << apex_json_probe5;
     if (++sensorcount<maxsensors)
       client << F(",");
 #endif
 #ifdef _ORP
   client << apex_json_probe1 << F("Orp") << apex_json_probe2 << F("Orp") << apex_json_probe3 << F("Orp");
-  client << apex_json_probe4 << orp.getAvg() << apex_json_probe5;
+  client << apex_json_probe4 << orp.getVal() << apex_json_probe5;
     if (++sensorcount<maxsensors)
       client << F(",");
 #endif
@@ -970,6 +970,9 @@ boolean apex_csutil_handler(TinyWebServer& webserver) {
         return csutilreply(webserver, ph[value]->getVal());
       } else if (strncmp_P(command,PSTR("cal_"),4)==0) {
         ph[value]->calibrate(fixcalstr(command));
+      } else if (strcmp_P(command,PSTR("reset"))==0) {
+        ph[value]->reset();
+        return csutilsuccessreply(webserver,F("Stamp is reset."));
       } else {
         return apex_error(webserver,F("Invalid csutil data."),3);
       }
@@ -983,6 +986,9 @@ boolean apex_csutil_handler(TinyWebServer& webserver) {
           command+=4;
         }
         orp.calibrate(fixcalstr(command));
+      } else if (strcmp_P(command,PSTR("reset"))==0) {
+        orp.reset();
+        return csutilsuccessreply(webserver,F("Stamp is reset."));
       } else  {
         return apex_error(webserver,F("Invalid csutil data."),4);
       }
@@ -993,6 +999,9 @@ boolean apex_csutil_handler(TinyWebServer& webserver) {
         return csutilreply(webserver, cond.getEC());
       } else if (strncmp_P(command,PSTR("cal_"),4)==0) {
         cond.calibrate(fixcalstr(command));
+      } else if (strcmp_P(command,PSTR("reset"))==0) {
+        cond.reset();
+        return csutilsuccessreply(webserver,F("Stamp is reset."));
       } else {
         return apex_error(webserver,F("Invalid csutil data."),5);
       }
@@ -1017,11 +1026,7 @@ boolean apex_csutil_handler(TinyWebServer& webserver) {
       return apex_error(webserver,F("incorrect csutil data."),7);
     }
     beepOK();
-    webserver.send_error_code(200);
-    webserver.send_content_type(F("text/plain"));
-    webserver.end_headers();
-    webserver.get_client() << F("Calibrate command OK.");
-    return true;
+    return csutilsuccessreply(webserver,F("Calibrate command OK."));
   } 
   return apex_error(webserver,F("incorrect csutil data."),8);
 }
@@ -1034,6 +1039,14 @@ char* fixcalstr(char* calstr){
     }
   }
   return calstr;
+}
+
+boolean csutilsuccessreply(TinyWebServer& webserver, const __FlashStringHelper* msg) {
+    webserver.send_error_code(200);
+    webserver.send_content_type(F("text/plain"));
+    webserver.end_headers();
+    webserver.get_client() << msg;
+    return true;
 }
 
 boolean csutilreply(TinyWebServer& webserver, float val) {
