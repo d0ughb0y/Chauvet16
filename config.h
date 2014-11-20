@@ -157,8 +157,8 @@
 #define OUTLOGSZ 6  //size of circular queue for outlet log
 
 #define MAXOUTLETS  8 //either 8 or 16
-//#define OUTLET8INVERTED //uncomment this if you want outlets 1-8 to have inverse logic
-//#define OUTLET16INVERTED  //uncomment this if you want outlets 9-16 to have inverse logic
+//#define OUTLET8INVERTED //uncomment this if you want outlets 1-8 to have inverse logic, like if you are using ULN2803
+#define OUTLET16INVERTED  //uncomment this if you want outlets 9-16 to have inverse logic, like if you are using ULN2803
 #define MAXMACROS  4 //fixed
 #define MAXMACROACTIONS 6  //fixed for now, can be made longer if needed
 #define EEPROMSIG 0xA0 //change this everytime you want the eeprom defaults to change

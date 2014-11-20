@@ -6,8 +6,16 @@
 */
 void initOutlets() {
   DDRA = DDRC = 0xFF;
+#ifdef OUTLET8INVERTED
+  PORTA = 0;
+#else
   PORTA = 0xFF;
+#endif
+#ifdef OUTLET16INVERTED
   PORTC = 0;
+#else
+  PORTC = 0xFF;
+#endif
 
   p(F("Outlet Timers OK"));
   logMessage(F("Outlet Timers initialized"));
@@ -201,11 +209,11 @@ void _outletOn(uint8_t p){
     FeedModeOFF();
   }else {
 #ifdef OUTLET16INVERTED
-    if (!(~PORTC & _BV(p-8))) {
-      PORTC &= ~_BV(p-8);
-#else
     if (!(PORTC & _BV(p-8))) {
       PORTC |= _BV(p-8);
+#else
+    if (!(~PORTC & _BV(p-8))) {
+      PORTC &= ~_BV(p-8);
 #endif
       _outlogentry(p,true);
     }
@@ -228,11 +236,11 @@ void _outletOff(uint8_t p) {
      FeedModeON(); 
   }else {
 #ifdef OUTLET16INVERTED
-    if (~PORTC & _BV(p-8)) {
-      PORTC |= _BV(p-8);
-#else
     if (PORTC & _BV(p-8)) {
       PORTC &= ~_BV(p-8);
+#else
+    if (~PORTC & _BV(p-8)) {
+      PORTC |= _BV(p-8);
 #endif
       _outlogentry(p,false);
     }
@@ -280,9 +288,9 @@ boolean isOutletOn(uint8_t p) {
 #endif
    } else {
 #ifdef OUTLET16INVERTED
-      return ~PORTC & _BV(p-8);
-#else
       return PORTC & _BV(p-8);
+#else
+      return ~PORTC & _BV(p-8);
 #endif
    }
 }

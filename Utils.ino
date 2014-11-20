@@ -342,6 +342,8 @@ void poutlets() {
   uint8_t oa = ~PORTA;
 #endif
 #ifdef OUTLET16INVERTED
+  uint8_t ob = PORTC;
+#else
   uint8_t ob = ~PORTC;
 #else
   uint8_t ob = PORTC;
