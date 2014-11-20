@@ -258,12 +258,7 @@ void sendEmail() {
   if (!conf.emailalert) return;
   logMessage(F("Sending email alert."));
   EthernetClient client;
-#ifdef SMTP_IP
-  IPAddress smtpip(SMTP_IP);
-  if (client.connect(smtpip,SMTPPORT)==1){
-#else
   if (client.connect(SMTPSERVER, SMTPPORT)==1){
-#endif
     if(!eRcv(client)) return;
     client << F("EHLO CHAUVET16\r\n");
     if(!eRcv(client)) return;

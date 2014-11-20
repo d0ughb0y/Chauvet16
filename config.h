@@ -146,7 +146,6 @@
 //SMTPPASSWORD = your email password, sample below is password
 #define BASICAUTH "YWRtaW46cGFzc3dvcmQ="
 #define SMTPSERVER "smtp.gmx.net"
-#define SMTP_IP 74,208,5,30
 #define SMTPPORT 587
 #define SMTPUSER "YWRtaW4="
 #define SMTPPASSWORD "cGFzc3dvcmQ="
