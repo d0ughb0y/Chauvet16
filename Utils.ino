@@ -345,8 +345,6 @@ void poutlets() {
   uint8_t ob = PORTC;
 #else
   uint8_t ob = ~PORTC;
-#else
-  uint8_t ob = PORTC;
 #endif
   for (int p=0;p<MAXOUTLETS;p++) {
     if (p<8) {
