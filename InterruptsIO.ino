@@ -281,7 +281,7 @@ void initDosers(){
 inline void doserHandler(){
   for (int i=0;i<MAXDOSERS;i++) {
     if (doseractive[i]) {
-      if (++dosercounter[i]==dosercountmatch[i]) {
+      if (++dosercounter[i]>=dosercountmatch[i]) {
        doserOff(i);
       }
     }

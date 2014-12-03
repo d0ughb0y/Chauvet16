@@ -739,6 +739,10 @@ boolean apex_config_post(TinyWebServer& webserver, long postlen) {
         strcpy((char*)myconf.doser[i].name,strtok(NULL,delims));
         strtok(NULL,delims);
         myconf.doser[i].dailydose =atoi(strtok(NULL,delims));
+        if (myconf.doser[i].dailydose==0) {
+          beepFail();
+          return apex_error(webserver,F("Daily dose must be >0 and an integer."),0);
+        }
         strtok(NULL,delims);        
         myconf.doser[i].dosesperday =(uint8_t)atoi(strtok(NULL,delims));
         strtok(NULL,delims);        
