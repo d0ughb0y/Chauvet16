@@ -488,7 +488,7 @@ boolean IsDST(time_t t)
   dstStart += 2*SECS_PER_HOUR;
   te.Month=11;
   dstEnd = makeTime(te);
-  if (dayOfWeel(dstEnd)!=dowSunda) //if Nov 1 is already a Sundau, skip call to nextSunday
+  if (dayOfWeek(dstEnd)!=dowSunday) //if Nov 1 is already a Sundau, skip call to nextSunday
     dstEnd = nextSunday(dstEnd); //first sunday in november
   dstEnd += SECS_PER_HOUR;
   return (t>=dstStart && t<dstEnd);
