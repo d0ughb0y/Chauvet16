@@ -386,13 +386,19 @@ void initClock() {
   if (ntptime>0) {
     setTime(ntptime);
     #ifdef AUTODST
+    logMessage(F("AutoDST enabled."));
     if (IsDST(ntptime)) 
     {
+      logMessage(F("It is currently DST."));
       //dstoffset = STDTZOFFSET+1L; //dst
       isDst = true;
       ntptime += SECS_PER_HOUR;
       setTime(ntptime);  //adjust to dst
+    } else {
+       logMessage(F("It is currently not DST."));
     }
+    #else
+    logMessage(F("AutoDST disabled."));
     #endif
     logMessage(F("Got NTP time "));
     p(F("NTP sync OK.    "));
@@ -476,7 +482,8 @@ boolean IsDST(time_t t)
   te.Second = 0;
   time_t dstStart,dstEnd;
   dstStart = makeTime(te);
-  dstStart = nextSunday(dstStart);
+  if (dayOfWeek(dstStart)!=dowSunday)//if Mar 1 is already a Sunday, skip one call to nextSunday
+    dstStart = nextSunday(dstStart);
   dstStart = nextSunday(dstStart); //second sunday in march
   dstStart += 2*SECS_PER_HOUR;
   te.Month=11;
