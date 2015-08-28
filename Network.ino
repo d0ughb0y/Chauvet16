@@ -107,7 +107,7 @@ void send_file_name(TinyWebServer& web_server) {
   send_file_name(web_server,fullpath);
 }
 
-void send_file_name(TinyWebServer& web_server, char* fullpath) {
+void send_file_name(TinyWebServer& web_server, const char* fullpath) {
   char* fn;
   EthernetClient& client = web_server.get_client();
   if (!fullpath) {
@@ -119,7 +119,7 @@ void send_file_name(TinyWebServer& web_server, char* fullpath) {
       = TinyWebServer::get_mime_type_from_filename(fullpath);
     char* f = strrchr(fullpath,'/'); 
     if (f>fullpath)
-      fullpath[f-fullpath]=0;
+      ((char*)fullpath)[f-fullpath]=0;
     if ((f==fullpath?sd.chdir():sd.chdir(fullpath))) {
       fn = f+1;
       if (file_.open(fn,O_READ)) {

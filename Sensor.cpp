@@ -11,7 +11,7 @@
 Sensor* ssensors[3];
 uint8_t idx = 0;
 
-Sensor::Sensor(char* name, SensorType type, SensorAddrType addrType, boolean isEZO){
+Sensor::Sensor(const char* name, SensorType type, SensorAddrType addrType, boolean isEZO){
   _type=type;
   _addrType = addrType;
   _isEZO = isEZO;
@@ -173,7 +173,7 @@ char* Sensor::getName(){
   return _name;
 }
 
-SensorSerial::SensorSerial(char* name,SensorType type, HardwareSerial* saddr, boolean isEZO) :Sensor(name,type,_serial,isEZO) {
+SensorSerial::SensorSerial(const char* name,SensorType type, HardwareSerial* saddr, boolean isEZO) :Sensor(name,type,_serial,isEZO) {
   ssensors[idx++]=this;
   _saddr = saddr;
   if (type==_cond)
@@ -185,7 +185,7 @@ SensorSerial::SensorSerial(char* name,SensorType type, HardwareSerial* saddr, bo
   _initialized=false;
 }
 
-void SensorSerial::send(char* command) {
+void SensorSerial::send(const char* command) {
   _saddr->print(command);
   _saddr->print("\r");
 }
@@ -210,12 +210,12 @@ boolean SensorSerial::getresponse() {
   return _ready;
 }
 
-SensorI2C::SensorI2C(char* name,SensorType type, uint8_t i2caddr) :Sensor(name,type,_i2c,true) {
+SensorI2C::SensorI2C(const char* name,SensorType type, uint8_t i2caddr) :Sensor(name,type,_i2c,true) {
   _i2caddr = i2caddr;
   _initialized=false;
 }
 
-void SensorI2C::send(char* str) {
+void SensorI2C::send(const char* str) {
   Wire.beginTransmission(_i2caddr);
   Wire.write(str);
   Wire.endTransmission();

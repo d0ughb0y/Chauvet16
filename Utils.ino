@@ -567,7 +567,7 @@ void logAlarm() {
   }
 }
 
-boolean logSetup(const time_t thetime, char* buffer, char* dir, char* ext) {
+boolean logSetup(const time_t thetime, char* buffer, const char* dir, const char* ext) {
   getdatestring(thetime,buffer);
   char fullpath[13] = {
     '/',dir[0],dir[1],dir[2],'/',buffer[6],buffer[7],buffer[8],buffer[9],
@@ -634,7 +634,7 @@ void getfiles(EthernetClient& client, char* rootstr) {
       dir_t d;
       file_.dirEntry(&d);
       client << F("{\"n\":\"");
-      file_.getFilename(fn);
+      file_.getSFN(fn);
       client << fn;
       client << F("\",\"s\":\"");
       if (!file_.isDir())

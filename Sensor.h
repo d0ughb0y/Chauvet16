@@ -12,11 +12,11 @@ class Sensor {
   public:
     enum SensorType {_ph,_orp,_cond};
     enum SensorAddrType {_serial, _i2c};
-    Sensor(char* name, SensorType type, SensorAddrType addr, boolean isEZO);
+    Sensor(const char* name, SensorType type, SensorAddrType addr, boolean isEZO);
     virtual boolean init();
     virtual void update();
     virtual void update(uint16_t rawtemp);
-    virtual boolean getresponse() {};
+    virtual boolean getresponse(){return false;};
     virtual float getVal();
     virtual void calibrate(char* calstr);
     virtual void reset();
@@ -35,25 +35,25 @@ class Sensor {
     float _value; //last reading value
     uint16_t _temp; //temp used for temp compensation
     uint8_t _retrycount;
-    virtual void send(char* command) {};
+    virtual void send(const char* command) {};
 };
 
 
 class SensorSerial:public Sensor {
   public:
-    SensorSerial(char* name, SensorType type, HardwareSerial* saddr, boolean isEZO);
+    SensorSerial(const char* name, SensorType type, HardwareSerial* saddr, boolean isEZO);
   protected:
     HardwareSerial* _saddr;
     boolean getresponse();
-    void send(char* command);
+    void send(const char* command);
 };
 
 class SensorI2C:public Sensor {
   public:
-    SensorI2C(char* name, SensorType type, uint8_t i2caddr);
+    SensorI2C(const char* name, SensorType type, uint8_t i2caddr);
   protected:
     uint8_t _i2caddr;
     boolean getresponse();
-    void send(char* command);
+    void send(const char* command);
 };
 #endif
