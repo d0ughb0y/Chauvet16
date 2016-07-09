@@ -432,7 +432,7 @@ void logOutlet() {
   if (lhead != ltail) {
     char buffer[20];
     boolean inoutlog = false;
-    if (logSetup(ts, buffer, "OUT","txt")) {
+    if (logSetup(ts, buffer, "OUT","TXT")) {
       time_t currtime = ts;
       while (lhead != ltail) {
         fileout_ << F("<record><date>") << buffer << F("</date><name>");
@@ -469,7 +469,7 @@ void logOutlet() {
 
 void logSensors() {
   char buffer[20];
-  if (logSetup(now2(),buffer,"SEN","txt")) {
+  if (logSetup(now2(),buffer,"SEN","TXT")) {
     fileout_ << F("<record><date>") << buffer << F("</date>");
 #ifdef _TEMP
     for (int i=0;i<MAXTEMP;i++) {
@@ -501,7 +501,7 @@ void logSensors() {
 
 void logMessage(const __FlashStringHelper *msg,const char* str) {
   char buffer[20];
-  if (logSetup(now2(),buffer, "LOG","log")) {
+  if (logSetup(now2(),buffer, "LOG","LOG")) {
     fileout_ << buffer << F(" ") << msg << F(" ") << str  << F("\n");
     fileout_.close();
   }   
@@ -522,7 +522,7 @@ void logMessage(const __FlashStringHelper *msg, int n) {
 
 void logMessage(uint8_t ip[], const char* msg) {
   char buffer[20];
-  if (logSetup(now2(),  buffer, "LOG", "log")) {
+  if (logSetup(now2(),  buffer, "LOG", "LOG")) {
      fileout_ << buffer << F(" ") << (int)ip[0] << F(".") << (int)ip[1] << F(".") << (int)ip[2];
      fileout_ << F(".") << (int)ip[3] << F(" ") << msg << F("\n");
      fileout_.close();
@@ -531,7 +531,7 @@ void logMessage(uint8_t ip[], const char* msg) {
 
 void logAlarm() {
   char buffer[20];
-  if (logSetup(now2(),  buffer, "LOG", "log")) {
+  if (logSetup(now2(),  buffer, "LOG", "LOG")) {
      fileout_ << buffer << F(" Alarm Event: ");
 #ifdef _TEMP
     for (uint8_t i=0;i<MAXTEMP;i++) {

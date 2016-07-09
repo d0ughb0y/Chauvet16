@@ -461,10 +461,13 @@ void updateRTC(){
 void autoDST(time_t t) {
   if (IsDST(t)==isDst) return;
   isDst = !isDst;
-  if (isDst)
+  if (isDst) {
     RTC.set(t+SECS_PER_HOUR);
-  else
+    tz = STDTZOFFSET+1;
+  } else {
     RTC.set(t-SECS_PER_HOUR);
+    tz = STDTZOFFSET;
+  }
   setTime(RTC.get());
   logMessage(F("Auto adjusted DST time."));
   char buf[20];
