@@ -64,13 +64,13 @@ boolean process_params(char* inputstring, char* params_[], uint8_t len) {
   return true;
 }
 
-char* date2file(time_t t,char* base, char* buf) {
+char* date2file(time_t t,const char* base, char* buf) {
   tmElements_t tm;
   breakTime(t, tm);
   return date2file(tm, base, buf);
 }
 
-char* date2file(tmElements_t tm,char* base, char* buf) {
+char* date2file(tmElements_t tm, const char* base, char* buf) {
   char* c = buf;
   *c++='/';
   *c++=base[0];

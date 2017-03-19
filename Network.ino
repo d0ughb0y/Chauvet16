@@ -107,7 +107,7 @@ void send_file_name(TinyWebServer& web_server) {
   send_file_name(web_server,fullpath);
 }
 
-void send_file_name(TinyWebServer& web_server, char* fullpath) {
+void send_file_name(TinyWebServer& web_server, const char* fullpath) {
   char* fn;
   EthernetClient& client = web_server.get_client();
   if (!fullpath) {
@@ -119,7 +119,7 @@ void send_file_name(TinyWebServer& web_server, char* fullpath) {
       = TinyWebServer::get_mime_type_from_filename(fullpath);
     char* f = strrchr(fullpath,'/'); 
     if (f>fullpath)
-      fullpath[f-fullpath]=0;
+      ((char*)fullpath)[f-fullpath]=0;
     if ((f==fullpath?sd.chdir():sd.chdir(fullpath))) {
       fn = f+1;
       if (file_.open(fn,O_READ)) {
@@ -386,13 +386,19 @@ void initClock() {
   if (ntptime>0) {
     setTime(ntptime);
     #ifdef AUTODST
+    logMessage(F("AutoDST enabled."));
     if (IsDST(ntptime)) 
     {
+      logMessage(F("It is currently DST."));
       //dstoffset = STDTZOFFSET+1L; //dst
       isDst = true;
       ntptime += SECS_PER_HOUR;
       setTime(ntptime);  //adjust to dst
+    } else {
+       logMessage(F("It is currently not DST."));
     }
+    #else
+    logMessage(F("AutoDST disabled."));
     #endif
     logMessage(F("Got NTP time "));
     p(F("NTP sync OK.    "));
@@ -455,10 +461,13 @@ void updateRTC(){
 void autoDST(time_t t) {
   if (IsDST(t)==isDst) return;
   isDst = !isDst;
-  if (isDst)
+  if (isDst) {
     RTC.set(t+SECS_PER_HOUR);
-  else
+    tz = STDTZOFFSET+1;
+  } else {
     RTC.set(t-SECS_PER_HOUR);
+    tz = STDTZOFFSET;
+  }
   setTime(RTC.get());
   logMessage(F("Auto adjusted DST time."));
   char buf[20];
@@ -476,12 +485,14 @@ boolean IsDST(time_t t)
   te.Second = 0;
   time_t dstStart,dstEnd;
   dstStart = makeTime(te);
-  dstStart = nextSunday(dstStart);
+  if (dayOfWeek(dstStart)!=dowSunday)//if Mar 1 is already a Sunday, skip one call to nextSunday
+    dstStart = nextSunday(dstStart);
   dstStart = nextSunday(dstStart); //second sunday in march
   dstStart += 2*SECS_PER_HOUR;
   te.Month=11;
   dstEnd = makeTime(te);
-  dstEnd = nextSunday(dstEnd); //first sunday in november
+  if (dayOfWeek(dstEnd)!=dowSunday) //if Nov 1 is already a Sundau, skip call to nextSunday
+    dstEnd = nextSunday(dstEnd); //first sunday in november
   dstEnd += SECS_PER_HOUR;
   return (t>=dstStart && t<dstEnd);
 }

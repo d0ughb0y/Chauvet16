@@ -201,14 +201,14 @@ uint8_t W1Pattern(uint8_t step) {
   return val[step];
 }
 
-PROGMEM const prog_uint8_t w2val[]={136,156,166,176,186,196,201,208,224,
+PROGMEM const uint8_t w2val[]={136,156,166,176,186,196,201,208,224,
                               241,255,255,241,224,208,191,171,154};
 uint8_t W2Pattern(uint8_t step) {
   //move up 9 steps, down 6 steps
   return pgm_read_byte(w2val+step);
 }
 
-PROGMEM const prog_uint8_t w3val[]={128,136,156,166,176,203,230,255,
+PROGMEM const uint8_t w3val[]={128,136,156,166,176,203,230,255,
                               240,224,208,192,176,160,144,136};
 uint8_t W3Pattern(uint8_t step) {
   //move up 6 steps, down 8 steps
@@ -219,12 +219,12 @@ uint8_t ELSEPattern(uint8_t step) {
   return random(126,255);
 }
 
-PROGMEM const prog_uint8_t feedval[]={255,0,0,0,0,0,0,0};
+PROGMEM const uint8_t feedval[]={255,0,0,0,0,0,0,0};
 uint8_t FeedPattern(uint8_t step) {
   return pgm_read_byte(feedval+step);
 }
 
-PROGMEM const prog_uint8_t ntmval[]={255,255,255,255,255,255,255,255,255,255,255,255,
+PROGMEM const uint8_t ntmval[]={255,255,255,255,255,255,255,255,255,255,255,255,
                  255,255,255,255,255,255,255,255,255,255,255,255,
                  255,255,255,255,255,255,255,255,255,255,255,255,
                  255,255,255,255,255,255,255,255,255,255,255,255,
@@ -238,7 +238,7 @@ uint8_t NTMPattern(uint8_t step) {
   return pgm_read_byte(ntmval+step);
 }
 
-PROGMEM const prog_uint8_t cval[]=CUSTOMPATTERN;
+PROGMEM const uint8_t cval[]=CUSTOMPATTERN;
 uint8_t CustomPattern(uint8_t step) {
   return pgm_read_byte(cval+step);
 }

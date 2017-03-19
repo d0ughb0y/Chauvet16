@@ -11,7 +11,7 @@
 #define __WEB_SERVER_H__
 
 #include <Print.h>
-#include <SdFile.h>
+#include <SdFat.h>
 //class SdFile;
 class TinyWebServer;
 
